@@ -74,6 +74,7 @@ export namespace Win32
 		constexpr auto Border = WS_BORDER;
 		constexpr auto PushButton = BS_DEFPUSHBUTTON;
 		constexpr auto AutoCheckBox = BS_AUTOCHECKBOX;
+		constexpr auto AutoRadioButton = BS_AUTORADIOBUTTON;
 		constexpr auto GroupBox = BS_GROUPBOX;
 		constexpr auto EditAutoHScroll = ES_AUTOHSCROLL;
 		constexpr auto StaticLeft = SS_LEFT;
@@ -108,6 +109,8 @@ export namespace Win32
 		constexpr auto Edit = WC_EDIT;
 		constexpr auto ListBox = WC_LISTBOX;
 		constexpr auto ComboBox = WC_COMBOBOX;
+		constexpr auto Progress = PROGRESS_CLASS;
+		constexpr auto TrackBar = TRACKBAR_CLASS;
 	}
 
 	// === System constants ===

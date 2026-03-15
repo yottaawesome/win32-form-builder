@@ -10,14 +10,17 @@ namespace FormDesigner
 	{
 		switch (type)
 		{
-		case ControlType::Window:   return "Window";
-		case ControlType::Button:   return "Button";
-		case ControlType::CheckBox: return "CheckBox";
-		case ControlType::Label:    return "Label";
-		case ControlType::TextBox:  return "TextBox";
-		case ControlType::GroupBox: return "GroupBox";
-		case ControlType::ListBox:  return "ListBox";
-		case ControlType::ComboBox: return "ComboBox";
+		case ControlType::Window:      return "Window";
+		case ControlType::Button:      return "Button";
+		case ControlType::CheckBox:    return "CheckBox";
+		case ControlType::RadioButton: return "RadioButton";
+		case ControlType::Label:       return "Label";
+		case ControlType::TextBox:     return "TextBox";
+		case ControlType::GroupBox:    return "GroupBox";
+		case ControlType::ListBox:     return "ListBox";
+		case ControlType::ComboBox:    return "ComboBox";
+		case ControlType::ProgressBar: return "ProgressBar";
+		case ControlType::TrackBar:    return "TrackBar";
 		default:                    return "Window";
 		}
 	}

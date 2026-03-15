@@ -9,14 +9,17 @@ namespace FormDesigner
 	auto ParseControlType(const std::string& type) -> ControlType
 	{
 		static const auto map = std::unordered_map<std::string, ControlType>{
-			{"Window",   ControlType::Window},
-			{"Button",   ControlType::Button},
-			{"CheckBox", ControlType::CheckBox},
-			{"Label",    ControlType::Label},
-			{"TextBox",  ControlType::TextBox},
-			{"GroupBox", ControlType::GroupBox},
-			{"ListBox",  ControlType::ListBox},
-			{"ComboBox", ControlType::ComboBox},
+			{"Window",      ControlType::Window},
+			{"Button",      ControlType::Button},
+			{"CheckBox",    ControlType::CheckBox},
+			{"RadioButton", ControlType::RadioButton},
+			{"Label",       ControlType::Label},
+			{"TextBox",     ControlType::TextBox},
+			{"GroupBox",    ControlType::GroupBox},
+			{"ListBox",     ControlType::ListBox},
+			{"ComboBox",    ControlType::ComboBox},
+			{"ProgressBar", ControlType::ProgressBar},
+			{"TrackBar",    ControlType::TrackBar},
 		};
 
 		if (auto it = map.find(type); it != map.end())

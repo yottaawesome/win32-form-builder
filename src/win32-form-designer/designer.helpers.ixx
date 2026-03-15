@@ -168,13 +168,16 @@ export auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wcha
 {
     switch (type)
     {
-    case FormDesigner::ControlType::Button:   return L"Button";
-    case FormDesigner::ControlType::CheckBox: return L"CheckBox";
-    case FormDesigner::ControlType::Label:    return L"Label";
-    case FormDesigner::ControlType::TextBox:  return L"TextBox";
-    case FormDesigner::ControlType::GroupBox: return L"GroupBox";
-    case FormDesigner::ControlType::ListBox:  return L"ListBox";
-    case FormDesigner::ControlType::ComboBox: return L"ComboBox";
+    case FormDesigner::ControlType::Button:      return L"Button";
+    case FormDesigner::ControlType::CheckBox:    return L"CheckBox";
+    case FormDesigner::ControlType::RadioButton: return L"RadioButton";
+    case FormDesigner::ControlType::Label:       return L"Label";
+    case FormDesigner::ControlType::TextBox:     return L"TextBox";
+    case FormDesigner::ControlType::GroupBox:     return L"GroupBox";
+    case FormDesigner::ControlType::ListBox:     return L"ListBox";
+    case FormDesigner::ControlType::ComboBox:    return L"ComboBox";
+    case FormDesigner::ControlType::ProgressBar: return L"ProgressBar";
+    case FormDesigner::ControlType::TrackBar:    return L"TrackBar";
     default:                                  return L"Window";
     }
 }

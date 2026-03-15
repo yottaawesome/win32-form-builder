@@ -1,61 +1,107 @@
 {
-  "title": "Sample Form",
-  "width": 400,
-  "height": 300,
+  "backgroundColor": "#EFEFEF",
   "controls": [
     {
-      "type": "Label",
+      "rect": [
+        20,
+        22,
+        60,
+        17
+      ],
       "text": "Name:",
-      "rect": [20, 20, 60, 20]
+      "type": "Label"
     },
     {
-      "type": "TextBox",
-      "rect": [90, 18, 200, 24],
-      "id": 101
+      "id": 101,
+      "rect": [
+        90,
+        18,
+        200,
+        24
+      ],
+      "type": "TextBox"
     },
     {
-      "type": "Label",
+      "rect": [
+        20,
+        58,
+        60,
+        14
+      ],
       "text": "Email:",
-      "rect": [20, 55, 60, 20]
+      "type": "Label"
     },
     {
-      "type": "TextBox",
-      "rect": [90, 53, 200, 24],
-      "id": 102
+      "id": 102,
+      "rect": [
+        90,
+        53,
+        200,
+        24
+      ],
+      "type": "TextBox"
     },
     {
-      "type": "GroupBox",
-      "text": "Options",
-      "rect": [20, 90, 270, 100],
       "children": [
         {
-          "type": "CheckBox",
+          "id": 201,
+          "rect": [
+            15,
+            25,
+            200,
+            20
+          ],
           "text": "Subscribe to newsletter",
-          "rect": [15, 25, 200, 20],
-          "id": 201
+          "type": "CheckBox"
         },
         {
-          "type": "CheckBox",
+          "id": 202,
+          "rect": [
+            15,
+            50,
+            200,
+            20
+          ],
           "text": "Accept terms and conditions",
-          "rect": [15, 50, 200, 20],
-          "id": 202
+          "type": "CheckBox"
         }
-      ]
+      ],
+      "rect": [
+        20,
+        90,
+        270,
+        100
+      ],
+      "text": "Options",
+      "type": "GroupBox"
     },
     {
-      "type": "Button",
-      "text": "Submit",
-      "rect": [90, 210, 100, 30],
       "id": 301,
+      "onClick": "submit_form",
+      "rect": [
+        90,
+        210,
+        100,
+        30
+      ],
       "style": 1,
-      "onClick": "submit_form"
+      "text": "Submit",
+      "type": "Button"
     },
     {
-      "type": "Button",
-      "text": "Cancel",
-      "rect": [200, 210, 100, 30],
       "id": 302,
-      "onClick": "cancel_form"
+      "onClick": "cancel_form",
+      "rect": [
+        200,
+        210,
+        100,
+        30
+      ],
+      "text": "Cancel",
+      "type": "Button"
     }
-  ]
+  ],
+  "height": 300,
+  "title": "Sample Form",
+  "width": 400
 }

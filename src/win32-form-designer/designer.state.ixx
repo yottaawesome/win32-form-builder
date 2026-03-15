@@ -68,13 +68,16 @@ struct ToolboxItem
 };
 
 inline constexpr ToolboxItem TOOLBOX_ITEMS[] = {
-    { FormDesigner::ControlType::Button,   L"Button" },
-    { FormDesigner::ControlType::CheckBox, L"CheckBox" },
-    { FormDesigner::ControlType::Label,    L"Label" },
-    { FormDesigner::ControlType::TextBox,  L"TextBox" },
-    { FormDesigner::ControlType::GroupBox, L"GroupBox" },
-    { FormDesigner::ControlType::ListBox,  L"ListBox" },
-    { FormDesigner::ControlType::ComboBox, L"ComboBox" },
+    { FormDesigner::ControlType::Button,      L"Button" },
+    { FormDesigner::ControlType::CheckBox,    L"CheckBox" },
+    { FormDesigner::ControlType::RadioButton, L"RadioButton" },
+    { FormDesigner::ControlType::Label,       L"Label" },
+    { FormDesigner::ControlType::TextBox,     L"TextBox" },
+    { FormDesigner::ControlType::GroupBox,    L"GroupBox" },
+    { FormDesigner::ControlType::ListBox,     L"ListBox" },
+    { FormDesigner::ControlType::ComboBox,    L"ComboBox" },
+    { FormDesigner::ControlType::ProgressBar, L"ProgressBar" },
+    { FormDesigner::ControlType::TrackBar,    L"TrackBar" },
 };
 
 struct DesignState

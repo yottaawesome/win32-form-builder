@@ -18,11 +18,14 @@ export namespace FormDesigner
 		Window,     // Top-level or child window
 		Button,
 		CheckBox,
+		RadioButton,
 		Label,      // STATIC control
 		TextBox,    // EDIT control
 		GroupBox,
 		ListBox,
 		ComboBox,
+		ProgressBar,
+		TrackBar,
 	};
 
 	struct Control
@@ -54,13 +57,16 @@ export namespace FormDesigner
 	{
 		switch (type)
 		{
-		case ControlType::Button:   return Win32::Controls::Button;
-		case ControlType::CheckBox: return Win32::Controls::Button;
-		case ControlType::Label:    return Win32::Controls::Static;
-		case ControlType::TextBox:  return Win32::Controls::Edit;
-		case ControlType::GroupBox: return Win32::Controls::Button;
-		case ControlType::ListBox:  return Win32::Controls::ListBox;
-		case ControlType::ComboBox: return Win32::Controls::ComboBox;
+		case ControlType::Button:      return Win32::Controls::Button;
+		case ControlType::CheckBox:    return Win32::Controls::Button;
+		case ControlType::RadioButton: return Win32::Controls::Button;
+		case ControlType::Label:       return Win32::Controls::Static;
+		case ControlType::TextBox:     return Win32::Controls::Edit;
+		case ControlType::GroupBox:    return Win32::Controls::Button;
+		case ControlType::ListBox:     return Win32::Controls::ListBox;
+		case ControlType::ComboBox:    return Win32::Controls::ComboBox;
+		case ControlType::ProgressBar: return Win32::Controls::Progress;
+		case ControlType::TrackBar:    return Win32::Controls::TrackBar;
 		default:                    return nullptr;
 		}
 	}
@@ -70,12 +76,13 @@ export namespace FormDesigner
 	{
 		switch (type)
 		{
-		case ControlType::CheckBox: return Win32::Styles::AutoCheckBox;
-		case ControlType::GroupBox: return Win32::Styles::GroupBox;
-		case ControlType::TextBox:  return Win32::Styles::Border | Win32::Styles::EditAutoHScroll;
-		case ControlType::Label:    return Win32::Styles::StaticLeft;
-		case ControlType::ListBox:  return Win32::Styles::ListBoxStandard;
-		case ControlType::ComboBox: return Win32::Styles::ComboBoxDropDownList;
+		case ControlType::CheckBox:    return Win32::Styles::AutoCheckBox;
+		case ControlType::RadioButton: return Win32::Styles::AutoRadioButton;
+		case ControlType::GroupBox:    return Win32::Styles::GroupBox;
+		case ControlType::TextBox:     return Win32::Styles::Border | Win32::Styles::EditAutoHScroll;
+		case ControlType::Label:       return Win32::Styles::StaticLeft;
+		case ControlType::ListBox:     return Win32::Styles::ListBoxStandard;
+		case ControlType::ComboBox:    return Win32::Styles::ComboBoxDropDownList;
 		default:                    return 0;
 		}
 	}

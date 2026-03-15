@@ -70,13 +70,16 @@ void PlaceControl(DesignState& state, int x, int y)
 
     switch (ctrl.type)
     {
-    case FormDesigner::ControlType::Button:   ctrl.text = L"Button"; break;
-    case FormDesigner::ControlType::CheckBox: ctrl.text = L"CheckBox"; break;
-    case FormDesigner::ControlType::Label:    ctrl.text = L"Label"; break;
-    case FormDesigner::ControlType::TextBox:  ctrl.text = L"TextBox"; break;
-    case FormDesigner::ControlType::GroupBox: ctrl.text = L"GroupBox"; ctrl.rect.height = 100; break;
-    case FormDesigner::ControlType::ListBox:  ctrl.rect.height = 80; break;
-    case FormDesigner::ControlType::ComboBox: break;
+    case FormDesigner::ControlType::Button:      ctrl.text = L"Button"; break;
+    case FormDesigner::ControlType::CheckBox:    ctrl.text = L"CheckBox"; break;
+    case FormDesigner::ControlType::RadioButton: ctrl.text = L"RadioButton"; break;
+    case FormDesigner::ControlType::Label:       ctrl.text = L"Label"; break;
+    case FormDesigner::ControlType::TextBox:     ctrl.text = L"TextBox"; break;
+    case FormDesigner::ControlType::GroupBox:    ctrl.text = L"GroupBox"; ctrl.rect.height = 100; break;
+    case FormDesigner::ControlType::ListBox:     ctrl.rect.height = 80; break;
+    case FormDesigner::ControlType::ComboBox:    break;
+    case FormDesigner::ControlType::ProgressBar: ctrl.rect.height = 20; break;
+    case FormDesigner::ControlType::TrackBar:    ctrl.rect.height = 30; break;
     default: ctrl.text = L"Control"; break;
     }
 
