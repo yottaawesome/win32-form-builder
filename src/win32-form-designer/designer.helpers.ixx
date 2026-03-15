@@ -208,4 +208,109 @@ export auto NextControlId(const DesignState& state) -> int
     return maxId + 1;
 }
 
+// Compares edges of the moving control against all other controls.
+// Snaps the rect in-place when within threshold and populates state.guides.
+export void FindAlignGuides(DesignState& state, FormDesigner::Rect& rect)
+{
+    state.guides.clear();
+
+    // 5 reference values for the moving control: left, center-x, right, top, center-y, bottom
+    auto edges = [](const FormDesigner::Rect& r)
+    {
+        return std::array<int, 6>{
+            r.x,
+            r.x + r.width / 2,
+            r.x + r.width,
+            r.y,
+            r.y + r.height / 2,
+            r.y + r.height,
+        };
+    };
+
+    bool snappedX = false;
+    bool snappedY = false;
+
+    for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+    {
+        if (i == state.selectedIndex) continue;
+        auto& other = state.entries[i].control->rect;
+        auto otherEdges = edges(other);
+
+        auto movingEdges = edges(rect);
+
+        // Check vertical alignment (shared X positions)
+        if (!snappedX)
+        {
+            for (int m = 0; m < 3; ++m)
+            {
+                for (int o = 0; o < 3; ++o)
+                {
+                    int diff = movingEdges[m] - otherEdges[o];
+                    if (std::abs(diff) <= SNAP_THRESHOLD)
+                    {
+                        // Snap: adjust rect.x so moving edge m aligns with other edge o
+                        rect.x -= diff;
+                        state.guides.push_back({ false, otherEdges[o] });
+                        snappedX = true;
+                        break;
+                    }
+                }
+                if (snappedX) break;
+            }
+        }
+
+        // Check horizontal alignment (shared Y positions)
+        if (!snappedY)
+        {
+            for (int m = 3; m < 6; ++m)
+            {
+                for (int o = 3; o < 6; ++o)
+                {
+                    int diff = movingEdges[m] - otherEdges[o];
+                    if (std::abs(diff) <= SNAP_THRESHOLD)
+                    {
+                        rect.y -= diff;
+                        state.guides.push_back({ true, otherEdges[o] });
+                        snappedY = true;
+                        break;
+                    }
+                }
+                if (snappedY) break;
+            }
+        }
+
+        if (snappedX && snappedY) break;
+    }
+}
+
+export void DrawAlignGuides(const DesignState& state, Win32::HDC hdc)
+{
+    if (state.guides.empty()) return;
+
+    Win32::RECT rc;
+    Win32::GetClientRect(state.canvasHwnd, &rc);
+
+    auto pen = Win32::CreatePen(Win32::PenStyles::Dot, 0, Win32::MakeRgb(255, 0, 128));
+    auto oldPen = Win32::SelectObject(hdc, pen);
+    auto oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+
+    for (auto& guide : state.guides)
+    {
+        if (guide.horizontal)
+        {
+            Win32::MoveToEx(hdc, rc.left, guide.position, nullptr);
+            Win32::LineTo(hdc, rc.right, guide.position);
+        }
+        else
+        {
+            Win32::MoveToEx(hdc, guide.position, rc.top, nullptr);
+            Win32::LineTo(hdc, guide.position, rc.bottom);
+        }
+    }
+
+    Win32::SetBkMode(hdc, oldMode);
+    Win32::SelectObject(hdc, oldPen);
+    Win32::DeleteObject(pen);
+}
+
 }

@@ -56,8 +56,22 @@ using
     ::GetOpenFileNameW,
     ::ChooseColorW,
     ::GetSysColor,
-    ::SetCursor
+    ::SetCursor,
+    ::CreatePen,
+    ::SelectObject,
+    ::MoveToEx,
+    ::LineTo,
+    ::SetBkMode
     ;
+
+// === Pen styles ===
+namespace PenStyles
+{
+    constexpr auto Dot = PS_DOT;
+}
+
+// === Background modes ===
+constexpr auto Bk_Transparent = TRANSPARENT;
 
 // === Macro wrappers ===
 auto GetXParam(LPARAM lp) noexcept -> int { return GET_X_LPARAM(lp); }

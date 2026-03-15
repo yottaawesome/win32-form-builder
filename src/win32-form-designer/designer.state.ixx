@@ -51,6 +51,15 @@ constexpr int HANDLE_SIZE = 6;
 constexpr int HANDLE_HALF = HANDLE_SIZE / 2;
 constexpr int MIN_CONTROL_SIZE = 10;
 
+// Alignment guide shown during drag operations.
+struct AlignGuide
+{
+    bool horizontal;  // true = horizontal line (shared Y), false = vertical (shared X)
+    int position;     // pixel coordinate on the guide's axis
+};
+
+constexpr int SNAP_THRESHOLD = 5;
+
 // Control types available in the toolbox.
 struct ToolboxItem
 {
@@ -89,6 +98,8 @@ struct DesignState
     FormDesigner::ControlType placementType = FormDesigner::ControlType::Button;
 
     bool updatingProperties = false;
+
+    std::vector<AlignGuide> guides;
 
     std::filesystem::path currentFile;
     bool dirty = false;

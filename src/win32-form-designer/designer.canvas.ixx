@@ -180,6 +180,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         {
             auto hdc = Win32::GetDC(hwnd);
             DrawSelection(*state, hdc);
+            DrawAlignGuides(*state, hdc);
             Win32::ReleaseDC(hwnd, hdc);
         }
         return 0;
@@ -240,6 +241,8 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             entry.control->rect.x = state->controlStart.x + (x - state->dragStart.x);
             entry.control->rect.y = state->controlStart.y + (y - state->dragStart.y);
 
+            FindAlignGuides(*state, entry.control->rect);
+
             Win32::MoveWindow(entry.hwnd,
                 entry.control->rect.x, entry.control->rect.y,
                 entry.control->rect.width, entry.control->rect.height,
@@ -289,7 +292,9 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         if (!state || state->dragMode == DragMode::None) break;
         state->dragMode = DragMode::None;
         state->activeHandle = -1;
+        state->guides.clear();
         Win32::ReleaseCapture();
+        Win32::InvalidateRect(hwnd, nullptr, true);
         return 0;
     }
 
