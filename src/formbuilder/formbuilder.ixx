@@ -2,5 +2,6 @@ export module formbuilder;
 export import :schema;
 export import :events;
 export import :parser;
+export import :serializer;
 export import :loader;
 export import :win32;
