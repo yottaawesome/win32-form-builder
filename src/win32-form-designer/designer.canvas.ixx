@@ -157,6 +157,78 @@ export void Redo(DesignState& state)
     MarkDirty(state);
 }
 
+void DeleteSelectedControl(DesignState& state);
+
+export void CopySelected(DesignState& state)
+{
+    if (state.selectedIndex < 0 ||
+        state.selectedIndex >= static_cast<int>(state.entries.size()))
+        return;
+    state.clipboard = *state.entries[state.selectedIndex].control;
+}
+
+export void CutSelected(DesignState& state)
+{
+    CopySelected(state);
+    if (state.clipboard)
+        DeleteSelectedControl(state);
+}
+
+export void PasteControl(DesignState& state)
+{
+    if (!state.clipboard) return;
+
+    PushUndo(state);
+    constexpr int PASTE_OFFSET = 20;
+
+    auto ctrl = *state.clipboard;
+    ctrl.id = NextControlId(state);
+    ctrl.rect.x += PASTE_OFFSET;
+    ctrl.rect.y += PASTE_OFFSET;
+
+    state.form.controls.push_back(std::move(ctrl));
+
+    for (int i = 0; i < static_cast<int>(state.form.controls.size()); ++i)
+    {
+        if (i < static_cast<int>(state.entries.size()))
+            state.entries[i].control = &state.form.controls[i];
+    }
+
+    auto& placed = state.form.controls.back();
+    auto* className = FormDesigner::ClassNameFor(placed.type);
+    auto style = Win32::DWORD{
+        Win32::Styles::Child | Win32::Styles::Visible |
+        FormDesigner::ImpliedStyleFor(placed.type) |
+        placed.style};
+
+    auto hwnd = Win32::CreateWindowExW(
+        placed.exStyle, className, placed.text.c_str(), style,
+        placed.rect.x, placed.rect.y,
+        placed.rect.width, placed.rect.height,
+        state.canvasHwnd,
+        reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(placed.id)),
+        state.hInstance, nullptr);
+
+    if (hwnd)
+    {
+        Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
+            reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+        Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
+        state.entries.push_back({ &placed, hwnd });
+        state.selectedIndex = static_cast<int>(state.entries.size()) - 1;
+    }
+
+    MarkDirty(state);
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+    UpdatePropertyPanel(state);
+}
+
+export void DuplicateSelected(DesignState& state)
+{
+    CopySelected(state);
+    PasteControl(state);
+}
+
 void DeleteSelectedControl(DesignState& state)
 {
     if (state.selectedIndex < 0 ||

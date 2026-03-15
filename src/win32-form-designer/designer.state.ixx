@@ -15,6 +15,10 @@ constexpr Win32::UINT IDM_FILE_EXIT      = 40005;
 constexpr Win32::UINT IDM_CANCEL_PLACE   = 40006;
 constexpr Win32::UINT IDM_EDIT_UNDO      = 40007;
 constexpr Win32::UINT IDM_EDIT_REDO      = 40008;
+constexpr Win32::UINT IDM_EDIT_CUT       = 40009;
+constexpr Win32::UINT IDM_EDIT_COPY      = 40010;
+constexpr Win32::UINT IDM_EDIT_PASTE     = 40011;
+constexpr Win32::UINT IDM_EDIT_DUPLICATE = 40012;
 
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
@@ -120,6 +124,8 @@ struct DesignState
 
     std::vector<FormDesigner::Form> undoStack;
     std::vector<FormDesigner::Form> redoStack;
+
+    std::optional<FormDesigner::Control> clipboard;
 
     std::filesystem::path currentFile;
     bool dirty = false;
