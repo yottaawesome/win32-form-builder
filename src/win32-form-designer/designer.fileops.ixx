@@ -118,6 +118,7 @@ export void DoOpen(DesignState& state)
 
     try
     {
+        PushUndo(state);
         state.form = FormDesigner::LoadFormFromFile(path);
         state.currentFile = path;
         state.dirty = false;
@@ -138,6 +139,7 @@ export void DoNew(DesignState& state)
     if (!PromptSaveIfDirty(state))
         return;
 
+    PushUndo(state);
     state.form = FormDesigner::Form{};
     state.currentFile.clear();
     state.dirty = false;

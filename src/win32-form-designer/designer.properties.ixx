@@ -103,6 +103,8 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         state.selectedIndex >= static_cast<int>(state.entries.size()))
         return;
 
+    PushUndo(state);
+
     auto& entry = state.entries[state.selectedIndex];
     auto& ctrl = *entry.control;
     auto panel = state.propertyHwnd;
@@ -222,6 +224,7 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
 
 void ApplyFormPropertyChange(DesignState& state, Win32::UINT controlId)
 {
+    PushUndo(state);
     auto panel = state.propertyHwnd;
 
     switch (controlId)
@@ -388,6 +391,7 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
 
             if (Win32::ChooseColorW(&cc))
             {
+                PushUndo(*state);
                 state->form.backgroundColor = static_cast<int>(cc.rgbResult);
                 UpdatePropertyPanel(*state);
                 Win32::InvalidateRect(state->canvasHwnd, nullptr, true);

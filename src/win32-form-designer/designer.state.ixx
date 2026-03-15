@@ -13,6 +13,8 @@ constexpr Win32::UINT IDM_FILE_SAVE      = 40003;
 constexpr Win32::UINT IDM_FILE_SAVE_AS   = 40004;
 constexpr Win32::UINT IDM_FILE_EXIT      = 40005;
 constexpr Win32::UINT IDM_CANCEL_PLACE   = 40006;
+constexpr Win32::UINT IDM_EDIT_UNDO      = 40007;
+constexpr Win32::UINT IDM_EDIT_REDO      = 40008;
 
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
@@ -115,6 +117,9 @@ struct DesignState
     bool updatingProperties = false;
 
     std::vector<AlignGuide> guides;
+
+    std::vector<FormDesigner::Form> undoStack;
+    std::vector<FormDesigner::Form> redoStack;
 
     std::filesystem::path currentFile;
     bool dirty = false;

@@ -26,6 +26,14 @@ auto CreateMenuBar() -> Win32::HMENU
 
     Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
         reinterpret_cast<Win32::UINT_PTR>(fileMenu), L"&File");
+
+    auto editMenu = Win32::CreatePopupMenu();
+    Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_UNDO, L"&Undo\tCtrl+Z");
+    Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_REDO, L"&Redo\tCtrl+Y");
+
+    Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
+        reinterpret_cast<Win32::UINT_PTR>(editMenu), L"&Edit");
+
     return menuBar;
 }
 
@@ -36,6 +44,8 @@ auto CreateAcceleratorTable() -> Win32::HACCEL
         { Win32::Accel::Control | Win32::Accel::VirtKey, 'O', static_cast<Win32::WORD>(IDM_FILE_OPEN) },
         { Win32::Accel::Control | Win32::Accel::VirtKey, 'S', static_cast<Win32::WORD>(IDM_FILE_SAVE) },
         { Win32::Accel::Control | Win32::Accel::Shift | Win32::Accel::VirtKey, 'S', static_cast<Win32::WORD>(IDM_FILE_SAVE_AS) },
+        { Win32::Accel::Control | Win32::Accel::VirtKey, 'Z', static_cast<Win32::WORD>(IDM_EDIT_UNDO) },
+        { Win32::Accel::Control | Win32::Accel::VirtKey, 'Y', static_cast<Win32::WORD>(IDM_EDIT_REDO) },
         { Win32::Accel::VirtKey, static_cast<Win32::WORD>(Win32::Keys::Escape), static_cast<Win32::WORD>(IDM_CANCEL_PLACE) },
     };
     return Win32::CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
@@ -92,6 +102,8 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
         case IDM_FILE_SAVE:    DoSave(*state);   return 0;
         case IDM_FILE_SAVE_AS: DoSaveAs(*state); return 0;
         case IDM_FILE_EXIT:    Win32::SendMessageW(hwnd, Win32::Messages::Close, 0, 0); return 0;
+        case IDM_EDIT_UNDO:    Undo(*state);    return 0;
+        case IDM_EDIT_REDO:    Redo(*state);    return 0;
         case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
         }
         break;

@@ -58,6 +58,7 @@ export void RebuildControls(DesignState& state)
 
 void PlaceControl(DesignState& state, int x, int y)
 {
+    PushUndo(state);
     auto newId = NextControlId(state);
     auto& ctrl = state.form.controls.emplace_back();
 
@@ -134,11 +135,35 @@ export void CancelPlacement(DesignState& state)
     }
 }
 
+export void Undo(DesignState& state)
+{
+    if (state.undoStack.empty()) return;
+    state.redoStack.push_back(std::move(state.form));
+    state.form = std::move(state.undoStack.back());
+    state.undoStack.pop_back();
+    state.selectedIndex = -1;
+    RebuildControls(state);
+    MarkDirty(state);
+}
+
+export void Redo(DesignState& state)
+{
+    if (state.redoStack.empty()) return;
+    state.undoStack.push_back(std::move(state.form));
+    state.form = std::move(state.redoStack.back());
+    state.redoStack.pop_back();
+    state.selectedIndex = -1;
+    RebuildControls(state);
+    MarkDirty(state);
+}
+
 void DeleteSelectedControl(DesignState& state)
 {
     if (state.selectedIndex < 0 ||
         state.selectedIndex >= static_cast<int>(state.entries.size()))
         return;
+
+    PushUndo(state);
 
     Win32::DestroyWindow(state.entries[state.selectedIndex].hwnd);
     state.form.controls.erase(
@@ -211,6 +236,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         int handle = HitTestHandle(*state, x, y);
         if (handle >= 0)
         {
+            PushUndo(*state);
             auto& r = state->entries[state->selectedIndex].control->rect;
             state->dragMode = DragMode::Resize;
             state->activeHandle = handle;
@@ -228,6 +254,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
 
         if (hit >= 0)
         {
+            PushUndo(*state);
             auto& r = state->entries[hit].control->rect;
             state->dragMode = DragMode::Move;
             state->activeHandle = -1;

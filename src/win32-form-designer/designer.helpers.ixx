@@ -217,6 +217,12 @@ export auto NextControlId(const DesignState& state) -> int
     return maxId + 1;
 }
 
+export void PushUndo(DesignState& state)
+{
+    state.undoStack.push_back(state.form);
+    state.redoStack.clear();
+}
+
 // Compares edges of the moving control against all other controls.
 // Snaps the rect in-place when within threshold and populates state.guides.
 export void FindAlignGuides(DesignState& state, FormDesigner::Rect& rect)
