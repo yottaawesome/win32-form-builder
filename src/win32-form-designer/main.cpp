@@ -2,8 +2,9 @@
 
 import std;
 import formbuilder;
+import designer;
 
-auto __stdcall wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR, int) -> int
+auto __stdcall wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
 try
 {
 	auto icc = Win32::INITCOMMONCONTROLSEX{
@@ -12,18 +13,15 @@ try
 	};
 	Win32::InitCommonControlsEx(&icc);
 
-	auto form = FormDesigner::Form{
-		.title = L"Form Designer",
-		.width = 800,
-		.height = 600,
-	};
+	auto form = FormDesigner::Form{};
+	if (lpCmdLine and lpCmdLine[0] != L'\0')
+		form = FormDesigner::LoadFormFromFile(lpCmdLine);
 
-	auto events = FormDesigner::EventMap{};
-	auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
+	auto hwnd = Designer::CreateDesignSurface(hInstance, std::move(form));
 	if (not hwnd)
 		return 1;
 
-	return FormDesigner::RunMessageLoop();
+	return Designer::RunDesignerLoop();
 }
 catch (const std::exception& ex)
 {

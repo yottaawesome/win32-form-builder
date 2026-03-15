@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="designer.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\formbuilder\formbuilder.vcxproj">
