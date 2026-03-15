@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="designer.win32.ixx" />
     <ClCompile Include="designer.state.ixx" />
     <ClCompile Include="designer.helpers.ixx" />
     <ClCompile Include="designer.properties.ixx" />

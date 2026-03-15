@@ -1,24 +1,19 @@
-module;
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <CommCtrl.h>
-
 export module designer:helpers;
 import std;
 import formbuilder;
+import :win32;
 import :state;
 
 namespace Designer
 {
 
-export LRESULT CALLBACK ControlSubclassProc(
-    HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
-    UINT_PTR, DWORD_PTR)
+export auto ControlSubclassProc(
+    Win32::HWND hwnd, Win32::UINT msg, Win32::WPARAM wParam, Win32::LPARAM lParam,
+    Win32::UINT_PTR, Win32::DWORD_PTR) -> Win32::LRESULT
 {
-    if (msg == WM_NCHITTEST)
-        return HTTRANSPARENT;
-    return DefSubclassProc(hwnd, msg, wParam, lParam);
+    if (msg == Win32::Messages::NcHitTest)
+        return Win32::HitTestValues::Transparent;
+    return Win32::DefSubclassProc(hwnd, msg, wParam, lParam);
 }
 
 export auto HitTest(const DesignState& state, int x, int y) -> int
@@ -33,7 +28,7 @@ export auto HitTest(const DesignState& state, int x, int y) -> int
     return -1;
 }
 
-export void GetHandleAnchors(const FormDesigner::Rect& r, POINT out[8])
+export void GetHandleAnchors(const FormDesigner::Rect& r, Win32::POINT out[8])
 {
     int cx = r.x + r.width / 2;
     int cy = r.y + r.height / 2;
@@ -56,7 +51,7 @@ export auto HitTestHandle(const DesignState& state, int x, int y) -> int
         state.selectedIndex >= static_cast<int>(state.entries.size()))
         return -1;
 
-    POINT anchors[8];
+    Win32::POINT anchors[8];
     GetHandleAnchors(state.entries[state.selectedIndex].control->rect, anchors);
 
     for (int i = 0; i < 8; ++i)
@@ -68,20 +63,20 @@ export auto HitTestHandle(const DesignState& state, int x, int y) -> int
     return -1;
 }
 
-export auto CursorForHandle(int handle) -> LPCWSTR
+export auto CursorForHandle(int handle) -> Win32::LPCWSTR
 {
     switch (handle)
     {
-    case 0: case 7: return IDC_SIZENWSE;
-    case 2: case 5: return IDC_SIZENESW;
-    case 1: case 6: return IDC_SIZENS;
-    case 3: case 4: return IDC_SIZEWE;
-    default:         return IDC_ARROW;
+    case 0: case 7: return Win32::Cursors::SizeNWSE;
+    case 2: case 5: return Win32::Cursors::SizeNESW;
+    case 1: case 6: return Win32::Cursors::SizeNS;
+    case 3: case 4: return Win32::Cursors::SizeWE;
+    default:         return Win32::Cursors::Arrow;
     }
 }
 
 export void ApplyResize(FormDesigner::Rect& r, int handle, int dx, int dy,
-    const POINT& startPos, const SIZE& startSize)
+    const Win32::POINT& startPos, const Win32::SIZE& startSize)
 {
     bool moveLeft   = (handle == 0 || handle == 3 || handle == 5);
     bool moveTop    = (handle == 0 || handle == 1 || handle == 2);
@@ -115,7 +110,7 @@ export void ApplyResize(FormDesigner::Rect& r, int handle, int dx, int dy,
     r.height = newH;
 }
 
-export void DrawSelection(const DesignState& state, HDC hdc)
+export void DrawSelection(const DesignState& state, Win32::HDC hdc)
 {
     if (state.selectedIndex < 0 ||
         state.selectedIndex >= static_cast<int>(state.entries.size()))
@@ -123,29 +118,29 @@ export void DrawSelection(const DesignState& state, HDC hdc)
 
     auto& r = state.entries[state.selectedIndex].control->rect;
 
-    auto accent = CreateSolidBrush(RGB(0, 120, 215));
-    RECT sides[] = {
+    auto accent = Win32::CreateSolidBrush(Win32::MakeRgb(0, 120, 215));
+    Win32::RECT sides[] = {
         { r.x - 2, r.y - 2,          r.x + r.width + 2, r.y },
         { r.x - 2, r.y + r.height,   r.x + r.width + 2, r.y + r.height + 2 },
         { r.x - 2, r.y,              r.x,                r.y + r.height },
         { r.x + r.width, r.y,        r.x + r.width + 2,  r.y + r.height },
     };
     for (auto& s : sides)
-        FillRect(hdc, &s, accent);
+        Win32::FillRect(hdc, &s, accent);
 
-    POINT anchors[8];
+    Win32::POINT anchors[8];
     GetHandleAnchors(r, anchors);
 
-    auto white = CreateSolidBrush(RGB(255, 255, 255));
+    auto white = Win32::CreateSolidBrush(Win32::MakeRgb(255, 255, 255));
     for (auto& a : anchors)
     {
-        RECT outer = { a.x, a.y, a.x + HANDLE_SIZE, a.y + HANDLE_SIZE };
-        RECT inner = { a.x + 1, a.y + 1, a.x + HANDLE_SIZE - 1, a.y + HANDLE_SIZE - 1 };
-        FillRect(hdc, &outer, accent);
-        FillRect(hdc, &inner, white);
+        Win32::RECT outer = { a.x, a.y, a.x + HANDLE_SIZE, a.y + HANDLE_SIZE };
+        Win32::RECT inner = { a.x + 1, a.y + 1, a.x + HANDLE_SIZE - 1, a.y + HANDLE_SIZE - 1 };
+        Win32::FillRect(hdc, &outer, accent);
+        Win32::FillRect(hdc, &inner, white);
     }
-    DeleteObject(white);
-    DeleteObject(accent);
+    Win32::DeleteObject(white);
+    Win32::DeleteObject(accent);
 }
 
 export void UpdateTitle(DesignState& state)
@@ -157,7 +152,7 @@ export void UpdateTitle(DesignState& state)
     if (state.dirty)
         title += L"*";
     title += name;
-    SetWindowTextW(state.surfaceHwnd, title.c_str());
+    Win32::SetWindowTextW(state.surfaceHwnd, title.c_str());
 }
 
 export void MarkDirty(DesignState& state)

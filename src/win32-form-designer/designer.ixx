@@ -1,12 +1,7 @@
-module;
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <CommCtrl.h>
-
 export module designer;
 import std;
 import formbuilder;
+export import :win32;
 export import :state;
 export import :helpers;
 export import :properties;
@@ -16,65 +11,68 @@ export import :fileops;
 namespace Designer
 {
 
-auto CreateMenuBar() -> HMENU
+auto CreateMenuBar() -> Win32::HMENU
 {
-    auto menuBar = CreateMenu();
-    auto fileMenu = CreatePopupMenu();
+    auto menuBar = Win32::CreateMenu();
+    auto fileMenu = Win32::CreatePopupMenu();
 
-    AppendMenuW(fileMenu, MF_STRING, IDM_FILE_NEW,     L"&New\tCtrl+N");
-    AppendMenuW(fileMenu, MF_STRING, IDM_FILE_OPEN,    L"&Open...\tCtrl+O");
-    AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(fileMenu, MF_STRING, IDM_FILE_SAVE,    L"&Save\tCtrl+S");
-    AppendMenuW(fileMenu, MF_STRING, IDM_FILE_SAVE_AS, L"Save &As...\tCtrl+Shift+S");
-    AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(fileMenu, MF_STRING, IDM_FILE_EXIT,    L"E&xit\tAlt+F4");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_NEW,     L"&New\tCtrl+N");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_OPEN,    L"&Open...\tCtrl+O");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_SAVE,    L"&Save\tCtrl+S");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_SAVE_AS, L"Save &As...\tCtrl+Shift+S");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXIT,    L"E&xit\tAlt+F4");
 
-    AppendMenuW(menuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"&File");
+    Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
+        reinterpret_cast<Win32::UINT_PTR>(fileMenu), L"&File");
     return menuBar;
 }
 
-auto CreateAcceleratorTable() -> HACCEL
+auto CreateAcceleratorTable() -> Win32::HACCEL
 {
-    ACCEL accels[] = {
-        { FCONTROL | FVIRTKEY, 'N', static_cast<WORD>(IDM_FILE_NEW) },
-        { FCONTROL | FVIRTKEY, 'O', static_cast<WORD>(IDM_FILE_OPEN) },
-        { FCONTROL | FVIRTKEY, 'S', static_cast<WORD>(IDM_FILE_SAVE) },
-        { FCONTROL | FSHIFT | FVIRTKEY, 'S', static_cast<WORD>(IDM_FILE_SAVE_AS) },
-        { FVIRTKEY, VK_ESCAPE, static_cast<WORD>(IDM_CANCEL_PLACE) },
+    Win32::ACCEL accels[] = {
+        { Win32::Accel::Control | Win32::Accel::VirtKey, 'N', static_cast<Win32::WORD>(IDM_FILE_NEW) },
+        { Win32::Accel::Control | Win32::Accel::VirtKey, 'O', static_cast<Win32::WORD>(IDM_FILE_OPEN) },
+        { Win32::Accel::Control | Win32::Accel::VirtKey, 'S', static_cast<Win32::WORD>(IDM_FILE_SAVE) },
+        { Win32::Accel::Control | Win32::Accel::Shift | Win32::Accel::VirtKey, 'S', static_cast<Win32::WORD>(IDM_FILE_SAVE_AS) },
+        { Win32::Accel::VirtKey, static_cast<Win32::WORD>(Win32::Keys::Escape), static_cast<Win32::WORD>(IDM_CANCEL_PLACE) },
     };
-    return CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
+    return Win32::CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
 }
 
-LRESULT CALLBACK DesignSurfaceProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
+    Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
 {
     auto* state = reinterpret_cast<DesignState*>(
-        GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+        Win32::GetWindowLongPtrW(hwnd, Win32::Gwlp_UserData));
 
     switch (msg)
     {
-    case WM_SIZE:
+    case Win32::Messages::Size:
     {
         if (!state) break;
-        RECT rc;
-        GetClientRect(hwnd, &rc);
+        Win32::RECT rc;
+        Win32::GetClientRect(hwnd, &rc);
         int w = rc.right - rc.left;
         int h = rc.bottom - rc.top;
         int canvasW = w - TOOLBOX_WIDTH - PROPERTY_WIDTH;
         if (canvasW < 0) canvasW = 0;
-        MoveWindow(state->toolboxHwnd, 0, 0, TOOLBOX_WIDTH, h, TRUE);
-        MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, 0, canvasW, h, TRUE);
-        MoveWindow(state->propertyHwnd, w - PROPERTY_WIDTH, 0, PROPERTY_WIDTH, h, TRUE);
+        Win32::MoveWindow(state->toolboxHwnd, 0, 0, TOOLBOX_WIDTH, h, true);
+        Win32::MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, 0, canvasW, h, true);
+        Win32::MoveWindow(state->propertyHwnd, w - PROPERTY_WIDTH, 0, PROPERTY_WIDTH, h, true);
         return 0;
     }
 
-    case WM_COMMAND:
+    case Win32::Messages::Command:
     {
         if (!state) break;
 
-        if (LOWORD(wParam) == IDC_TOOLBOX && HIWORD(wParam) == LBN_SELCHANGE)
+        if (Win32::GetLowWord(wParam) == IDC_TOOLBOX &&
+            Win32::GetHighWord(wParam) == Win32::Notifications::ListBoxSelChange)
         {
             int sel = static_cast<int>(
-                SendMessageW(state->toolboxHwnd, LB_GETCURSEL, 0, 0));
+                Win32::SendMessageW(state->toolboxHwnd, Win32::ListBox::GetCurSel, 0, 0));
             if (sel >= 0 && sel < static_cast<int>(std::size(TOOLBOX_ITEMS)))
             {
                 state->placementMode = true;
@@ -87,34 +85,34 @@ LRESULT CALLBACK DesignSurfaceProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             return 0;
         }
 
-        switch (LOWORD(wParam))
+        switch (Win32::GetLowWord(wParam))
         {
         case IDM_FILE_NEW:     DoNew(*state);    return 0;
         case IDM_FILE_OPEN:    DoOpen(*state);   return 0;
         case IDM_FILE_SAVE:    DoSave(*state);   return 0;
         case IDM_FILE_SAVE_AS: DoSaveAs(*state); return 0;
-        case IDM_FILE_EXIT:    SendMessageW(hwnd, WM_CLOSE, 0, 0); return 0;
+        case IDM_FILE_EXIT:    Win32::SendMessageW(hwnd, Win32::Messages::Close, 0, 0); return 0;
         case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
         }
         break;
     }
 
-    case WM_CLOSE:
+    case Win32::Messages::Close:
         if (state && !PromptSaveIfDirty(*state))
             return 0;
-        DestroyWindow(hwnd);
+        Win32::DestroyWindow(hwnd);
         return 0;
 
-    case WM_NCDESTROY:
+    case Win32::Messages::NcDestroy:
         delete state;
         return 0;
 
-    case WM_DESTROY:
-        PostQuitMessage(0);
+    case Win32::Messages::Destroy:
+        Win32::PostQuitMessage(0);
         return 0;
     }
 
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
+    return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 }
@@ -123,44 +121,44 @@ export namespace Designer
 {
 
 auto CreateDesignSurface(
-    HINSTANCE hInstance,
+    Win32::HINSTANCE hInstance,
     FormDesigner::Form form,
-    std::filesystem::path filePath = {}) -> HWND
+    std::filesystem::path filePath = {}) -> Win32::HWND
 {
     static bool registered = false;
     if (!registered)
     {
-        WNDCLASSEXW wc = {
-            .cbSize = sizeof(WNDCLASSEXW),
-            .style = CS_HREDRAW | CS_VREDRAW,
+        Win32::WNDCLASSEXW wc = {
+            .cbSize = sizeof(Win32::WNDCLASSEXW),
+            .style = Win32::Cs_HRedraw | Win32::Cs_VRedraw,
             .lpfnWndProc = DesignSurfaceProc,
             .hInstance = hInstance,
-            .hCursor = LoadCursorW(nullptr, IDC_ARROW),
-            .hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1),
+            .hCursor = Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow),
+            .hbrBackground = reinterpret_cast<Win32::HBRUSH>(Win32::ColorBtnFace + 1),
             .lpszClassName = L"DesignSurface",
         };
-        RegisterClassExW(&wc);
+        Win32::RegisterClassExW(&wc);
 
-        WNDCLASSEXW canvasWc = {
-            .cbSize = sizeof(WNDCLASSEXW),
-            .style = CS_HREDRAW | CS_VREDRAW,
+        Win32::WNDCLASSEXW canvasWc = {
+            .cbSize = sizeof(Win32::WNDCLASSEXW),
+            .style = Win32::Cs_HRedraw | Win32::Cs_VRedraw,
             .lpfnWndProc = CanvasProc,
             .hInstance = hInstance,
-            .hCursor = LoadCursorW(nullptr, IDC_ARROW),
-            .hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1),
+            .hCursor = Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow),
+            .hbrBackground = reinterpret_cast<Win32::HBRUSH>(Win32::ColorBtnFace + 1),
             .lpszClassName = L"DesignCanvas",
         };
-        RegisterClassExW(&canvasWc);
+        Win32::RegisterClassExW(&canvasWc);
 
-        WNDCLASSEXW propWc = {
-            .cbSize = sizeof(WNDCLASSEXW),
+        Win32::WNDCLASSEXW propWc = {
+            .cbSize = sizeof(Win32::WNDCLASSEXW),
             .lpfnWndProc = PropertyPanelProc,
             .hInstance = hInstance,
-            .hCursor = LoadCursorW(nullptr, IDC_ARROW),
-            .hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1),
+            .hCursor = Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow),
+            .hbrBackground = reinterpret_cast<Win32::HBRUSH>(Win32::ColorBtnFace + 1),
             .lpszClassName = L"PropertyPanel",
         };
-        RegisterClassExW(&propWc);
+        Win32::RegisterClassExW(&propWc);
 
         registered = true;
     }
@@ -173,17 +171,17 @@ auto CreateDesignSurface(
 
     auto menu = CreateMenuBar();
 
-    RECT rc = { 0, 0,
+    Win32::RECT rc = { 0, 0,
         state->form.width + TOOLBOX_WIDTH + PROPERTY_WIDTH,
         state->form.height };
-    AdjustWindowRectEx(&rc, WS_OVERLAPPEDWINDOW, TRUE, 0);
+    Win32::AdjustWindowRectEx(&rc, Win32::Styles::OverlappedWindow, true, 0);
 
-    auto hwnd = CreateWindowExW(
+    auto hwnd = Win32::CreateWindowExW(
         0,
         L"DesignSurface",
         L"Form Designer",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT,
+        Win32::Styles::OverlappedWindow,
+        Win32::Cw_UseDefault, Win32::Cw_UseDefault,
         rc.right - rc.left, rc.bottom - rc.top,
         nullptr, menu, hInstance, nullptr);
 
@@ -194,41 +192,43 @@ auto CreateDesignSurface(
     }
 
     state->surfaceHwnd = hwnd;
-    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(state));
+    Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData,
+        reinterpret_cast<Win32::LONG_PTR>(state));
 
-    state->toolboxHwnd = CreateWindowExW(
+    state->toolboxHwnd = Win32::CreateWindowExW(
         0, L"LISTBOX", nullptr,
-        WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT,
+        Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border |
+            Win32::Styles::ListBoxNotify | Win32::Styles::ListBoxNoIntegralHeight,
         0, 0, TOOLBOX_WIDTH, state->form.height,
         hwnd,
-        reinterpret_cast<HMENU>(static_cast<UINT_PTR>(IDC_TOOLBOX)),
+        reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_TOOLBOX)),
         hInstance, nullptr);
 
-    SendMessageW(state->toolboxHwnd, WM_SETFONT,
-        reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
+    Win32::SendMessageW(state->toolboxHwnd, Win32::Messages::SetFont,
+        reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
 
     for (auto& item : TOOLBOX_ITEMS)
-        SendMessageW(state->toolboxHwnd, LB_ADDSTRING, 0,
-            reinterpret_cast<LPARAM>(item.name));
+        Win32::SendMessageW(state->toolboxHwnd, Win32::ListBox::AddString, 0,
+            reinterpret_cast<Win32::LPARAM>(item.name));
 
-    state->canvasHwnd = CreateWindowExW(
+    state->canvasHwnd = Win32::CreateWindowExW(
         0, L"DesignCanvas", nullptr,
-        WS_CHILD | WS_VISIBLE,
+        Win32::Styles::Child | Win32::Styles::Visible,
         TOOLBOX_WIDTH, 0, state->form.width, state->form.height,
         hwnd, nullptr, hInstance, nullptr);
 
-    SetWindowLongPtrW(state->canvasHwnd, GWLP_USERDATA,
-        reinterpret_cast<LONG_PTR>(state));
+    Win32::SetWindowLongPtrW(state->canvasHwnd, Win32::Gwlp_UserData,
+        reinterpret_cast<Win32::LONG_PTR>(state));
 
-    state->propertyHwnd = CreateWindowExW(
+    state->propertyHwnd = Win32::CreateWindowExW(
         0, L"PropertyPanel", nullptr,
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border,
         state->form.width + TOOLBOX_WIDTH, 0,
         PROPERTY_WIDTH, state->form.height,
         hwnd, nullptr, hInstance, nullptr);
 
-    SetWindowLongPtrW(state->propertyHwnd, GWLP_USERDATA,
-        reinterpret_cast<LONG_PTR>(state));
+    Win32::SetWindowLongPtrW(state->propertyHwnd, Win32::Gwlp_UserData,
+        reinterpret_cast<Win32::LONG_PTR>(state));
 
     CreatePropertyControls(*state);
 
@@ -236,25 +236,25 @@ auto CreateDesignSurface(
     PopulateControls(*state);
     UpdatePropertyPanel(*state);
 
-    ShowWindow(hwnd, SW_SHOWDEFAULT);
-    UpdateWindow(hwnd);
+    Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);
+    Win32::UpdateWindow(hwnd);
 
     return hwnd;
 }
 
-auto RunDesignerLoop(HWND hwnd) -> int
+auto RunDesignerLoop(Win32::HWND hwnd) -> int
 {
     auto accel = CreateAcceleratorTable();
-    MSG msg = {};
-    while (GetMessageW(&msg, nullptr, 0, 0) > 0)
+    Win32::MSG msg = {};
+    while (Win32::GetMessageW(&msg, nullptr, 0, 0) > 0)
     {
-        if (!TranslateAcceleratorW(hwnd, accel, &msg))
+        if (!Win32::TranslateAcceleratorW(hwnd, accel, &msg))
         {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
+            Win32::TranslateMessage(&msg);
+            Win32::DispatchMessageW(&msg);
         }
     }
-    DestroyAcceleratorTable(accel);
+    Win32::DestroyAcceleratorTable(accel);
     return static_cast<int>(msg.wParam);
 }
 

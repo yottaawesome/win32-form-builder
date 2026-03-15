@@ -1,12 +1,7 @@
-module;
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <Commdlg.h>
-
 export module designer:fileops;
 import std;
 import formbuilder;
+import :win32;
 import :state;
 import :helpers;
 import :canvas;
@@ -14,43 +9,47 @@ import :canvas;
 namespace Designer
 {
 
-auto ShowSaveDialog(HWND owner, std::filesystem::path& outPath) -> bool
+auto ShowSaveDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
 {
-    wchar_t filename[MAX_PATH] = {};
+    wchar_t filename[Win32::MaxPath] = {};
     if (!outPath.empty())
-        wcscpy_s(filename, outPath.wstring().c_str());
+    {
+        auto str = outPath.wstring();
+        auto n = std::min(str.size(), static_cast<std::size_t>(Win32::MaxPath - 1));
+        std::copy_n(str.data(), n, filename);
+    }
 
-    OPENFILENAMEW ofn = {
-        .lStructSize = sizeof(OPENFILENAMEW),
+    Win32::OPENFILENAMEW ofn = {
+        .lStructSize = sizeof(Win32::OPENFILENAMEW),
         .hwndOwner = owner,
         .lpstrFilter = L"JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0",
         .lpstrFile = filename,
-        .nMaxFile = MAX_PATH,
-        .Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST,
+        .nMaxFile = Win32::MaxPath,
+        .Flags = Win32::FileDialog::OverwritePrompt | Win32::FileDialog::PathMustExist,
         .lpstrDefExt = L"json",
     };
 
-    if (!GetSaveFileNameW(&ofn))
+    if (!Win32::GetSaveFileNameW(&ofn))
         return false;
 
     outPath = filename;
     return true;
 }
 
-auto ShowOpenDialog(HWND owner, std::filesystem::path& outPath) -> bool
+auto ShowOpenDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
 {
-    wchar_t filename[MAX_PATH] = {};
+    wchar_t filename[Win32::MaxPath] = {};
 
-    OPENFILENAMEW ofn = {
-        .lStructSize = sizeof(OPENFILENAMEW),
+    Win32::OPENFILENAMEW ofn = {
+        .lStructSize = sizeof(Win32::OPENFILENAMEW),
         .hwndOwner = owner,
         .lpstrFilter = L"JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0",
         .lpstrFile = filename,
-        .nMaxFile = MAX_PATH,
-        .Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST,
+        .nMaxFile = Win32::MaxPath,
+        .Flags = Win32::FileDialog::FileMustExist | Win32::FileDialog::PathMustExist,
     };
 
-    if (!GetOpenFileNameW(&ofn))
+    if (!Win32::GetOpenFileNameW(&ofn))
         return false;
 
     outPath = filename;
@@ -62,15 +61,15 @@ export auto PromptSaveIfDirty(DesignState& state) -> bool
     if (!state.dirty)
         return true;
 
-    auto result = MessageBoxW(state.surfaceHwnd,
+    auto result = Win32::MessageBoxW(state.surfaceHwnd,
         L"Save changes before continuing?",
         L"Form Designer",
-        MB_YESNOCANCEL | MB_ICONQUESTION);
+        Win32::Mb_YesNoCancel | Win32::Mb_IconQuestion);
 
-    if (result == IDCANCEL)
+    if (result == Win32::Id_Cancel)
         return false;
 
-    if (result == IDYES)
+    if (result == Win32::Id_Yes)
     {
         if (state.currentFile.empty())
         {
@@ -129,7 +128,8 @@ export void DoOpen(DesignState& state)
     {
         auto msg = std::string{ "Failed to open file:\n" } + ex.what();
         auto wide = std::wstring(msg.begin(), msg.end());
-        MessageBoxW(state.surfaceHwnd, wide.c_str(), L"Error", MB_OK | MB_ICONERROR);
+        Win32::MessageBoxW(state.surfaceHwnd, wide.c_str(), L"Error",
+            Win32::Mb_Ok | Win32::Mb_IconError);
     }
 }
 

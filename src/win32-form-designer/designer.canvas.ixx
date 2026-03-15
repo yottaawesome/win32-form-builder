@@ -1,13 +1,7 @@
-module;
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <CommCtrl.h>
-#include <windowsx.h>
-
 export module designer:canvas;
 import std;
 import formbuilder;
+import :win32;
 import :state;
 import :helpers;
 import :properties;
@@ -23,12 +17,12 @@ export void PopulateControls(DesignState& state)
         if (!className)
             continue;
 
-        auto style = static_cast<DWORD>(
-            WS_CHILD | WS_VISIBLE |
+        auto style = Win32::DWORD{
+            Win32::Styles::Child | Win32::Styles::Visible |
             FormDesigner::ImpliedStyleFor(control.type) |
-            control.style);
+            control.style};
 
-        auto hwnd = CreateWindowExW(
+        auto hwnd = Win32::CreateWindowExW(
             control.exStyle,
             className,
             control.text.c_str(),
@@ -36,17 +30,17 @@ export void PopulateControls(DesignState& state)
             control.rect.x, control.rect.y,
             control.rect.width, control.rect.height,
             state.canvasHwnd,
-            reinterpret_cast<HMENU>(static_cast<INT_PTR>(control.id)),
+            reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(control.id)),
             state.hInstance,
             nullptr);
 
         if (!hwnd)
             continue;
 
-        SendMessageW(hwnd, WM_SETFONT,
-            reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
+        Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
+            reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
 
-        SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
+        Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
         state.entries.push_back({ &control, hwnd });
     }
 }
@@ -54,11 +48,11 @@ export void PopulateControls(DesignState& state)
 export void RebuildControls(DesignState& state)
 {
     for (auto& entry : state.entries)
-        DestroyWindow(entry.hwnd);
+        Win32::DestroyWindow(entry.hwnd);
     state.entries.clear();
     state.selectedIndex = -1;
     PopulateControls(state);
-    InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
 }
 
@@ -87,12 +81,12 @@ void PlaceControl(DesignState& state, int x, int y)
     }
 
     auto* className = FormDesigner::ClassNameFor(ctrl.type);
-    auto style = static_cast<DWORD>(
-        WS_CHILD | WS_VISIBLE |
+    auto style = Win32::DWORD{
+        Win32::Styles::Child | Win32::Styles::Visible |
         FormDesigner::ImpliedStyleFor(ctrl.type) |
-        ctrl.style);
+        ctrl.style};
 
-    auto hwnd = CreateWindowExW(
+    auto hwnd = Win32::CreateWindowExW(
         ctrl.exStyle,
         className,
         ctrl.text.c_str(),
@@ -100,23 +94,24 @@ void PlaceControl(DesignState& state, int x, int y)
         ctrl.rect.x, ctrl.rect.y,
         ctrl.rect.width, ctrl.rect.height,
         state.canvasHwnd,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(ctrl.id)),
+        reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(ctrl.id)),
         state.hInstance,
         nullptr);
 
     if (hwnd)
     {
-        SendMessageW(hwnd, WM_SETFONT,
-            reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
-        SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
+        Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
+            reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+        Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
         state.entries.push_back({ &ctrl, hwnd });
         state.selectedIndex = static_cast<int>(state.entries.size()) - 1;
     }
 
     state.placementMode = false;
-    SendMessageW(state.toolboxHwnd, LB_SETCURSEL, static_cast<WPARAM>(-1), 0);
+    Win32::SendMessageW(state.toolboxHwnd, Win32::ListBox::SetCurSel,
+        static_cast<Win32::WPARAM>(-1), 0);
     MarkDirty(state);
-    InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
 }
 
@@ -125,7 +120,8 @@ export void CancelPlacement(DesignState& state)
     if (state.placementMode)
     {
         state.placementMode = false;
-        SendMessageW(state.toolboxHwnd, LB_SETCURSEL, static_cast<WPARAM>(-1), 0);
+        Win32::SendMessageW(state.toolboxHwnd, Win32::ListBox::SetCurSel,
+            static_cast<Win32::WPARAM>(-1), 0);
     }
 }
 
@@ -135,7 +131,7 @@ void DeleteSelectedControl(DesignState& state)
         state.selectedIndex >= static_cast<int>(state.entries.size()))
         return;
 
-    DestroyWindow(state.entries[state.selectedIndex].hwnd);
+    Win32::DestroyWindow(state.entries[state.selectedIndex].hwnd);
     state.form.controls.erase(
         state.form.controls.begin() + state.selectedIndex);
     state.entries.erase(
@@ -146,54 +142,55 @@ void DeleteSelectedControl(DesignState& state)
 
     state.selectedIndex = -1;
     MarkDirty(state);
-    InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
 }
 
-export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
+    Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
 {
     auto* state = reinterpret_cast<DesignState*>(
-        GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+        Win32::GetWindowLongPtrW(hwnd, Win32::Gwlp_UserData));
 
     switch (msg)
     {
-    case WM_ERASEBKGND:
+    case Win32::Messages::EraseBkgnd:
     {
         if (state && state->form.backgroundColor != -1)
         {
-            auto hdc = reinterpret_cast<HDC>(wParam);
-            RECT rc;
-            GetClientRect(hwnd, &rc);
-            auto brush = CreateSolidBrush(
-                static_cast<COLORREF>(state->form.backgroundColor));
-            FillRect(hdc, &rc, brush);
-            DeleteObject(brush);
+            auto hdc = reinterpret_cast<Win32::HDC>(wParam);
+            Win32::RECT rc;
+            Win32::GetClientRect(hwnd, &rc);
+            auto brush = Win32::CreateSolidBrush(
+                static_cast<Win32::COLORREF>(state->form.backgroundColor));
+            Win32::FillRect(hdc, &rc, brush);
+            Win32::DeleteObject(brush);
             return 1;
         }
         break;
     }
 
-    case WM_PAINT:
+    case Win32::Messages::Paint:
     {
-        PAINTSTRUCT ps;
-        BeginPaint(hwnd, &ps);
-        EndPaint(hwnd, &ps);
+        Win32::PAINTSTRUCT ps;
+        Win32::BeginPaint(hwnd, &ps);
+        Win32::EndPaint(hwnd, &ps);
 
         if (state)
         {
-            auto hdc = GetDC(hwnd);
+            auto hdc = Win32::GetDC(hwnd);
             DrawSelection(*state, hdc);
-            ReleaseDC(hwnd, hdc);
+            Win32::ReleaseDC(hwnd, hdc);
         }
         return 0;
     }
 
-    case WM_LBUTTONDOWN:
+    case Win32::Messages::LButtonDown:
     {
         if (!state) break;
-        SetFocus(hwnd);
-        int x = GET_X_LPARAM(lParam);
-        int y = GET_Y_LPARAM(lParam);
+        Win32::SetFocus(hwnd);
+        int x = Win32::GetXParam(lParam);
+        int y = Win32::GetYParam(lParam);
 
         if (state->placementMode)
         {
@@ -210,13 +207,13 @@ export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             state->dragStart = { x, y };
             state->controlStart = { r.x, r.y };
             state->controlStartSize = { r.width, r.height };
-            SetCapture(hwnd);
+            Win32::SetCapture(hwnd);
             return 0;
         }
 
         int hit = HitTest(*state, x, y);
         state->selectedIndex = hit;
-        InvalidateRect(hwnd, nullptr, TRUE);
+        Win32::InvalidateRect(hwnd, nullptr, true);
         UpdatePropertyPanel(*state);
 
         if (hit >= 0)
@@ -226,16 +223,16 @@ export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             state->activeHandle = -1;
             state->dragStart = { x, y };
             state->controlStart = { r.x, r.y };
-            SetCapture(hwnd);
+            Win32::SetCapture(hwnd);
         }
         return 0;
     }
 
-    case WM_MOUSEMOVE:
+    case Win32::Messages::MouseMove:
     {
         if (!state) break;
-        int x = GET_X_LPARAM(lParam);
-        int y = GET_Y_LPARAM(lParam);
+        int x = Win32::GetXParam(lParam);
+        int y = Win32::GetYParam(lParam);
 
         if (state->dragMode == DragMode::Move)
         {
@@ -243,11 +240,11 @@ export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             entry.control->rect.x = state->controlStart.x + (x - state->dragStart.x);
             entry.control->rect.y = state->controlStart.y + (y - state->dragStart.y);
 
-            MoveWindow(entry.hwnd,
+            Win32::MoveWindow(entry.hwnd,
                 entry.control->rect.x, entry.control->rect.y,
                 entry.control->rect.width, entry.control->rect.height,
-                TRUE);
-            InvalidateRect(hwnd, nullptr, TRUE);
+                true);
+            Win32::InvalidateRect(hwnd, nullptr, true);
             MarkDirty(*state);
             UpdatePropertyPanel(*state);
             return 0;
@@ -262,11 +259,11 @@ export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             ApplyResize(entry.control->rect, state->activeHandle, dx, dy,
                 state->controlStart, state->controlStartSize);
 
-            MoveWindow(entry.hwnd,
+            Win32::MoveWindow(entry.hwnd,
                 entry.control->rect.x, entry.control->rect.y,
                 entry.control->rect.width, entry.control->rect.height,
-                TRUE);
-            InvalidateRect(hwnd, nullptr, TRUE);
+                true);
+            Win32::InvalidateRect(hwnd, nullptr, true);
             MarkDirty(*state);
             UpdatePropertyPanel(*state);
             return 0;
@@ -274,39 +271,39 @@ export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
         if (state->placementMode)
         {
-            SetCursor(LoadCursorW(nullptr, IDC_CROSS));
+            Win32::SetCursor(Win32::LoadCursorW(nullptr, Win32::Cursors::Cross));
         }
         else
         {
             int handle = HitTestHandle(*state, x, y);
             if (handle >= 0)
-                SetCursor(LoadCursorW(nullptr, CursorForHandle(handle)));
+                Win32::SetCursor(Win32::LoadCursorW(nullptr, CursorForHandle(handle)));
             else
-                SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+                Win32::SetCursor(Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow));
         }
         break;
     }
 
-    case WM_LBUTTONUP:
+    case Win32::Messages::LButtonUp:
     {
         if (!state || state->dragMode == DragMode::None) break;
         state->dragMode = DragMode::None;
         state->activeHandle = -1;
-        ReleaseCapture();
+        Win32::ReleaseCapture();
         return 0;
     }
 
-    case WM_SETCURSOR:
+    case Win32::Messages::SetCursorMsg:
     {
-        if (state && LOWORD(lParam) == HTCLIENT)
-            return TRUE;
+        if (state && Win32::GetLowWord(static_cast<Win32::WPARAM>(lParam)) == Win32::HitTestValues::Client)
+            return 1;
         break;
     }
 
-    case WM_KEYDOWN:
+    case Win32::Messages::KeyDown:
     {
         if (!state) break;
-        if (wParam == VK_DELETE)
+        if (wParam == Win32::Keys::Delete)
         {
             DeleteSelectedControl(*state);
             return 0;
@@ -315,7 +312,7 @@ export LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     }
     }
 
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
+    return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 }
