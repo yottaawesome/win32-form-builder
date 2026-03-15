@@ -61,7 +61,8 @@ using
     ::SelectObject,
     ::MoveToEx,
     ::LineTo,
-    ::SetBkMode
+    ::SetBkMode,
+    ::GetKeyState
     ;
 
 // === Pen styles ===
@@ -110,8 +111,9 @@ namespace HitTestValues
 // === Virtual keys ===
 namespace Keys
 {
-    constexpr auto Delete = VK_DELETE;
-    constexpr auto Escape = VK_ESCAPE;
+    constexpr auto Delete  = VK_DELETE;
+    constexpr auto Escape  = VK_ESCAPE;
+    constexpr auto Control = VK_CONTROL;
 }
 
 // === Show window commands ===

@@ -50,7 +50,7 @@ export void RebuildControls(DesignState& state)
     for (auto& entry : state.entries)
         Win32::DestroyWindow(entry.hwnd);
     state.entries.clear();
-    state.selectedIndex = -1;
+    state.selection.clear();
     PopulateControls(state);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
@@ -114,7 +114,7 @@ void PlaceControl(DesignState& state, int x, int y)
             reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
         Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
         state.entries.push_back({ &ctrl, hwnd });
-        state.selectedIndex = static_cast<int>(state.entries.size()) - 1;
+        state.selection = { static_cast<int>(state.entries.size()) - 1 };
     }
 
     state.placementMode = false;
@@ -141,7 +141,7 @@ export void Undo(DesignState& state)
     state.redoStack.push_back(std::move(state.form));
     state.form = std::move(state.undoStack.back());
     state.undoStack.pop_back();
-    state.selectedIndex = -1;
+    state.selection.clear();
     RebuildControls(state);
     MarkDirty(state);
 }
@@ -152,70 +152,76 @@ export void Redo(DesignState& state)
     state.undoStack.push_back(std::move(state.form));
     state.form = std::move(state.redoStack.back());
     state.redoStack.pop_back();
-    state.selectedIndex = -1;
+    state.selection.clear();
     RebuildControls(state);
     MarkDirty(state);
 }
 
-void DeleteSelectedControl(DesignState& state);
+void DeleteSelectedControls(DesignState& state);
 
 export void CopySelected(DesignState& state)
 {
-    if (state.selectedIndex < 0 ||
-        state.selectedIndex >= static_cast<int>(state.entries.size()))
-        return;
-    state.clipboard = *state.entries[state.selectedIndex].control;
+    if (state.selection.empty()) return;
+    state.clipboard.clear();
+    for (int idx : state.selection)
+    {
+        if (idx >= 0 && idx < static_cast<int>(state.entries.size()))
+            state.clipboard.push_back(*state.entries[idx].control);
+    }
 }
 
 export void CutSelected(DesignState& state)
 {
     CopySelected(state);
-    if (state.clipboard)
-        DeleteSelectedControl(state);
+    if (!state.clipboard.empty())
+        DeleteSelectedControls(state);
 }
 
 export void PasteControl(DesignState& state)
 {
-    if (!state.clipboard) return;
+    if (state.clipboard.empty()) return;
 
     PushUndo(state);
     constexpr int PASTE_OFFSET = 20;
 
-    auto ctrl = *state.clipboard;
-    ctrl.id = NextControlId(state);
-    ctrl.rect.x += PASTE_OFFSET;
-    ctrl.rect.y += PASTE_OFFSET;
+    state.selection.clear();
 
-    state.form.controls.push_back(std::move(ctrl));
-
-    for (int i = 0; i < static_cast<int>(state.form.controls.size()); ++i)
+    for (auto& src : state.clipboard)
     {
-        if (i < static_cast<int>(state.entries.size()))
+        auto ctrl = src;
+        ctrl.id = NextControlId(state);
+        ctrl.rect.x += PASTE_OFFSET;
+        ctrl.rect.y += PASTE_OFFSET;
+
+        state.form.controls.push_back(std::move(ctrl));
+
+        // Fix up existing entry pointers after push_back.
+        for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
             state.entries[i].control = &state.form.controls[i];
-    }
 
-    auto& placed = state.form.controls.back();
-    auto* className = FormDesigner::ClassNameFor(placed.type);
-    auto style = Win32::DWORD{
-        Win32::Styles::Child | Win32::Styles::Visible |
-        FormDesigner::ImpliedStyleFor(placed.type) |
-        placed.style};
+        auto& placed = state.form.controls.back();
+        auto* className = FormDesigner::ClassNameFor(placed.type);
+        auto style = Win32::DWORD{
+            Win32::Styles::Child | Win32::Styles::Visible |
+            FormDesigner::ImpliedStyleFor(placed.type) |
+            placed.style};
 
-    auto hwnd = Win32::CreateWindowExW(
-        placed.exStyle, className, placed.text.c_str(), style,
-        placed.rect.x, placed.rect.y,
-        placed.rect.width, placed.rect.height,
-        state.canvasHwnd,
-        reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(placed.id)),
-        state.hInstance, nullptr);
+        auto hwnd = Win32::CreateWindowExW(
+            placed.exStyle, className, placed.text.c_str(), style,
+            placed.rect.x, placed.rect.y,
+            placed.rect.width, placed.rect.height,
+            state.canvasHwnd,
+            reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(placed.id)),
+            state.hInstance, nullptr);
 
-    if (hwnd)
-    {
-        Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
-            reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
-        Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
-        state.entries.push_back({ &placed, hwnd });
-        state.selectedIndex = static_cast<int>(state.entries.size()) - 1;
+        if (hwnd)
+        {
+            Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
+                reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+            Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
+            state.entries.push_back({ &placed, hwnd });
+            state.selection.insert(static_cast<int>(state.entries.size()) - 1);
+        }
     }
 
     MarkDirty(state);
@@ -229,24 +235,29 @@ export void DuplicateSelected(DesignState& state)
     PasteControl(state);
 }
 
-void DeleteSelectedControl(DesignState& state)
+void DeleteSelectedControls(DesignState& state)
 {
-    if (state.selectedIndex < 0 ||
-        state.selectedIndex >= static_cast<int>(state.entries.size()))
-        return;
+    if (state.selection.empty()) return;
 
     PushUndo(state);
 
-    Win32::DestroyWindow(state.entries[state.selectedIndex].hwnd);
-    state.form.controls.erase(
-        state.form.controls.begin() + state.selectedIndex);
-    state.entries.erase(
-        state.entries.begin() + state.selectedIndex);
+    // Delete in reverse index order to keep earlier indices valid.
+    std::vector<int> sorted(state.selection.begin(), state.selection.end());
+    std::sort(sorted.rbegin(), sorted.rend());
+
+    for (int idx : sorted)
+    {
+        if (idx < 0 || idx >= static_cast<int>(state.entries.size()))
+            continue;
+        Win32::DestroyWindow(state.entries[idx].hwnd);
+        state.form.controls.erase(state.form.controls.begin() + idx);
+        state.entries.erase(state.entries.begin() + idx);
+    }
 
     for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
         state.entries[i].control = &state.form.controls[i];
 
-    state.selectedIndex = -1;
+    state.selection.clear();
     MarkDirty(state);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
@@ -305,13 +316,18 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             return 0;
         }
 
+        bool ctrlHeld = (Win32::GetKeyState(Win32::Keys::Control) & 0x8000) != 0;
+
+        // Resize handles: only when exactly one control is selected.
         int handle = HitTestHandle(*state, x, y);
         if (handle >= 0)
         {
+            int sel = SingleSelection(*state);
             PushUndo(*state);
-            auto& r = state->entries[state->selectedIndex].control->rect;
+            auto& r = state->entries[sel].control->rect;
             state->dragMode = DragMode::Resize;
             state->activeHandle = handle;
+            state->dragAnchor = sel;
             state->dragStart = { x, y };
             state->controlStart = { r.x, r.y };
             state->controlStartSize = { r.width, r.height };
@@ -320,19 +336,49 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         }
 
         int hit = HitTest(*state, x, y);
-        state->selectedIndex = hit;
-        Win32::InvalidateRect(hwnd, nullptr, true);
-        UpdatePropertyPanel(*state);
 
         if (hit >= 0)
         {
-            PushUndo(*state);
-            auto& r = state->entries[hit].control->rect;
-            state->dragMode = DragMode::Move;
-            state->activeHandle = -1;
-            state->dragStart = { x, y };
-            state->controlStart = { r.x, r.y };
-            Win32::SetCapture(hwnd);
+            if (ctrlHeld)
+            {
+                // Ctrl+Click: toggle selection.
+                if (IsSelected(*state, hit))
+                    state->selection.erase(hit);
+                else
+                    state->selection.insert(hit);
+            }
+            else if (!IsSelected(*state, hit))
+            {
+                // Click on unselected without Ctrl: select only this one.
+                state->selection = { hit };
+            }
+            // Click on already-selected without Ctrl: keep current selection (for drag).
+
+            Win32::InvalidateRect(hwnd, nullptr, true);
+            UpdatePropertyPanel(*state);
+
+            // Start dragging all selected controls.
+            if (IsSelected(*state, hit))
+            {
+                PushUndo(*state);
+                state->dragMode = DragMode::Move;
+                state->activeHandle = -1;
+                state->dragAnchor = hit;
+                state->dragStart = { x, y };
+                state->dragOrigins.clear();
+                for (int idx : state->selection)
+                    state->dragOrigins[idx] = { state->entries[idx].control->rect.x,
+                                                 state->entries[idx].control->rect.y };
+                Win32::SetCapture(hwnd);
+            }
+        }
+        else
+        {
+            // Click on empty space: deselect all.
+            if (!ctrlHeld)
+                state->selection.clear();
+            Win32::InvalidateRect(hwnd, nullptr, true);
+            UpdatePropertyPanel(*state);
         }
         return 0;
     }
@@ -345,16 +391,49 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
 
         if (state->dragMode == DragMode::Move)
         {
-            auto& entry = state->entries[state->selectedIndex];
-            entry.control->rect.x = state->controlStart.x + (x - state->dragStart.x);
-            entry.control->rect.y = state->controlStart.y + (y - state->dragStart.y);
+            int dx = x - state->dragStart.x;
+            int dy = y - state->dragStart.y;
 
-            FindAlignGuides(*state, entry.control->rect);
+            // Move all selected controls by the same delta.
+            for (int idx : state->selection)
+            {
+                auto it = state->dragOrigins.find(idx);
+                if (it == state->dragOrigins.end()) continue;
+                auto& entry = state->entries[idx];
+                entry.control->rect.x = it->second.x + dx;
+                entry.control->rect.y = it->second.y + dy;
+            }
 
-            Win32::MoveWindow(entry.hwnd,
-                entry.control->rect.x, entry.control->rect.y,
-                entry.control->rect.width, entry.control->rect.height,
-                true);
+            // Snap guides based on the drag anchor control.
+            if (state->dragAnchor >= 0 && state->dragAnchor < static_cast<int>(state->entries.size()))
+            {
+                auto& anchorRect = state->entries[state->dragAnchor].control->rect;
+                auto prevX = anchorRect.x;
+                auto prevY = anchorRect.y;
+                FindAlignGuides(*state, anchorRect);
+                int snapDx = anchorRect.x - prevX;
+                int snapDy = anchorRect.y - prevY;
+                // Apply snap adjustment to all other selected controls.
+                if (snapDx != 0 || snapDy != 0)
+                {
+                    for (int idx : state->selection)
+                    {
+                        if (idx == state->dragAnchor) continue;
+                        state->entries[idx].control->rect.x += snapDx;
+                        state->entries[idx].control->rect.y += snapDy;
+                    }
+                }
+            }
+
+            for (int idx : state->selection)
+            {
+                auto& entry = state->entries[idx];
+                Win32::MoveWindow(entry.hwnd,
+                    entry.control->rect.x, entry.control->rect.y,
+                    entry.control->rect.width, entry.control->rect.height,
+                    true);
+            }
+
             Win32::InvalidateRect(hwnd, nullptr, true);
             MarkDirty(*state);
             UpdatePropertyPanel(*state);
@@ -363,7 +442,9 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
 
         if (state->dragMode == DragMode::Resize)
         {
-            auto& entry = state->entries[state->selectedIndex];
+            int sel = SingleSelection(*state);
+            if (sel < 0) break;
+            auto& entry = state->entries[sel];
             int dx = x - state->dragStart.x;
             int dy = y - state->dragStart.y;
 
@@ -418,7 +499,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         if (!state) break;
         if (wParam == Win32::Keys::Delete)
         {
-            DeleteSelectedControl(*state);
+            DeleteSelectedControls(*state);
             return 0;
         }
         break;

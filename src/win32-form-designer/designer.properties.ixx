@@ -25,8 +25,8 @@ export void UpdatePropertyPanel(DesignState& state)
     state.updatingProperties = true;
 
     auto panel = state.propertyHwnd;
-    bool hasSel = state.selectedIndex >= 0 &&
-        state.selectedIndex < static_cast<int>(state.entries.size());
+    int sel = SingleSelection(state);
+    bool hasSel = sel >= 0 && sel < static_cast<int>(state.entries.size());
 
     constexpr Win32::UINT ctrlIds[] = {
         IDC_PROP_TYPE, IDC_PROP_TEXT, IDC_PROP_ID,
@@ -47,7 +47,7 @@ export void UpdatePropertyPanel(DesignState& state)
 
     if (hasSel)
     {
-        auto& ctrl = *state.entries[state.selectedIndex].control;
+        auto& ctrl = *state.entries[sel].control;
 
         Win32::SetDlgItemTextW(panel, IDC_PROP_TYPE, ControlTypeDisplayName(ctrl.type));
         Win32::SetDlgItemTextW(panel, IDC_PROP_TEXT, ctrl.text.c_str());
@@ -99,13 +99,13 @@ export void UpdatePropertyPanel(DesignState& state)
 
 void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
 {
-    if (state.selectedIndex < 0 ||
-        state.selectedIndex >= static_cast<int>(state.entries.size()))
+    int sel = SingleSelection(state);
+    if (sel < 0 || sel >= static_cast<int>(state.entries.size()))
         return;
 
     PushUndo(state);
 
-    auto& entry = state.entries[state.selectedIndex];
+    auto& entry = state.entries[sel];
     auto& ctrl = *entry.control;
     auto panel = state.propertyHwnd;
 

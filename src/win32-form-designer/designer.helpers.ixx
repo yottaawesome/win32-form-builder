@@ -16,6 +16,18 @@ export auto ControlSubclassProc(
     return Win32::DefSubclassProc(hwnd, msg, wParam, lParam);
 }
 
+export auto IsSelected(const DesignState& state, int index) -> bool
+{
+    return state.selection.contains(index);
+}
+
+export auto SingleSelection(const DesignState& state) -> int
+{
+    if (state.selection.size() == 1)
+        return *state.selection.begin();
+    return -1;
+}
+
 export auto HitTest(const DesignState& state, int x, int y) -> int
 {
     for (int i = static_cast<int>(state.entries.size()) - 1; i >= 0; --i)
@@ -47,12 +59,12 @@ export void GetHandleAnchors(const FormDesigner::Rect& r, Win32::POINT out[8])
 
 export auto HitTestHandle(const DesignState& state, int x, int y) -> int
 {
-    if (state.selectedIndex < 0 ||
-        state.selectedIndex >= static_cast<int>(state.entries.size()))
+    int sel = SingleSelection(state);
+    if (sel < 0 || sel >= static_cast<int>(state.entries.size()))
         return -1;
 
     Win32::POINT anchors[8];
-    GetHandleAnchors(state.entries[state.selectedIndex].control->rect, anchors);
+    GetHandleAnchors(state.entries[sel].control->rect, anchors);
 
     for (int i = 0; i < 8; ++i)
     {
@@ -112,34 +124,46 @@ export void ApplyResize(FormDesigner::Rect& r, int handle, int dx, int dy,
 
 export void DrawSelection(const DesignState& state, Win32::HDC hdc)
 {
-    if (state.selectedIndex < 0 ||
-        state.selectedIndex >= static_cast<int>(state.entries.size()))
-        return;
-
-    auto& r = state.entries[state.selectedIndex].control->rect;
+    if (state.selection.empty()) return;
 
     auto accent = Win32::CreateSolidBrush(Win32::MakeRgb(0, 120, 215));
-    Win32::RECT sides[] = {
-        { r.x - 2, r.y - 2,          r.x + r.width + 2, r.y },
-        { r.x - 2, r.y + r.height,   r.x + r.width + 2, r.y + r.height + 2 },
-        { r.x - 2, r.y,              r.x,                r.y + r.height },
-        { r.x + r.width, r.y,        r.x + r.width + 2,  r.y + r.height },
-    };
-    for (auto& s : sides)
-        Win32::FillRect(hdc, &s, accent);
 
-    Win32::POINT anchors[8];
-    GetHandleAnchors(r, anchors);
-
-    auto white = Win32::CreateSolidBrush(Win32::MakeRgb(255, 255, 255));
-    for (auto& a : anchors)
+    for (int idx : state.selection)
     {
-        Win32::RECT outer = { a.x, a.y, a.x + HANDLE_SIZE, a.y + HANDLE_SIZE };
-        Win32::RECT inner = { a.x + 1, a.y + 1, a.x + HANDLE_SIZE - 1, a.y + HANDLE_SIZE - 1 };
-        Win32::FillRect(hdc, &outer, accent);
-        Win32::FillRect(hdc, &inner, white);
+        if (idx < 0 || idx >= static_cast<int>(state.entries.size()))
+            continue;
+
+        auto& r = state.entries[idx].control->rect;
+
+        Win32::RECT sides[] = {
+            { r.x - 2, r.y - 2,          r.x + r.width + 2, r.y },
+            { r.x - 2, r.y + r.height,   r.x + r.width + 2, r.y + r.height + 2 },
+            { r.x - 2, r.y,              r.x,                r.y + r.height },
+            { r.x + r.width, r.y,        r.x + r.width + 2,  r.y + r.height },
+        };
+        for (auto& s : sides)
+            Win32::FillRect(hdc, &s, accent);
     }
-    Win32::DeleteObject(white);
+
+    // Resize handles only when exactly one control is selected.
+    int sel = SingleSelection(state);
+    if (sel >= 0 && sel < static_cast<int>(state.entries.size()))
+    {
+        auto& r = state.entries[sel].control->rect;
+        Win32::POINT anchors[8];
+        GetHandleAnchors(r, anchors);
+
+        auto white = Win32::CreateSolidBrush(Win32::MakeRgb(255, 255, 255));
+        for (auto& a : anchors)
+        {
+            Win32::RECT outer = { a.x, a.y, a.x + HANDLE_SIZE, a.y + HANDLE_SIZE };
+            Win32::RECT inner = { a.x + 1, a.y + 1, a.x + HANDLE_SIZE - 1, a.y + HANDLE_SIZE - 1 };
+            Win32::FillRect(hdc, &outer, accent);
+            Win32::FillRect(hdc, &inner, white);
+        }
+        Win32::DeleteObject(white);
+    }
+
     Win32::DeleteObject(accent);
 }
 
@@ -247,7 +271,7 @@ export void FindAlignGuides(DesignState& state, FormDesigner::Rect& rect)
 
     for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
     {
-        if (i == state.selectedIndex) continue;
+        if (state.selection.contains(i)) continue;
         auto& other = state.entries[i].control->rect;
         auto otherEdges = edges(other);
 

@@ -107,13 +107,15 @@ struct DesignState
     Win32::HWND toolboxHwnd = nullptr;
     Win32::HWND propertyHwnd = nullptr;
     std::vector<ControlEntry> entries;
-    int selectedIndex = -1;
+    std::set<int> selection;
 
     DragMode dragMode = DragMode::None;
     int activeHandle = -1;
+    int dragAnchor = -1;
     Win32::POINT dragStart = {};
     Win32::POINT controlStart = {};
     Win32::SIZE controlStartSize = {};
+    std::map<int, Win32::POINT> dragOrigins;
 
     bool placementMode = false;
     FormDesigner::ControlType placementType = FormDesigner::ControlType::Button;
@@ -125,7 +127,7 @@ struct DesignState
     std::vector<FormDesigner::Form> undoStack;
     std::vector<FormDesigner::Form> redoStack;
 
-    std::optional<FormDesigner::Control> clipboard;
+    std::vector<FormDesigner::Control> clipboard;
 
     std::filesystem::path currentFile;
     bool dirty = false;
