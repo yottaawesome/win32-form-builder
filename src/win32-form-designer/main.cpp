@@ -26,7 +26,7 @@ try
 	if (not hwnd)
 		return 1;
 
-	return Designer::RunDesignerLoop();
+	return Designer::RunDesignerLoop(hwnd);
 }
 catch (const std::exception& ex)
 {
