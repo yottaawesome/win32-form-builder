@@ -81,6 +81,9 @@ inline constexpr ToolboxItem TOOLBOX_ITEMS[] = {
     { FormDesigner::ControlType::DateTimePicker, L"DateTimePicker" },
     { FormDesigner::ControlType::TabControl,     L"TabControl" },
     { FormDesigner::ControlType::ListView,       L"ListView" },
+    { FormDesigner::ControlType::TreeView,       L"TreeView" },
+    { FormDesigner::ControlType::UpDown,         L"UpDown" },
+    { FormDesigner::ControlType::RichEdit,       L"RichEdit" },
 };
 
 struct DesignState

@@ -83,6 +83,9 @@ void PlaceControl(DesignState& state, int x, int y)
     case FormDesigner::ControlType::DateTimePicker:  break;
     case FormDesigner::ControlType::TabControl:      ctrl.rect = { x, y, 200, 150 }; break;
     case FormDesigner::ControlType::ListView:        ctrl.rect = { x, y, 200, 120 }; break;
+    case FormDesigner::ControlType::TreeView:        ctrl.rect = { x, y, 200, 150 }; break;
+    case FormDesigner::ControlType::UpDown:          ctrl.rect = { x, y, 20, 25 }; break;
+    case FormDesigner::ControlType::RichEdit:        ctrl.rect = { x, y, 200, 100 }; break;
     default: ctrl.text = L"Control"; break;
     }
 

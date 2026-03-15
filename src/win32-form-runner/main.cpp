@@ -15,6 +15,7 @@ try
 		.dwICC = Win32::Icc_StandardClasses,
 	};
 	Win32::InitCommonControlsEx(&icc);
+	Win32::LoadLibraryW(L"msftedit.dll");
 
 	auto path = std::filesystem::path{};
 	if (lpCmdLine and lpCmdLine[0] != L'\0')

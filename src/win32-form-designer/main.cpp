@@ -17,6 +17,7 @@ try
 		.dwICC = Win32::Icc_StandardClasses,
 	};
 	Win32::InitCommonControlsEx(&icc);
+	Win32::LoadLibraryW(L"msftedit.dll");
 
 	auto form = FormDesigner::Form{};
 	auto path = std::filesystem::path{};

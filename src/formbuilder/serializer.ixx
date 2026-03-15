@@ -24,6 +24,9 @@ namespace FormDesigner
 		case ControlType::DateTimePicker:  return "DateTimePicker";
 		case ControlType::TabControl:      return "TabControl";
 		case ControlType::ListView:        return "ListView";
+		case ControlType::TreeView:        return "TreeView";
+		case ControlType::UpDown:          return "UpDown";
+		case ControlType::RichEdit:        return "RichEdit";
 		default:                    return "Window";
 		}
 	}

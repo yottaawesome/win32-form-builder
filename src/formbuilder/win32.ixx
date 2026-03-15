@@ -3,6 +3,7 @@ module;
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <CommCtrl.h>
+#include <Richedit.h>
 
 export module formbuilder:win32;
 
@@ -55,6 +56,7 @@ export namespace Win32
 		::LoadCursorW,
 		::AdjustWindowRectEx,
 		::InitCommonControlsEx,
+		::LoadLibraryW,
 		::CreateSolidBrush,
 		::DeleteObject,
 		::FillRect,
@@ -82,6 +84,11 @@ export namespace Win32
 		constexpr auto ComboBoxDropDownList = CBS_DROPDOWNLIST;
 		constexpr auto ListViewReport = LVS_REPORT;
 		constexpr auto ListViewShowSelAlways = LVS_SHOWSELALWAYS;
+		constexpr auto TreeViewHasButtons = TVS_HASBUTTONS;
+		constexpr auto TreeViewHasLines = TVS_HASLINES;
+		constexpr auto TreeViewLinesAtRoot = TVS_LINESATROOT;
+		constexpr auto EditMultiLine = ES_MULTILINE;
+		constexpr auto EditAutoVScroll = ES_AUTOVSCROLL;
 	}
 
 	// === Class styles ===
@@ -116,6 +123,9 @@ export namespace Win32
 		constexpr auto DateTimePick = DATETIMEPICK_CLASS;
 		constexpr auto Tab = WC_TABCONTROL;
 		constexpr auto ListView = WC_LISTVIEW;
+		constexpr auto TreeView = WC_TREEVIEW;
+		constexpr auto UpDown = UPDOWN_CLASS;
+		constexpr auto RichEdit = MSFTEDIT_CLASS;
 	}
 
 	// === System constants ===

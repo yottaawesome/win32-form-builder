@@ -181,6 +181,9 @@ export auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wcha
     case FormDesigner::ControlType::DateTimePicker:  return L"DateTimePicker";
     case FormDesigner::ControlType::TabControl:      return L"TabControl";
     case FormDesigner::ControlType::ListView:        return L"ListView";
+    case FormDesigner::ControlType::TreeView:        return L"TreeView";
+    case FormDesigner::ControlType::UpDown:          return L"UpDown";
+    case FormDesigner::ControlType::RichEdit:        return L"RichEdit";
     default:                                  return L"Window";
     }
 }

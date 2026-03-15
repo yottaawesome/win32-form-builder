@@ -29,6 +29,9 @@ export namespace FormDesigner
 		DateTimePicker,
 		TabControl,
 		ListView,
+		TreeView,
+		UpDown,
+		RichEdit,
 	};
 
 	struct Control
@@ -73,6 +76,9 @@ export namespace FormDesigner
 		case ControlType::DateTimePicker:  return Win32::Controls::DateTimePick;
 		case ControlType::TabControl:      return Win32::Controls::Tab;
 		case ControlType::ListView:        return Win32::Controls::ListView;
+		case ControlType::TreeView:        return Win32::Controls::TreeView;
+		case ControlType::UpDown:          return Win32::Controls::UpDown;
+		case ControlType::RichEdit:        return Win32::Controls::RichEdit;
 		default:                    return nullptr;
 		}
 	}
@@ -90,6 +96,8 @@ export namespace FormDesigner
 		case ControlType::ListBox:     return Win32::Styles::ListBoxStandard;
 		case ControlType::ComboBox:    return Win32::Styles::ComboBoxDropDownList;
 		case ControlType::ListView:    return Win32::Styles::ListViewReport | Win32::Styles::ListViewShowSelAlways;
+		case ControlType::TreeView:    return Win32::Styles::TreeViewHasButtons | Win32::Styles::TreeViewHasLines | Win32::Styles::TreeViewLinesAtRoot;
+		case ControlType::RichEdit:    return Win32::Styles::Border | Win32::Styles::EditMultiLine | Win32::Styles::EditAutoVScroll;
 		default:                    return 0;
 		}
 	}

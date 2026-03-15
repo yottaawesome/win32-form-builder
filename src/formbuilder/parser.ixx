@@ -23,6 +23,9 @@ namespace FormDesigner
 			{"DateTimePicker",  ControlType::DateTimePicker},
 			{"TabControl",      ControlType::TabControl},
 			{"ListView",        ControlType::ListView},
+			{"TreeView",        ControlType::TreeView},
+			{"UpDown",          ControlType::UpDown},
+			{"RichEdit",        ControlType::RichEdit},
 		};
 
 		if (auto it = map.find(type); it != map.end())
