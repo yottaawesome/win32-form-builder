@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "formbuilder", "formbuilder\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win32-form-runner", "win32-form-runner\win32-form-runner.vcxproj", "{4D1E0FA0-EB88-4BCE-BF9A-53F622A1D05A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win32-form-designer", "win32-form-designer\win32-form-designer.vcxproj", "{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{4D1E0FA0-EB88-4BCE-BF9A-53F622A1D05A}.Release|x64.Build.0 = Release|x64
 		{4D1E0FA0-EB88-4BCE-BF9A-53F622A1D05A}.Release|x86.ActiveCfg = Release|Win32
 		{4D1E0FA0-EB88-4BCE-BF9A-53F622A1D05A}.Release|x86.Build.0 = Release|Win32
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Debug|x64.ActiveCfg = Debug|x64
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Debug|x64.Build.0 = Debug|x64
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Debug|x86.ActiveCfg = Debug|Win32
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Debug|x86.Build.0 = Debug|Win32
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Release|x64.ActiveCfg = Release|x64
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Release|x64.Build.0 = Release|x64
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Release|x86.ActiveCfg = Release|Win32
+		{A3B4C5D6-E7F8-4A9B-8C1D-2E3F4A5B6C7D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
