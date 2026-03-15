@@ -140,11 +140,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="designer_state.ixx" />
-    <ClCompile Include="designer_helpers.ixx" />
-    <ClCompile Include="designer_properties.ixx" />
-    <ClCompile Include="designer_canvas.ixx" />
-    <ClCompile Include="designer_fileops.ixx" />
+    <ClCompile Include="designer.state.ixx" />
+    <ClCompile Include="designer.helpers.ixx" />
+    <ClCompile Include="designer.properties.ixx" />
+    <ClCompile Include="designer.canvas.ixx" />
+    <ClCompile Include="designer.fileops.ixx" />
     <ClCompile Include="designer.ixx" />
   </ItemGroup>
   <ItemGroup>
