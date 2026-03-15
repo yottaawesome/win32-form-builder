@@ -99,15 +99,32 @@ export namespace Win32
 	namespace Messages
 	{
 		constexpr auto Command = WM_COMMAND;
+		constexpr auto Notify = WM_NOTIFY;
 		constexpr auto Destroy = WM_DESTROY;
 		constexpr auto SetFont = WM_SETFONT;
 		constexpr auto EraseBkgnd = WM_ERASEBKGND;
 	}
 
-	// === Notifications ===
+	// === Notifications (WM_COMMAND) ===
 	namespace Notifications
 	{
 		constexpr auto ButtonClicked = BN_CLICKED;
+		constexpr auto ButtonDoubleClicked = BN_DBLCLK;
+		constexpr auto EditChange = EN_CHANGE;
+		constexpr auto ListBoxSelChange = LBN_SELCHANGE;
+		constexpr auto ListBoxDoubleClick = LBN_DBLCLK;
+		constexpr auto ComboBoxSelChange = CBN_SELCHANGE;
+	}
+
+	// === Notifications (WM_NOTIFY) ===
+	using ::NMHDR;
+	namespace NotifyCodes
+	{
+		constexpr auto DoubleClick = NM_DBLCLK;
+		constexpr auto DateTimeChange = DTN_DATETIMECHANGE;
+		constexpr auto TreeViewSelChanged = TVN_SELCHANGEDW;
+		constexpr auto ListViewItemChanged = LVN_ITEMCHANGED;
+		constexpr auto TabSelChange = TCN_SELCHANGE;
 	}
 
 	// === Control class names ===

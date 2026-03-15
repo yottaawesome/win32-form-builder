@@ -43,6 +43,9 @@ export namespace FormDesigner
 		Win32::DWORD style = 0;
 		Win32::DWORD exStyle = 0;
 		std::string onClick;
+		std::string onChange;
+		std::string onDoubleClick;
+		std::string onSelectionChange;
 		std::vector<Control> children;
 	};
 

@@ -54,6 +54,15 @@ namespace FormDesigner
 		if (not control.onClick.empty())
 			j["onClick"] = control.onClick;
 
+		if (not control.onChange.empty())
+			j["onChange"] = control.onChange;
+
+		if (not control.onDoubleClick.empty())
+			j["onDoubleClick"] = control.onDoubleClick;
+
+		if (not control.onSelectionChange.empty())
+			j["onSelectionChange"] = control.onSelectionChange;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

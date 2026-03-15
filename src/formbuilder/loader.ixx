@@ -84,21 +84,89 @@ export namespace FormDesigner
 		}
 		case Win32::Messages::Command:
 		{
+			if (!data || !data->events)
+				return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+
 			auto notificationCode = Win32::GetHighWord(wParam);
-			if (notificationCode == Win32::Notifications::ButtonClicked && data && data->events)
+			auto controlId = static_cast<int>(Win32::GetLowWord(wParam));
+			auto controlHwnd = reinterpret_cast<Win32::HWND>(lParam);
+
+			// onClick: BN_CLICKED
+			if (notificationCode == Win32::Notifications::ButtonClicked)
 			{
-				auto controlId = static_cast<int>(Win32::GetLowWord(wParam));
 				if (auto* handler = data->events->findClickHandler(controlId))
 				{
-					auto event = ClickEvent{
-						.controlId = controlId,
-						.controlHwnd = reinterpret_cast<Win32::HWND>(lParam),
-						.formHwnd = hwnd,
-					};
-					(*handler)(event);
+					(*handler)({ controlId, controlHwnd, hwnd });
 					return 0;
 				}
 			}
+
+			// onChange: EN_CHANGE, CBN_SELCHANGE, LBN_SELCHANGE
+			if (notificationCode == Win32::Notifications::EditChange ||
+				notificationCode == Win32::Notifications::ComboBoxSelChange ||
+				notificationCode == Win32::Notifications::ListBoxSelChange)
+			{
+				if (auto* handler = data->events->findChangeHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
+			// onDoubleClick: BN_DBLCLK, LBN_DBLCLK
+			if (notificationCode == Win32::Notifications::ButtonDoubleClicked ||
+				notificationCode == Win32::Notifications::ListBoxDoubleClick)
+			{
+				if (auto* handler = data->events->findDoubleClickHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
+			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+		}
+		case Win32::Messages::Notify:
+		{
+			if (!data || !data->events)
+				return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+
+			auto* nmhdr = reinterpret_cast<Win32::NMHDR*>(lParam);
+			auto controlId = static_cast<int>(nmhdr->idFrom);
+			auto controlHwnd = nmhdr->hwndFrom;
+
+			// onDoubleClick: NM_DBLCLK (ListView, TreeView)
+			if (nmhdr->code == Win32::NotifyCodes::DoubleClick)
+			{
+				if (auto* handler = data->events->findDoubleClickHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
+			// onChange: DTN_DATETIMECHANGE
+			if (nmhdr->code == Win32::NotifyCodes::DateTimeChange)
+			{
+				if (auto* handler = data->events->findChangeHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
+			// onSelectionChange: TVN_SELCHANGED, LVN_ITEMCHANGED, TCN_SELCHANGE
+			if (nmhdr->code == Win32::NotifyCodes::TreeViewSelChanged ||
+				nmhdr->code == Win32::NotifyCodes::ListViewItemChanged ||
+				nmhdr->code == Win32::NotifyCodes::TabSelChange)
+			{
+				if (auto* handler = data->events->findSelectionChangeHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
 			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
 		case Win32::Messages::Destroy:

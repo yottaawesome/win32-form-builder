@@ -30,14 +30,15 @@ export void UpdatePropertyPanel(DesignState& state)
 
     constexpr Win32::UINT ctrlIds[] = {
         IDC_PROP_TYPE, IDC_PROP_TEXT, IDC_PROP_ID,
-        IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H, IDC_PROP_ONCLICK
+        IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
+        IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE
     };
     constexpr Win32::UINT formIds[] = {
         IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
         IDC_PROP_FORM_HEIGHT, IDC_PROP_FORM_BGCOLOR
     };
 
-    SetPropertyGroupVisibility(panel, ctrlIds, 8, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+    SetPropertyGroupVisibility(panel, ctrlIds, 11, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
     SetPropertyGroupVisibility(panel, formIds, 4, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
     auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -58,8 +59,18 @@ export void UpdatePropertyPanel(DesignState& state)
         auto onClick = std::wstring(ctrl.onClick.begin(), ctrl.onClick.end());
         Win32::SetDlgItemTextW(panel, IDC_PROP_ONCLICK, onClick.c_str());
 
+        auto onChange = std::wstring(ctrl.onChange.begin(), ctrl.onChange.end());
+        Win32::SetDlgItemTextW(panel, IDC_PROP_ONCHANGE, onChange.c_str());
+
+        auto onDblClick = std::wstring(ctrl.onDoubleClick.begin(), ctrl.onDoubleClick.end());
+        Win32::SetDlgItemTextW(panel, IDC_PROP_ONDBLCLICK, onDblClick.c_str());
+
+        auto onSelChange = std::wstring(ctrl.onSelectionChange.begin(), ctrl.onSelectionChange.end());
+        Win32::SetDlgItemTextW(panel, IDC_PROP_ONSELCHANGE, onSelChange.c_str());
+
         Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
-            IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H, IDC_PROP_ONCLICK };
+            IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
+            IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE };
         for (auto id : editableIds)
             Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
     }
@@ -149,6 +160,27 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         ctrl.onClick = std::string(buf, buf + std::wcslen(buf));
         break;
     }
+    case IDC_PROP_ONCHANGE:
+    {
+        wchar_t buf[256] = {};
+        Win32::GetDlgItemTextW(panel, IDC_PROP_ONCHANGE, buf, 256);
+        ctrl.onChange = std::string(buf, buf + std::wcslen(buf));
+        break;
+    }
+    case IDC_PROP_ONDBLCLICK:
+    {
+        wchar_t buf[256] = {};
+        Win32::GetDlgItemTextW(panel, IDC_PROP_ONDBLCLICK, buf, 256);
+        ctrl.onDoubleClick = std::string(buf, buf + std::wcslen(buf));
+        break;
+    }
+    case IDC_PROP_ONSELCHANGE:
+    {
+        wchar_t buf[256] = {};
+        Win32::GetDlgItemTextW(panel, IDC_PROP_ONSELCHANGE, buf, 256);
+        ctrl.onSelectionChange = std::string(buf, buf + std::wcslen(buf));
+        break;
+    }
     default:
         return;
     }
@@ -222,7 +254,10 @@ export void CreatePropertyControls(DesignState& state)
         { L"Y:",       IDC_PROP_Y,      Win32::Styles::EditAutoHScroll },
         { L"Width:",   IDC_PROP_W,      Win32::Styles::EditAutoHScroll },
         { L"Height:",  IDC_PROP_H,      Win32::Styles::EditAutoHScroll },
-        { L"onClick:", IDC_PROP_ONCLICK, Win32::Styles::EditAutoHScroll },
+        { L"onClick:",  IDC_PROP_ONCLICK,     Win32::Styles::EditAutoHScroll },
+        { L"onChange:",  IDC_PROP_ONCHANGE,    Win32::Styles::EditAutoHScroll },
+        { L"onDblClk:", IDC_PROP_ONDBLCLICK,  Win32::Styles::EditAutoHScroll },
+        { L"onSelChg:", IDC_PROP_ONSELCHANGE, Win32::Styles::EditAutoHScroll },
     };
 
     int y = 30;
@@ -329,7 +364,7 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
         // Property edits (apply on focus loss).
         if (code == Win32::Notifications::EditKillFocus)
         {
-            if (id >= IDC_PROP_TYPE && id <= IDC_PROP_ONCLICK)
+            if (id >= IDC_PROP_TYPE && id <= IDC_PROP_ONSELCHANGE)
                 ApplyPropertyChange(*state, id);
             else if (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
                 ApplyFormPropertyChange(*state, id);
