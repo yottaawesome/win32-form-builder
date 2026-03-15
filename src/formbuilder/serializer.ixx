@@ -19,8 +19,11 @@ namespace FormDesigner
 		case ControlType::GroupBox:    return "GroupBox";
 		case ControlType::ListBox:     return "ListBox";
 		case ControlType::ComboBox:    return "ComboBox";
-		case ControlType::ProgressBar: return "ProgressBar";
-		case ControlType::TrackBar:    return "TrackBar";
+		case ControlType::ProgressBar:     return "ProgressBar";
+		case ControlType::TrackBar:        return "TrackBar";
+		case ControlType::DateTimePicker:  return "DateTimePicker";
+		case ControlType::TabControl:      return "TabControl";
+		case ControlType::ListView:        return "ListView";
 		default:                    return "Window";
 		}
 	}

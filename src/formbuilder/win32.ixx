@@ -80,6 +80,8 @@ export namespace Win32
 		constexpr auto StaticLeft = SS_LEFT;
 		constexpr auto ListBoxStandard = LBS_STANDARD;
 		constexpr auto ComboBoxDropDownList = CBS_DROPDOWNLIST;
+		constexpr auto ListViewReport = LVS_REPORT;
+		constexpr auto ListViewShowSelAlways = LVS_SHOWSELALWAYS;
 	}
 
 	// === Class styles ===
@@ -111,6 +113,9 @@ export namespace Win32
 		constexpr auto ComboBox = WC_COMBOBOX;
 		constexpr auto Progress = PROGRESS_CLASS;
 		constexpr auto TrackBar = TRACKBAR_CLASS;
+		constexpr auto DateTimePick = DATETIMEPICK_CLASS;
+		constexpr auto Tab = WC_TABCONTROL;
+		constexpr auto ListView = WC_LISTVIEW;
 	}
 
 	// === System constants ===

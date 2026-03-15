@@ -78,8 +78,11 @@ void PlaceControl(DesignState& state, int x, int y)
     case FormDesigner::ControlType::GroupBox:    ctrl.text = L"GroupBox"; ctrl.rect.height = 100; break;
     case FormDesigner::ControlType::ListBox:     ctrl.rect.height = 80; break;
     case FormDesigner::ControlType::ComboBox:    break;
-    case FormDesigner::ControlType::ProgressBar: ctrl.rect.height = 20; break;
-    case FormDesigner::ControlType::TrackBar:    ctrl.rect.height = 30; break;
+    case FormDesigner::ControlType::ProgressBar:     ctrl.rect.height = 20; break;
+    case FormDesigner::ControlType::TrackBar:        ctrl.rect.height = 30; break;
+    case FormDesigner::ControlType::DateTimePicker:  break;
+    case FormDesigner::ControlType::TabControl:      ctrl.rect = { x, y, 200, 150 }; break;
+    case FormDesigner::ControlType::ListView:        ctrl.rect = { x, y, 200, 120 }; break;
     default: ctrl.text = L"Control"; break;
     }
 

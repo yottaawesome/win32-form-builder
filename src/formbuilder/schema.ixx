@@ -26,6 +26,9 @@ export namespace FormDesigner
 		ComboBox,
 		ProgressBar,
 		TrackBar,
+		DateTimePicker,
+		TabControl,
+		ListView,
 	};
 
 	struct Control
@@ -65,8 +68,11 @@ export namespace FormDesigner
 		case ControlType::GroupBox:    return Win32::Controls::Button;
 		case ControlType::ListBox:     return Win32::Controls::ListBox;
 		case ControlType::ComboBox:    return Win32::Controls::ComboBox;
-		case ControlType::ProgressBar: return Win32::Controls::Progress;
-		case ControlType::TrackBar:    return Win32::Controls::TrackBar;
+		case ControlType::ProgressBar:     return Win32::Controls::Progress;
+		case ControlType::TrackBar:        return Win32::Controls::TrackBar;
+		case ControlType::DateTimePicker:  return Win32::Controls::DateTimePick;
+		case ControlType::TabControl:      return Win32::Controls::Tab;
+		case ControlType::ListView:        return Win32::Controls::ListView;
 		default:                    return nullptr;
 		}
 	}
@@ -83,6 +89,7 @@ export namespace FormDesigner
 		case ControlType::Label:       return Win32::Styles::StaticLeft;
 		case ControlType::ListBox:     return Win32::Styles::ListBoxStandard;
 		case ControlType::ComboBox:    return Win32::Styles::ComboBoxDropDownList;
+		case ControlType::ListView:    return Win32::Styles::ListViewReport | Win32::Styles::ListViewShowSelAlways;
 		default:                    return 0;
 		}
 	}

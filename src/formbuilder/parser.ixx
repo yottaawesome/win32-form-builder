@@ -18,8 +18,11 @@ namespace FormDesigner
 			{"GroupBox",    ControlType::GroupBox},
 			{"ListBox",     ControlType::ListBox},
 			{"ComboBox",    ControlType::ComboBox},
-			{"ProgressBar", ControlType::ProgressBar},
-			{"TrackBar",    ControlType::TrackBar},
+			{"ProgressBar",     ControlType::ProgressBar},
+			{"TrackBar",        ControlType::TrackBar},
+			{"DateTimePicker",  ControlType::DateTimePicker},
+			{"TabControl",      ControlType::TabControl},
+			{"ListView",        ControlType::ListView},
 		};
 
 		if (auto it = map.find(type); it != map.end())

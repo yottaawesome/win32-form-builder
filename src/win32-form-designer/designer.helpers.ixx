@@ -176,8 +176,11 @@ export auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wcha
     case FormDesigner::ControlType::GroupBox:     return L"GroupBox";
     case FormDesigner::ControlType::ListBox:     return L"ListBox";
     case FormDesigner::ControlType::ComboBox:    return L"ComboBox";
-    case FormDesigner::ControlType::ProgressBar: return L"ProgressBar";
-    case FormDesigner::ControlType::TrackBar:    return L"TrackBar";
+    case FormDesigner::ControlType::ProgressBar:     return L"ProgressBar";
+    case FormDesigner::ControlType::TrackBar:        return L"TrackBar";
+    case FormDesigner::ControlType::DateTimePicker:  return L"DateTimePicker";
+    case FormDesigner::ControlType::TabControl:      return L"TabControl";
+    case FormDesigner::ControlType::ListView:        return L"ListView";
     default:                                  return L"Window";
     }
 }

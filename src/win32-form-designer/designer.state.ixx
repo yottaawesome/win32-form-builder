@@ -76,8 +76,11 @@ inline constexpr ToolboxItem TOOLBOX_ITEMS[] = {
     { FormDesigner::ControlType::GroupBox,    L"GroupBox" },
     { FormDesigner::ControlType::ListBox,     L"ListBox" },
     { FormDesigner::ControlType::ComboBox,    L"ComboBox" },
-    { FormDesigner::ControlType::ProgressBar, L"ProgressBar" },
-    { FormDesigner::ControlType::TrackBar,    L"TrackBar" },
+    { FormDesigner::ControlType::ProgressBar,    L"ProgressBar" },
+    { FormDesigner::ControlType::TrackBar,       L"TrackBar" },
+    { FormDesigner::ControlType::DateTimePicker, L"DateTimePicker" },
+    { FormDesigner::ControlType::TabControl,     L"TabControl" },
+    { FormDesigner::ControlType::ListView,       L"ListView" },
 };
 
 struct DesignState
