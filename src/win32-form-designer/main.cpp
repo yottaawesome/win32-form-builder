@@ -9,7 +9,7 @@ import std;
 import formbuilder;
 import designer;
 
-auto __stdcall wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
+auto wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
 try
 {
 	auto icc = Win32::INITCOMMONCONTROLSEX{

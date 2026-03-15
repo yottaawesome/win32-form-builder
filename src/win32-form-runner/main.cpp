@@ -7,7 +7,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 import std;
 import formbuilder;
 
-auto __stdcall wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
+auto wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
 try
 {
 	auto icc = Win32::INITCOMMONCONTROLSEX{
