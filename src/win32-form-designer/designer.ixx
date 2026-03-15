@@ -21,8 +21,19 @@ constexpr UINT IDM_FILE_EXIT      = 40005;
 constexpr UINT IDM_CANCEL_PLACE   = 40006;
 
 // Toolbox and layout constants.
-constexpr int TOOLBOX_WIDTH = 140;
-constexpr UINT IDC_TOOLBOX = 50001;
+constexpr int TOOLBOX_WIDTH  = 140;
+constexpr int PROPERTY_WIDTH = 220;
+constexpr UINT IDC_TOOLBOX   = 50001;
+
+// Property panel edit control IDs.
+constexpr UINT IDC_PROP_TYPE    = 51001;
+constexpr UINT IDC_PROP_TEXT    = 51002;
+constexpr UINT IDC_PROP_ID      = 51003;
+constexpr UINT IDC_PROP_X       = 51004;
+constexpr UINT IDC_PROP_Y       = 51005;
+constexpr UINT IDC_PROP_W       = 51006;
+constexpr UINT IDC_PROP_H       = 51007;
+constexpr UINT IDC_PROP_ONCLICK = 51008;
 
 struct ControlEntry
 {
@@ -60,6 +71,7 @@ HINSTANCE hInstance = nullptr;
 HWND surfaceHwnd = nullptr;
 HWND canvasHwnd = nullptr;
 HWND toolboxHwnd = nullptr;
+HWND propertyHwnd = nullptr;
 std::vector<ControlEntry> entries;
 int selectedIndex = -1;
 
@@ -72,6 +84,9 @@ SIZE controlStartSize = {};
 // Placement mode: active when a toolbox item is clicked.
 bool placementMode = false;
 FormDesigner::ControlType placementType = FormDesigner::ControlType::Button;
+
+// Prevents property panel notifications during programmatic updates.
+bool updatingProperties = false;
 
 std::filesystem::path currentFile;
 bool dirty = false;
@@ -171,7 +186,6 @@ if (moveTop)    { newY += dy; newH -= dy; }
 if (moveRight)  { newW += dx; }
 if (moveBottom) { newH += dy; }
 
-// Enforce minimum size, clamping position if needed.
 if (newW < MIN_CONTROL_SIZE)
 {
 if (moveLeft) newX -= (MIN_CONTROL_SIZE - newW);
@@ -279,6 +293,63 @@ UpdateTitle(state);
 }
 }
 
+auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wchar_t*
+{
+switch (type)
+{
+case FormDesigner::ControlType::Button:   return L"Button";
+case FormDesigner::ControlType::CheckBox: return L"CheckBox";
+case FormDesigner::ControlType::Label:    return L"Label";
+case FormDesigner::ControlType::TextBox:  return L"TextBox";
+case FormDesigner::ControlType::GroupBox: return L"GroupBox";
+case FormDesigner::ControlType::ListBox:  return L"ListBox";
+case FormDesigner::ControlType::ComboBox: return L"ComboBox";
+default:                                  return L"Window";
+}
+}
+
+// Populates or clears the property panel based on the current selection.
+void UpdatePropertyPanel(DesignState& state)
+{
+if (!state.propertyHwnd) return;
+state.updatingProperties = true;
+
+auto panel = state.propertyHwnd;
+bool hasSel = state.selectedIndex >= 0 &&
+state.selectedIndex < static_cast<int>(state.entries.size());
+
+if (hasSel)
+{
+auto& ctrl = *state.entries[state.selectedIndex].control;
+
+SetDlgItemTextW(panel, IDC_PROP_TYPE, ControlTypeDisplayName(ctrl.type));
+SetDlgItemTextW(panel, IDC_PROP_TEXT, ctrl.text.c_str());
+SetDlgItemInt(panel, IDC_PROP_ID, static_cast<UINT>(ctrl.id), FALSE);
+SetDlgItemInt(panel, IDC_PROP_X, ctrl.rect.x, TRUE);
+SetDlgItemInt(panel, IDC_PROP_Y, ctrl.rect.y, TRUE);
+SetDlgItemInt(panel, IDC_PROP_W, ctrl.rect.width, TRUE);
+SetDlgItemInt(panel, IDC_PROP_H, ctrl.rect.height, TRUE);
+
+auto onClick = std::wstring(ctrl.onClick.begin(), ctrl.onClick.end());
+SetDlgItemTextW(panel, IDC_PROP_ONCLICK, onClick.c_str());
+}
+else
+{
+UINT ids[] = { IDC_PROP_TYPE, IDC_PROP_TEXT, IDC_PROP_ID,
+IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H, IDC_PROP_ONCLICK };
+for (auto id : ids)
+SetDlgItemTextW(panel, id, L"");
+}
+
+// Enable or disable editable fields based on selection.
+UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
+IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H, IDC_PROP_ONCLICK };
+for (auto id : editableIds)
+EnableWindow(GetDlgItem(panel, id), hasSel);
+
+state.updatingProperties = false;
+}
+
 void RebuildControls(DesignState& state)
 {
 for (auto& entry : state.entries)
@@ -287,6 +358,7 @@ state.entries.clear();
 state.selectedIndex = -1;
 PopulateControls(state);
 InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+UpdatePropertyPanel(state);
 }
 
 auto NextControlId(const DesignState& state) -> int
@@ -353,6 +425,7 @@ state.placementMode = false;
 SendMessageW(state.toolboxHwnd, LB_SETCURSEL, static_cast<WPARAM>(-1), 0);
 MarkDirty(state);
 InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+UpdatePropertyPanel(state);
 }
 
 void CancelPlacement(DesignState& state)
@@ -383,6 +456,7 @@ state.entries[i].control = &state.form.controls[i];
 state.selectedIndex = -1;
 MarkDirty(state);
 InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+UpdatePropertyPanel(state);
 }
 
 auto ShowSaveDialog(HWND owner, std::filesystem::path& outPath) -> bool
@@ -428,7 +502,6 @@ outPath = filename;
 return true;
 }
 
-// Returns true if it's safe to discard current form (saved or user chose to).
 auto PromptSaveIfDirty(DesignState& state) -> bool
 {
 if (!state.dirty)
@@ -546,6 +619,162 @@ ACCEL accels[] = {
 return CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
 }
 
+// Reads a property edit value and applies it to the selected control.
+void ApplyPropertyChange(DesignState& state, UINT controlId)
+{
+if (state.selectedIndex < 0 ||
+state.selectedIndex >= static_cast<int>(state.entries.size()))
+return;
+
+auto& entry = state.entries[state.selectedIndex];
+auto& ctrl = *entry.control;
+auto panel = state.propertyHwnd;
+
+switch (controlId)
+{
+case IDC_PROP_TEXT:
+{
+wchar_t buf[512] = {};
+GetDlgItemTextW(panel, IDC_PROP_TEXT, buf, 512);
+ctrl.text = buf;
+SetWindowTextW(entry.hwnd, ctrl.text.c_str());
+break;
+}
+case IDC_PROP_ID:
+{
+BOOL ok = FALSE;
+auto val = GetDlgItemInt(panel, IDC_PROP_ID, &ok, FALSE);
+if (ok) ctrl.id = static_cast<int>(val);
+break;
+}
+case IDC_PROP_X:
+{
+BOOL ok = FALSE;
+auto val = static_cast<int>(GetDlgItemInt(panel, IDC_PROP_X, &ok, TRUE));
+if (ok) ctrl.rect.x = val;
+MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+ctrl.rect.width, ctrl.rect.height, TRUE);
+InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+break;
+}
+case IDC_PROP_Y:
+{
+BOOL ok = FALSE;
+auto val = static_cast<int>(GetDlgItemInt(panel, IDC_PROP_Y, &ok, TRUE));
+if (ok) ctrl.rect.y = val;
+MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+ctrl.rect.width, ctrl.rect.height, TRUE);
+InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+break;
+}
+case IDC_PROP_W:
+{
+BOOL ok = FALSE;
+auto val = static_cast<int>(GetDlgItemInt(panel, IDC_PROP_W, &ok, FALSE));
+if (ok && val >= MIN_CONTROL_SIZE) ctrl.rect.width = val;
+MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+ctrl.rect.width, ctrl.rect.height, TRUE);
+InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+break;
+}
+case IDC_PROP_H:
+{
+BOOL ok = FALSE;
+auto val = static_cast<int>(GetDlgItemInt(panel, IDC_PROP_H, &ok, FALSE));
+if (ok && val >= MIN_CONTROL_SIZE) ctrl.rect.height = val;
+MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+ctrl.rect.width, ctrl.rect.height, TRUE);
+InvalidateRect(state.canvasHwnd, nullptr, TRUE);
+break;
+}
+case IDC_PROP_ONCLICK:
+{
+wchar_t buf[256] = {};
+GetDlgItemTextW(panel, IDC_PROP_ONCLICK, buf, 256);
+ctrl.onClick = std::string(buf, buf + wcslen(buf));
+break;
+}
+default:
+return; // Unknown field — don't mark dirty.
+}
+
+MarkDirty(state);
+}
+
+// Creates the label + edit control pairs inside the property panel.
+void CreatePropertyControls(DesignState& state)
+{
+auto parent = state.propertyHwnd;
+auto hInst = state.hInstance;
+auto font = reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT));
+
+// Header label.
+auto header = CreateWindowExW(0, L"STATIC", L"Properties",
+WS_CHILD | WS_VISIBLE | SS_LEFT,
+5, 5, 210, 20, parent, nullptr, hInst, nullptr);
+SendMessageW(header, WM_SETFONT, font, TRUE);
+
+struct PropRow
+{
+const wchar_t* label;
+UINT editId;
+DWORD extraStyle;
+};
+
+PropRow rows[] = {
+{ L"Type:",    IDC_PROP_TYPE,    ES_READONLY },
+{ L"Text:",    IDC_PROP_TEXT,    ES_AUTOHSCROLL },
+{ L"ID:",      IDC_PROP_ID,     ES_AUTOHSCROLL },
+{ L"X:",       IDC_PROP_X,      ES_AUTOHSCROLL },
+{ L"Y:",       IDC_PROP_Y,      ES_AUTOHSCROLL },
+{ L"Width:",   IDC_PROP_W,      ES_AUTOHSCROLL },
+{ L"Height:",  IDC_PROP_H,      ES_AUTOHSCROLL },
+{ L"onClick:", IDC_PROP_ONCLICK, ES_AUTOHSCROLL },
+};
+
+int y = 30;
+for (auto& row : rows)
+{
+auto lbl = CreateWindowExW(0, L"STATIC", row.label,
+WS_CHILD | WS_VISIBLE | SS_RIGHT,
+5, y + 2, 55, 18, parent, nullptr, hInst, nullptr);
+SendMessageW(lbl, WM_SETFONT, font, TRUE);
+
+auto edit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
+WS_CHILD | WS_VISIBLE | WS_TABSTOP | row.extraStyle,
+65, y, 150, 22, parent,
+reinterpret_cast<HMENU>(static_cast<UINT_PTR>(row.editId)),
+hInst, nullptr);
+SendMessageW(edit, WM_SETFONT, font, TRUE);
+EnableWindow(edit, FALSE);
+
+y += 26;
+}
+}
+
+// Handles edit notifications from the property panel controls.
+LRESULT CALLBACK PropertyPanelProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+auto* state = reinterpret_cast<DesignState*>(
+GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+
+switch (msg)
+{
+case WM_COMMAND:
+{
+if (!state || state->updatingProperties) break;
+if (HIWORD(wParam) == EN_KILLFOCUS)
+{
+ApplyPropertyChange(*state, LOWORD(wParam));
+return 0;
+}
+break;
+}
+}
+
+return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
 // Handles painting, mouse interaction, and keyboard input on the form canvas.
 LRESULT CALLBACK CanvasProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -601,6 +830,7 @@ return 0;
 int hit = HitTest(*state, x, y);
 state->selectedIndex = hit;
 InvalidateRect(hwnd, nullptr, TRUE);
+UpdatePropertyPanel(*state);
 
 if (hit >= 0)
 {
@@ -632,6 +862,7 @@ entry.control->rect.width, entry.control->rect.height,
 TRUE);
 InvalidateRect(hwnd, nullptr, TRUE);
 MarkDirty(*state);
+UpdatePropertyPanel(*state);
 return 0;
 }
 
@@ -650,6 +881,7 @@ entry.control->rect.width, entry.control->rect.height,
 TRUE);
 InvalidateRect(hwnd, nullptr, TRUE);
 MarkDirty(*state);
+UpdatePropertyPanel(*state);
 return 0;
 }
 
@@ -716,8 +948,11 @@ RECT rc;
 GetClientRect(hwnd, &rc);
 int w = rc.right - rc.left;
 int h = rc.bottom - rc.top;
+int canvasW = w - TOOLBOX_WIDTH - PROPERTY_WIDTH;
+if (canvasW < 0) canvasW = 0;
 MoveWindow(state->toolboxHwnd, 0, 0, TOOLBOX_WIDTH, h, TRUE);
-MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, 0, w - TOOLBOX_WIDTH, h, TRUE);
+MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, 0, canvasW, h, TRUE);
+MoveWindow(state->propertyHwnd, w - PROPERTY_WIDTH, 0, PROPERTY_WIDTH, h, TRUE);
 return 0;
 }
 
@@ -775,7 +1010,7 @@ return DefWindowProcW(hwnd, msg, wParam, lParam);
 
 export namespace Designer
 {
-// Creates a design surface window with a toolbox panel and form canvas.
+// Creates a design surface window with a toolbox, form canvas, and property panel.
 // Controls are rendered as real Win32 controls for WYSIWYG fidelity but
 // are mouse-transparent — all interaction is handled by the canvas.
 auto CreateDesignSurface(
@@ -808,6 +1043,16 @@ WNDCLASSEXW canvasWc = {
 };
 RegisterClassExW(&canvasWc);
 
+WNDCLASSEXW propWc = {
+.cbSize = sizeof(WNDCLASSEXW),
+.lpfnWndProc = PropertyPanelProc,
+.hInstance = hInstance,
+.hCursor = LoadCursorW(nullptr, IDC_ARROW),
+.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1),
+.lpszClassName = L"PropertyPanel",
+};
+RegisterClassExW(&propWc);
+
 registered = true;
 }
 
@@ -819,8 +1064,10 @@ auto* state = new DesignState{
 
 auto menu = CreateMenuBar();
 
-// Size to fit the form canvas plus the toolbox panel.
-RECT rc = { 0, 0, state->form.width + TOOLBOX_WIDTH, state->form.height };
+// Size to fit the form canvas plus both side panels.
+RECT rc = { 0, 0,
+state->form.width + TOOLBOX_WIDTH + PROPERTY_WIDTH,
+state->form.height };
 AdjustWindowRectEx(&rc, WS_OVERLAPPEDWINDOW, TRUE, 0);
 
 auto hwnd = CreateWindowExW(
@@ -867,8 +1114,22 @@ hwnd, nullptr, hInstance, nullptr);
 SetWindowLongPtrW(state->canvasHwnd, GWLP_USERDATA,
 reinterpret_cast<LONG_PTR>(state));
 
+// Create the property panel.
+state->propertyHwnd = CreateWindowExW(
+0, L"PropertyPanel", nullptr,
+WS_CHILD | WS_VISIBLE | WS_BORDER,
+state->form.width + TOOLBOX_WIDTH, 0,
+PROPERTY_WIDTH, state->form.height,
+hwnd, nullptr, hInstance, nullptr);
+
+SetWindowLongPtrW(state->propertyHwnd, GWLP_USERDATA,
+reinterpret_cast<LONG_PTR>(state));
+
+CreatePropertyControls(*state);
+
 UpdateTitle(*state);
 PopulateControls(*state);
+UpdatePropertyPanel(*state);
 
 ShowWindow(hwnd, SW_SHOWDEFAULT);
 UpdateWindow(hwnd);
