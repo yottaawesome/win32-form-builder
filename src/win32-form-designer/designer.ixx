@@ -25,6 +25,12 @@ namespace Designer
 		HWND hwnd;
 	};
 
+	enum class DragMode { None, Move, Resize };
+
+	constexpr int HANDLE_SIZE = 6;
+	constexpr int HANDLE_HALF = HANDLE_SIZE / 2;
+	constexpr int MIN_CONTROL_SIZE = 10;
+
 	struct DesignState
 	{
 		FormDesigner::Form form;
@@ -33,9 +39,11 @@ namespace Designer
 		std::vector<ControlEntry> entries;
 		int selectedIndex = -1;
 
-		bool dragging = false;
+		DragMode dragMode = DragMode::None;
+		int activeHandle = -1; // 0-7 for resize handles
 		POINT dragStart = {};
 		POINT controlStart = {};
+		SIZE controlStartSize = {};
 
 		std::filesystem::path currentFile;
 		bool dirty = false;
@@ -57,7 +65,6 @@ namespace Designer
 
 	auto HitTest(const DesignState& state, int x, int y) -> int
 	{
-		// Reverse iterate for z-order (last drawn is on top).
 		for (int i = static_cast<int>(state.entries.size()) - 1; i >= 0; --i)
 		{
 			auto& r = state.entries[i].control->rect;
@@ -68,6 +75,93 @@ namespace Designer
 		return -1;
 	}
 
+	// Computes the 8 handle anchor positions for a control rect.
+	// Order: TL, TC, TR, ML, MR, BL, BC, BR
+	void GetHandleAnchors(const FormDesigner::Rect& r, POINT out[8])
+	{
+		int cx = r.x + r.width / 2;
+		int cy = r.y + r.height / 2;
+		int rx = r.x + r.width;
+		int by = r.y + r.height;
+
+		out[0] = { r.x - HANDLE_HALF, r.y - HANDLE_HALF };
+		out[1] = { cx  - HANDLE_HALF, r.y - HANDLE_HALF };
+		out[2] = { rx  - HANDLE_HALF, r.y - HANDLE_HALF };
+		out[3] = { r.x - HANDLE_HALF, cy  - HANDLE_HALF };
+		out[4] = { rx  - HANDLE_HALF, cy  - HANDLE_HALF };
+		out[5] = { r.x - HANDLE_HALF, by  - HANDLE_HALF };
+		out[6] = { cx  - HANDLE_HALF, by  - HANDLE_HALF };
+		out[7] = { rx  - HANDLE_HALF, by  - HANDLE_HALF };
+	}
+
+	// Returns handle index 0-7 if point is on a handle of the selected control, else -1.
+	auto HitTestHandle(const DesignState& state, int x, int y) -> int
+	{
+		if (state.selectedIndex < 0 ||
+			state.selectedIndex >= static_cast<int>(state.entries.size()))
+			return -1;
+
+		POINT anchors[8];
+		GetHandleAnchors(state.entries[state.selectedIndex].control->rect, anchors);
+
+		for (int i = 0; i < 8; ++i)
+		{
+			if (x >= anchors[i].x && x < anchors[i].x + HANDLE_SIZE &&
+				y >= anchors[i].y && y < anchors[i].y + HANDLE_SIZE)
+				return i;
+		}
+		return -1;
+	}
+
+	auto CursorForHandle(int handle) -> LPCWSTR
+	{
+		switch (handle)
+		{
+		case 0: case 7: return IDC_SIZENWSE;
+		case 2: case 5: return IDC_SIZENESW;
+		case 1: case 6: return IDC_SIZENS;
+		case 3: case 4: return IDC_SIZEWE;
+		default:         return IDC_ARROW;
+		}
+	}
+
+	void ApplyResize(FormDesigner::Rect& r, int handle, int dx, int dy,
+		const POINT& startPos, const SIZE& startSize)
+	{
+		// Which edges does this handle move?
+		bool moveLeft   = (handle == 0 || handle == 3 || handle == 5);
+		bool moveTop    = (handle == 0 || handle == 1 || handle == 2);
+		bool moveRight  = (handle == 2 || handle == 4 || handle == 7);
+		bool moveBottom = (handle == 5 || handle == 6 || handle == 7);
+
+		int newX = startPos.x;
+		int newY = startPos.y;
+		int newW = startSize.cx;
+		int newH = startSize.cy;
+
+		if (moveLeft)   { newX += dx; newW -= dx; }
+		if (moveTop)    { newY += dy; newH -= dy; }
+		if (moveRight)  { newW += dx; }
+		if (moveBottom) { newH += dy; }
+
+		// Enforce minimum size, clamping position if needed.
+		if (newW < MIN_CONTROL_SIZE)
+		{
+			if (moveLeft) newX -= (MIN_CONTROL_SIZE - newW);
+			newW = MIN_CONTROL_SIZE;
+		}
+		if (newH < MIN_CONTROL_SIZE)
+		{
+			if (moveTop) newY -= (MIN_CONTROL_SIZE - newH);
+			newH = MIN_CONTROL_SIZE;
+		}
+
+		r.x = newX;
+		r.y = newY;
+		r.width = newW;
+		r.height = newH;
+	}
+
 	void DrawSelection(const DesignState& state, HDC hdc)
 	{
 		if (state.selectedIndex < 0 ||
@@ -76,7 +170,6 @@ namespace Designer
 
 		auto& r = state.entries[state.selectedIndex].control->rect;
 
-		// 2px blue border around the selected control.
 		auto accent = CreateSolidBrush(RGB(0, 120, 215));
 		RECT sides[] = {
 			{ r.x - 2, r.y - 2,          r.x + r.width + 2, r.y },
@@ -87,30 +180,14 @@ namespace Designer
 		for (auto& s : sides)
 			FillRect(hdc, &s, accent);
 
-		// 6px resize handles at corners and edge midpoints.
-		constexpr int H = 6;
-		constexpr int half = H / 2;
-		int cx = r.x + r.width / 2;
-		int cy = r.y + r.height / 2;
-		int rx = r.x + r.width;
-		int by = r.y + r.height;
-
-		POINT anchors[] = {
-			{ r.x - half, r.y - half },
-			{ cx  - half, r.y - half },
-			{ rx  - half, r.y - half },
-			{ r.x - half, cy  - half },
-			{ rx  - half, cy  - half },
-			{ r.x - half, by  - half },
-			{ cx  - half, by  - half },
-			{ rx  - half, by  - half },
-		};
+		POINT anchors[8];
+		GetHandleAnchors(r, anchors);
 
 		auto white = CreateSolidBrush(RGB(255, 255, 255));
 		for (auto& a : anchors)
 		{
-			RECT outer = { a.x, a.y, a.x + H, a.y + H };
-			RECT inner = { a.x + 1, a.y + 1, a.x + H - 1, a.y + H - 1 };
+			RECT outer = { a.x, a.y, a.x + HANDLE_SIZE, a.y + HANDLE_SIZE };
+			RECT inner = { a.x + 1, a.y + 1, a.x + HANDLE_SIZE - 1, a.y + HANDLE_SIZE - 1 };
 			FillRect(hdc, &outer, accent);
 			FillRect(hdc, &inner, white);
 		}
@@ -386,15 +463,31 @@ namespace Designer
 			if (!state) break;
 			int x = GET_X_LPARAM(lParam);
 			int y = GET_Y_LPARAM(lParam);
-			int hit = HitTest(*state, x, y);
 
+			// Check handles on currently selected control first.
+			int handle = HitTestHandle(*state, x, y);
+			if (handle >= 0)
+			{
+				auto& r = state->entries[state->selectedIndex].control->rect;
+				state->dragMode = DragMode::Resize;
+				state->activeHandle = handle;
+				state->dragStart = { x, y };
+				state->controlStart = { r.x, r.y };
+				state->controlStartSize = { r.width, r.height };
+				SetCapture(hwnd);
+				return 0;
+			}
+
+			// Otherwise, hit-test for a control body click.
+			int hit = HitTest(*state, x, y);
 			state->selectedIndex = hit;
 			InvalidateRect(hwnd, nullptr, TRUE);
 
 			if (hit >= 0)
 			{
 				auto& r = state->entries[hit].control->rect;
-				state->dragging = true;
+				state->dragMode = DragMode::Move;
+				state->activeHandle = -1;
 				state->dragStart = { x, y };
 				state->controlStart = { r.x, r.y };
 				SetCapture(hwnd);
@@ -404,30 +497,69 @@ namespace Designer
 
 		case WM_MOUSEMOVE:
 		{
-			if (!state || !state->dragging) break;
+			if (!state) break;
 			int x = GET_X_LPARAM(lParam);
 			int y = GET_Y_LPARAM(lParam);
 
-			auto& entry = state->entries[state->selectedIndex];
-			entry.control->rect.x = state->controlStart.x + (x - state->dragStart.x);
-			entry.control->rect.y = state->controlStart.y + (y - state->dragStart.y);
+			if (state->dragMode == DragMode::Move)
+			{
+				auto& entry = state->entries[state->selectedIndex];
+				entry.control->rect.x = state->controlStart.x + (x - state->dragStart.x);
+				entry.control->rect.y = state->controlStart.y + (y - state->dragStart.y);
 
-			MoveWindow(entry.hwnd,
-				entry.control->rect.x, entry.control->rect.y,
-				entry.control->rect.width, entry.control->rect.height,
-				TRUE);
+				MoveWindow(entry.hwnd,
+					entry.control->rect.x, entry.control->rect.y,
+					entry.control->rect.width, entry.control->rect.height,
+					TRUE);
+				InvalidateRect(hwnd, nullptr, TRUE);
+				MarkDirty(*state);
+				return 0;
+			}
 
-			InvalidateRect(hwnd, nullptr, TRUE);
-			MarkDirty(*state);
-			return 0;
+			if (state->dragMode == DragMode::Resize)
+			{
+				auto& entry = state->entries[state->selectedIndex];
+				int dx = x - state->dragStart.x;
+				int dy = y - state->dragStart.y;
+
+				ApplyResize(entry.control->rect, state->activeHandle, dx, dy,
+					state->controlStart, state->controlStartSize);
+
+				MoveWindow(entry.hwnd,
+					entry.control->rect.x, entry.control->rect.y,
+					entry.control->rect.width, entry.control->rect.height,
+					TRUE);
+				InvalidateRect(hwnd, nullptr, TRUE);
+				MarkDirty(*state);
+				return 0;
+			}
+
+			// Not dragging — update cursor for handle hover.
+			{
+				int handle = HitTestHandle(*state, x, y);
+				if (handle >= 0)
+					SetCursor(LoadCursorW(nullptr, CursorForHandle(handle)));
+				else
+					SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+			}
+			break;
 		}
 
 		case WM_LBUTTONUP:
 		{
-			if (!state || !state->dragging) break;
-			state->dragging = false;
+			if (!state || state->dragMode == DragMode::None) break;
+			state->dragMode = DragMode::None;
+			state->activeHandle = -1;
 			ReleaseCapture();
 			return 0;
+		}
+
+		case WM_SETCURSOR:
+		{
+			// Let WM_MOUSEMOVE handle cursor for the client area.
+			if (state && LOWORD(lParam) == HTCLIENT)
+				return TRUE;
+			break;
 		}
 
 		case WM_CLOSE:
