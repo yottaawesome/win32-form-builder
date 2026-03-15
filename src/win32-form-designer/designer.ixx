@@ -1027,7 +1027,7 @@ export namespace Designer
 			.lpfnWndProc = DesignSurfaceProc,
 			.hInstance = hInstance,
 			.hCursor = LoadCursorW(nullptr, IDC_ARROW),
-			.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1),
+			.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1),
 			.lpszClassName = L"DesignSurface",
 			};
 			RegisterClassExW(&wc);
@@ -1038,7 +1038,7 @@ export namespace Designer
 			.lpfnWndProc = CanvasProc,
 			.hInstance = hInstance,
 			.hCursor = LoadCursorW(nullptr, IDC_ARROW),
-			.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1),
+			.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1),
 			.lpszClassName = L"DesignCanvas",
 			};
 			RegisterClassExW(&canvasWc);
