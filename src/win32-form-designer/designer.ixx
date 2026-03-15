@@ -3,6 +3,7 @@ module;
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <CommCtrl.h>
+#include <Commdlg.h>
 #include <windowsx.h>
 
 export module designer;
@@ -11,6 +12,13 @@ import formbuilder;
 
 namespace Designer
 {
+	// Menu command IDs.
+	constexpr UINT IDM_FILE_NEW     = 40001;
+	constexpr UINT IDM_FILE_OPEN    = 40002;
+	constexpr UINT IDM_FILE_SAVE    = 40003;
+	constexpr UINT IDM_FILE_SAVE_AS = 40004;
+	constexpr UINT IDM_FILE_EXIT    = 40005;
+
 	struct ControlEntry
 	{
 		FormDesigner::Control* control;
@@ -28,6 +36,9 @@ namespace Designer
 		bool dragging = false;
 		POINT dragStart = {};
 		POINT controlStart = {};
+
+		std::filesystem::path currentFile;
+		bool dirty = false;
 	};
 
 	constexpr UINT SUBCLASS_ID = 1;
@@ -143,6 +154,197 @@ namespace Designer
 		}
 	}
 
+	void UpdateTitle(DesignState& state)
+	{
+		auto name = state.currentFile.empty()
+			? std::wstring(L"Untitled")
+			: state.currentFile.filename().wstring();
+		auto title = std::wstring(L"Form Designer - ");
+		if (state.dirty)
+			title += L"*";
+		title += name;
+		SetWindowTextW(state.surfaceHwnd, title.c_str());
+	}
+
+	void MarkDirty(DesignState& state)
+	{
+		if (!state.dirty)
+		{
+			state.dirty = true;
+			UpdateTitle(state);
+		}
+	}
+
+	void RebuildControls(DesignState& state)
+	{
+		for (auto& entry : state.entries)
+			DestroyWindow(entry.hwnd);
+		state.entries.clear();
+		state.selectedIndex = -1;
+		PopulateControls(state);
+		InvalidateRect(state.surfaceHwnd, nullptr, TRUE);
+	}
+
+	auto ShowSaveDialog(HWND owner, std::filesystem::path& outPath) -> bool
+	{
+		wchar_t filename[MAX_PATH] = {};
+		if (!outPath.empty())
+			wcscpy_s(filename, outPath.wstring().c_str());
+
+		OPENFILENAMEW ofn = {
+			.lStructSize = sizeof(OPENFILENAMEW),
+			.hwndOwner = owner,
+			.lpstrFilter = L"JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0",
+			.lpstrFile = filename,
+			.nMaxFile = MAX_PATH,
+			.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST,
+			.lpstrDefExt = L"json",
+		};
+
+		if (!GetSaveFileNameW(&ofn))
+			return false;
+
+		outPath = filename;
+		return true;
+	}
+
+	auto ShowOpenDialog(HWND owner, std::filesystem::path& outPath) -> bool
+	{
+		wchar_t filename[MAX_PATH] = {};
+
+		OPENFILENAMEW ofn = {
+			.lStructSize = sizeof(OPENFILENAMEW),
+			.hwndOwner = owner,
+			.lpstrFilter = L"JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0",
+			.lpstrFile = filename,
+			.nMaxFile = MAX_PATH,
+			.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST,
+		};
+
+		if (!GetOpenFileNameW(&ofn))
+			return false;
+
+		outPath = filename;
+		return true;
+	}
+
+	// Returns true if it's safe to discard current form (saved or user chose to).
+	auto PromptSaveIfDirty(DesignState& state) -> bool
+	{
+		if (!state.dirty)
+			return true;
+
+		auto result = MessageBoxW(state.surfaceHwnd,
+			L"Save changes before continuing?",
+			L"Form Designer",
+			MB_YESNOCANCEL | MB_ICONQUESTION);
+
+		if (result == IDCANCEL)
+			return false;
+
+		if (result == IDYES)
+		{
+			if (state.currentFile.empty())
+			{
+				if (!ShowSaveDialog(state.surfaceHwnd, state.currentFile))
+					return false;
+			}
+			FormDesigner::SaveFormToFile(state.form, state.currentFile);
+			state.dirty = false;
+			UpdateTitle(state);
+		}
+
+		return true;
+	}
+
+	void DoSave(DesignState& state)
+	{
+		if (state.currentFile.empty())
+		{
+			if (!ShowSaveDialog(state.surfaceHwnd, state.currentFile))
+				return;
+		}
+		FormDesigner::SaveFormToFile(state.form, state.currentFile);
+		state.dirty = false;
+		UpdateTitle(state);
+	}
+
+	void DoSaveAs(DesignState& state)
+	{
+		auto path = state.currentFile;
+		if (!ShowSaveDialog(state.surfaceHwnd, path))
+			return;
+		state.currentFile = path;
+		FormDesigner::SaveFormToFile(state.form, state.currentFile);
+		state.dirty = false;
+		UpdateTitle(state);
+	}
+
+	void DoOpen(DesignState& state)
+	{
+		if (!PromptSaveIfDirty(state))
+			return;
+
+		auto path = std::filesystem::path{};
+		if (!ShowOpenDialog(state.surfaceHwnd, path))
+			return;
+
+		try
+		{
+			state.form = FormDesigner::LoadFormFromFile(path);
+			state.currentFile = path;
+			state.dirty = false;
+			RebuildControls(state);
+			UpdateTitle(state);
+		}
+		catch (const std::exception& ex)
+		{
+			auto msg = std::string{ "Failed to open file:\n" } + ex.what();
+			auto wide = std::wstring(msg.begin(), msg.end());
+			MessageBoxW(state.surfaceHwnd, wide.c_str(), L"Error", MB_OK | MB_ICONERROR);
+		}
+	}
+
+	void DoNew(DesignState& state)
+	{
+		if (!PromptSaveIfDirty(state))
+			return;
+
+		state.form = FormDesigner::Form{};
+		state.currentFile.clear();
+		state.dirty = false;
+		RebuildControls(state);
+		UpdateTitle(state);
+	}
+
+	auto CreateMenuBar() -> HMENU
+	{
+		auto menuBar = CreateMenu();
+		auto fileMenu = CreatePopupMenu();
+
+		AppendMenuW(fileMenu, MF_STRING, IDM_FILE_NEW,     L"&New\tCtrl+N");
+		AppendMenuW(fileMenu, MF_STRING, IDM_FILE_OPEN,    L"&Open...\tCtrl+O");
+		AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
+		AppendMenuW(fileMenu, MF_STRING, IDM_FILE_SAVE,    L"&Save\tCtrl+S");
+		AppendMenuW(fileMenu, MF_STRING, IDM_FILE_SAVE_AS, L"Save &As...\tCtrl+Shift+S");
+		AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
+		AppendMenuW(fileMenu, MF_STRING, IDM_FILE_EXIT,    L"E&xit\tAlt+F4");
+
+		AppendMenuW(menuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"&File");
+		return menuBar;
+	}
+
+	auto CreateAcceleratorTable() -> HACCEL
+	{
+		ACCEL accels[] = {
+			{ FCONTROL | FVIRTKEY, 'N', static_cast<WORD>(IDM_FILE_NEW) },
+			{ FCONTROL | FVIRTKEY, 'O', static_cast<WORD>(IDM_FILE_OPEN) },
+			{ FCONTROL | FVIRTKEY, 'S', static_cast<WORD>(IDM_FILE_SAVE) },
+			{ FCONTROL | FSHIFT | FVIRTKEY, 'S', static_cast<WORD>(IDM_FILE_SAVE_AS) },
+		};
+		return CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
+	}
+
 	LRESULT CALLBACK DesignSurfaceProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		auto* state = reinterpret_cast<DesignState*>(
@@ -156,7 +358,6 @@ namespace Designer
 			BeginPaint(hwnd, &ps);
 			EndPaint(hwnd, &ps);
 
-			// Draw selection handles on top of controls.
 			if (state)
 			{
 				auto hdc = GetDC(hwnd);
@@ -164,6 +365,20 @@ namespace Designer
 				ReleaseDC(hwnd, hdc);
 			}
 			return 0;
+		}
+
+		case WM_COMMAND:
+		{
+			if (!state) break;
+			switch (LOWORD(wParam))
+			{
+			case IDM_FILE_NEW:     DoNew(*state);    return 0;
+			case IDM_FILE_OPEN:    DoOpen(*state);   return 0;
+			case IDM_FILE_SAVE:    DoSave(*state);   return 0;
+			case IDM_FILE_SAVE_AS: DoSaveAs(*state); return 0;
+			case IDM_FILE_EXIT:    SendMessageW(hwnd, WM_CLOSE, 0, 0); return 0;
+			}
+			break;
 		}
 
 		case WM_LBUTTONDOWN:
@@ -203,6 +418,7 @@ namespace Designer
 				TRUE);
 
 			InvalidateRect(hwnd, nullptr, TRUE);
+			MarkDirty(*state);
 			return 0;
 		}
 
@@ -213,6 +429,12 @@ namespace Designer
 			ReleaseCapture();
 			return 0;
 		}
+
+		case WM_CLOSE:
+			if (state && !PromptSaveIfDirty(*state))
+				return 0;
+			DestroyWindow(hwnd);
+			return 0;
 
 		case WM_NCDESTROY:
 			delete state;
@@ -232,7 +454,10 @@ export namespace Designer
 	// Creates a design surface window populated with controls from the form.
 	// Controls are rendered as real Win32 controls for WYSIWYG fidelity but
 	// are mouse-transparent — all interaction is handled by the surface.
-	auto CreateDesignSurface(HINSTANCE hInstance, FormDesigner::Form form) -> HWND
+	auto CreateDesignSurface(
+		HINSTANCE hInstance,
+		FormDesigner::Form form,
+		std::filesystem::path filePath = {}) -> HWND
 	{
 		static bool registered = false;
 		if (!registered)
@@ -253,10 +478,13 @@ export namespace Designer
 		auto* state = new DesignState{
 			.form = std::move(form),
 			.hInstance = hInstance,
+			.currentFile = std::move(filePath),
 		};
 
+		auto menu = CreateMenuBar();
+
 		RECT rc = { 0, 0, state->form.width, state->form.height };
-		AdjustWindowRectEx(&rc, WS_OVERLAPPEDWINDOW, FALSE, 0);
+		AdjustWindowRectEx(&rc, WS_OVERLAPPEDWINDOW, TRUE, 0);
 
 		auto hwnd = CreateWindowExW(
 			0,
@@ -265,7 +493,7 @@ export namespace Designer
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT, CW_USEDEFAULT,
 			rc.right - rc.left, rc.bottom - rc.top,
-			nullptr, nullptr, hInstance, nullptr);
+			nullptr, menu, hInstance, nullptr);
 
 		if (!hwnd)
 		{
@@ -275,6 +503,7 @@ export namespace Designer
 
 		state->surfaceHwnd = hwnd;
 		SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(state));
+		UpdateTitle(*state);
 
 		PopulateControls(*state);
 
@@ -287,12 +516,17 @@ export namespace Designer
 	// Standard message loop for the design surface.
 	auto RunDesignerLoop() -> int
 	{
+		auto accel = CreateAcceleratorTable();
 		MSG msg = {};
 		while (GetMessageW(&msg, nullptr, 0, 0) > 0)
 		{
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
+			if (!TranslateAcceleratorW(msg.hwnd, accel, &msg))
+			{
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
 		}
+		DestroyAcceleratorTable(accel);
 		return static_cast<int>(msg.wParam);
 	}
 }

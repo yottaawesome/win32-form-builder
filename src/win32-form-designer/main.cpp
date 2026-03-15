@@ -1,4 +1,5 @@
 #pragma comment(lib, "Comctl32.lib")
+#pragma comment(lib, "Comdlg32.lib")
 
 import std;
 import formbuilder;
@@ -14,10 +15,14 @@ try
 	Win32::InitCommonControlsEx(&icc);
 
 	auto form = FormDesigner::Form{};
+	auto path = std::filesystem::path{};
 	if (lpCmdLine and lpCmdLine[0] != L'\0')
-		form = FormDesigner::LoadFormFromFile(lpCmdLine);
+	{
+		path = lpCmdLine;
+		form = FormDesigner::LoadFormFromFile(path);
+	}
 
-	auto hwnd = Designer::CreateDesignSurface(hInstance, std::move(form));
+	auto hwnd = Designer::CreateDesignSurface(hInstance, std::move(form), std::move(path));
 	if (not hwnd)
 		return 1;
 
