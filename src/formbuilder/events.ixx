@@ -32,60 +32,66 @@ Win32::HWND controlHwnd;
 Win32::HWND formHwnd;
 };
 
+struct FocusEvent
+{
+int controlId;
+Win32::HWND controlHwnd;
+Win32::HWND formHwnd;
+};
+
+struct BlurEvent
+{
+int controlId;
+Win32::HWND controlHwnd;
+Win32::HWND formHwnd;
+};
+
+struct CheckEvent
+{
+int controlId;
+Win32::HWND controlHwnd;
+Win32::HWND formHwnd;
+bool checked;
+};
+
 struct EventMap
 {
-void onClick(int controlId, std::function<void(const ClickEvent&)> handler)
-{
-m_clickHandlers[controlId] = std::move(handler);
-}
+void onClick(int id, std::function<void(const ClickEvent&)> h) { m_click[id] = std::move(h); }
+void onChange(int id, std::function<void(const ChangeEvent&)> h) { m_change[id] = std::move(h); }
+void onDoubleClick(int id, std::function<void(const DoubleClickEvent&)> h) { m_dblClick[id] = std::move(h); }
+void onSelectionChange(int id, std::function<void(const SelectionChangeEvent&)> h) { m_selChange[id] = std::move(h); }
+void onFocus(int id, std::function<void(const FocusEvent&)> h) { m_focus[id] = std::move(h); }
+void onBlur(int id, std::function<void(const BlurEvent&)> h) { m_blur[id] = std::move(h); }
+void onCheck(int id, std::function<void(const CheckEvent&)> h) { m_check[id] = std::move(h); }
 
-void onChange(int controlId, std::function<void(const ChangeEvent&)> handler)
-{
-m_changeHandlers[controlId] = std::move(handler);
-}
+auto findClickHandler(int id) const -> const std::function<void(const ClickEvent&)>*
+{ auto it = m_click.find(id); return it != m_click.end() ? &it->second : nullptr; }
 
-void onDoubleClick(int controlId, std::function<void(const DoubleClickEvent&)> handler)
-{
-m_doubleClickHandlers[controlId] = std::move(handler);
-}
+auto findChangeHandler(int id) const -> const std::function<void(const ChangeEvent&)>*
+{ auto it = m_change.find(id); return it != m_change.end() ? &it->second : nullptr; }
 
-void onSelectionChange(int controlId, std::function<void(const SelectionChangeEvent&)> handler)
-{
-m_selectionChangeHandlers[controlId] = std::move(handler);
-}
+auto findDoubleClickHandler(int id) const -> const std::function<void(const DoubleClickEvent&)>*
+{ auto it = m_dblClick.find(id); return it != m_dblClick.end() ? &it->second : nullptr; }
 
-auto findClickHandler(int controlId) const -> const std::function<void(const ClickEvent&)>*
-{
-if (auto it = m_clickHandlers.find(controlId); it != m_clickHandlers.end())
-return &it->second;
-return nullptr;
-}
+auto findSelectionChangeHandler(int id) const -> const std::function<void(const SelectionChangeEvent&)>*
+{ auto it = m_selChange.find(id); return it != m_selChange.end() ? &it->second : nullptr; }
 
-auto findChangeHandler(int controlId) const -> const std::function<void(const ChangeEvent&)>*
-{
-if (auto it = m_changeHandlers.find(controlId); it != m_changeHandlers.end())
-return &it->second;
-return nullptr;
-}
+auto findFocusHandler(int id) const -> const std::function<void(const FocusEvent&)>*
+{ auto it = m_focus.find(id); return it != m_focus.end() ? &it->second : nullptr; }
 
-auto findDoubleClickHandler(int controlId) const -> const std::function<void(const DoubleClickEvent&)>*
-{
-if (auto it = m_doubleClickHandlers.find(controlId); it != m_doubleClickHandlers.end())
-return &it->second;
-return nullptr;
-}
+auto findBlurHandler(int id) const -> const std::function<void(const BlurEvent&)>*
+{ auto it = m_blur.find(id); return it != m_blur.end() ? &it->second : nullptr; }
 
-auto findSelectionChangeHandler(int controlId) const -> const std::function<void(const SelectionChangeEvent&)>*
-{
-if (auto it = m_selectionChangeHandlers.find(controlId); it != m_selectionChangeHandlers.end())
-return &it->second;
-return nullptr;
-}
+auto findCheckHandler(int id) const -> const std::function<void(const CheckEvent&)>*
+{ auto it = m_check.find(id); return it != m_check.end() ? &it->second : nullptr; }
 
 private:
-std::unordered_map<int, std::function<void(const ClickEvent&)>> m_clickHandlers;
-std::unordered_map<int, std::function<void(const ChangeEvent&)>> m_changeHandlers;
-std::unordered_map<int, std::function<void(const DoubleClickEvent&)>> m_doubleClickHandlers;
-std::unordered_map<int, std::function<void(const SelectionChangeEvent&)>> m_selectionChangeHandlers;
+std::unordered_map<int, std::function<void(const ClickEvent&)>> m_click;
+std::unordered_map<int, std::function<void(const ChangeEvent&)>> m_change;
+std::unordered_map<int, std::function<void(const DoubleClickEvent&)>> m_dblClick;
+std::unordered_map<int, std::function<void(const SelectionChangeEvent&)>> m_selChange;
+std::unordered_map<int, std::function<void(const FocusEvent&)>> m_focus;
+std::unordered_map<int, std::function<void(const BlurEvent&)>> m_blur;
+std::unordered_map<int, std::function<void(const CheckEvent&)>> m_check;
 };
 }

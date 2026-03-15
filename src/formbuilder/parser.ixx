@@ -78,6 +78,15 @@ namespace FormDesigner
 		if (j.contains("onSelectionChange"))
 			control.onSelectionChange = j["onSelectionChange"].get<std::string>();
 
+		if (j.contains("onFocus"))
+			control.onFocus = j["onFocus"].get<std::string>();
+
+		if (j.contains("onBlur"))
+			control.onBlur = j["onBlur"].get<std::string>();
+
+		if (j.contains("onCheck"))
+			control.onCheck = j["onCheck"].get<std::string>();
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

@@ -111,9 +111,15 @@ export namespace Win32
 		constexpr auto ButtonClicked = BN_CLICKED;
 		constexpr auto ButtonDoubleClicked = BN_DBLCLK;
 		constexpr auto EditChange = EN_CHANGE;
+		constexpr auto EditSetFocus = EN_SETFOCUS;
+		constexpr auto EditKillFocus = EN_KILLFOCUS;
 		constexpr auto ListBoxSelChange = LBN_SELCHANGE;
 		constexpr auto ListBoxDoubleClick = LBN_DBLCLK;
+		constexpr auto ListBoxSetFocus = LBN_SETFOCUS;
+		constexpr auto ListBoxKillFocus = LBN_KILLFOCUS;
 		constexpr auto ComboBoxSelChange = CBN_SELCHANGE;
+		constexpr auto ComboBoxSetFocus = CBN_SETFOCUS;
+		constexpr auto ComboBoxKillFocus = CBN_KILLFOCUS;
 	}
 
 	// === Notifications (WM_NOTIFY) ===
@@ -125,6 +131,13 @@ export namespace Win32
 		constexpr auto TreeViewSelChanged = TVN_SELCHANGEDW;
 		constexpr auto ListViewItemChanged = LVN_ITEMCHANGED;
 		constexpr auto TabSelChange = TCN_SELCHANGE;
+	}
+
+	// === Button messages and states ===
+	namespace Button
+	{
+		constexpr auto GetCheck = BM_GETCHECK;
+		constexpr auto Checked = BST_CHECKED;
 	}
 
 	// === Control class names ===

@@ -46,6 +46,9 @@ export namespace FormDesigner
 		std::string onChange;
 		std::string onDoubleClick;
 		std::string onSelectionChange;
+		std::string onFocus;
+		std::string onBlur;
+		std::string onCheck;
 		std::vector<Control> children;
 	};
 

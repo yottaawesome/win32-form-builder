@@ -63,6 +63,15 @@ namespace FormDesigner
 		if (not control.onSelectionChange.empty())
 			j["onSelectionChange"] = control.onSelectionChange;
 
+		if (not control.onFocus.empty())
+			j["onFocus"] = control.onFocus;
+
+		if (not control.onBlur.empty())
+			j["onBlur"] = control.onBlur;
+
+		if (not control.onCheck.empty())
+			j["onCheck"] = control.onCheck;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

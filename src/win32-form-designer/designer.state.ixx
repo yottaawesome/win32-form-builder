@@ -31,6 +31,9 @@ constexpr Win32::UINT IDC_PROP_ONCLICK = 51008;
 constexpr Win32::UINT IDC_PROP_ONCHANGE = 51009;
 constexpr Win32::UINT IDC_PROP_ONDBLCLICK = 51010;
 constexpr Win32::UINT IDC_PROP_ONSELCHANGE = 51011;
+constexpr Win32::UINT IDC_PROP_ONFOCUS = 51012;
+constexpr Win32::UINT IDC_PROP_ONBLUR = 51013;
+constexpr Win32::UINT IDC_PROP_ONCHECK = 51014;
 
 // Form property edit IDs.
 constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;

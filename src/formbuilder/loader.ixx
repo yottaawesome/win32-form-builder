@@ -91,10 +91,40 @@ export namespace FormDesigner
 			auto controlId = static_cast<int>(Win32::GetLowWord(wParam));
 			auto controlHwnd = reinterpret_cast<Win32::HWND>(lParam);
 
-			// onClick: BN_CLICKED
+			// onClick: BN_CLICKED (also triggers onCheck for CheckBox/RadioButton)
 			if (notificationCode == Win32::Notifications::ButtonClicked)
 			{
 				if (auto* handler = data->events->findClickHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+				}
+				// onCheck: query check state after BN_CLICKED on checkable controls
+				if (auto* handler = data->events->findCheckHandler(controlId))
+				{
+					auto checkState = Win32::SendMessageW(controlHwnd, Win32::Button::GetCheck, 0, 0);
+					(*handler)({ controlId, controlHwnd, hwnd, checkState == Win32::Button::Checked });
+				}
+				return 0;
+			}
+
+			// onFocus: EN_SETFOCUS, LBN_SETFOCUS, CBN_SETFOCUS
+			if (notificationCode == Win32::Notifications::EditSetFocus ||
+				notificationCode == Win32::Notifications::ListBoxSetFocus ||
+				notificationCode == Win32::Notifications::ComboBoxSetFocus)
+			{
+				if (auto* handler = data->events->findFocusHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
+			// onBlur: EN_KILLFOCUS, LBN_KILLFOCUS, CBN_KILLFOCUS
+			if (notificationCode == Win32::Notifications::EditKillFocus ||
+				notificationCode == Win32::Notifications::ListBoxKillFocus ||
+				notificationCode == Win32::Notifications::ComboBoxKillFocus)
+			{
+				if (auto* handler = data->events->findBlurHandler(controlId))
 				{
 					(*handler)({ controlId, controlHwnd, hwnd });
 					return 0;
