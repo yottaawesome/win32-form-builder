@@ -73,6 +73,13 @@ export namespace FormDesigner
 		if (form.exStyle != 0)
 			j["exStyle"] = form.exStyle;
 
+		if (form.backgroundColor != -1)
+		{
+			auto cr = static_cast<unsigned int>(form.backgroundColor);
+			j["backgroundColor"] = std::format("#{:02X}{:02X}{:02X}",
+				cr & 0xFF, (cr >> 8) & 0xFF, (cr >> 16) & 0xFF);
+		}
+
 		j["controls"] = nlohmann::json::array();
 		for (auto& control : form.controls)
 			j["controls"].push_back(SerializeControl(control));

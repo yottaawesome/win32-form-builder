@@ -45,6 +45,7 @@ export namespace FormDesigner
 		int height = 480;
 		Win32::DWORD style = Win32::Styles::OverlappedWindow;
 		Win32::DWORD exStyle = 0;
+		int backgroundColor = -1; // -1 = system default; otherwise COLORREF
 		std::vector<Control> controls;
 	};
 

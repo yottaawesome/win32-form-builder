@@ -57,37 +57,60 @@ export namespace FormDesigner
 		}
 	}
 
+	struct FormWindowData
+	{
+		const EventMap* events = nullptr;
+		Win32::HBRUSH bgBrush = nullptr;
+	};
+
 	// Window procedure for designer-created forms.
 	auto __stdcall FormWndProc(Win32::HWND hwnd, Win32::UINT msg, Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
 	{
+		auto* data = reinterpret_cast<FormWindowData*>(Win32::GetWindowLongPtrW(hwnd, Win32::Gwlp_UserData));
+
 		switch (msg)
 		{
+		case Win32::Messages::EraseBkgnd:
+		{
+			if (data && data->bgBrush)
+			{
+				auto hdc = reinterpret_cast<Win32::HDC>(wParam);
+				auto rc = Win32::RECT{};
+				Win32::GetClientRect(hwnd, &rc);
+				Win32::FillRect(hdc, &rc, data->bgBrush);
+				return 1;
+			}
+			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+		}
 		case Win32::Messages::Command:
 		{
 			auto notificationCode = Win32::GetHighWord(wParam);
-			if (notificationCode == Win32::Notifications::ButtonClicked)
+			if (notificationCode == Win32::Notifications::ButtonClicked && data && data->events)
 			{
-				auto* events = reinterpret_cast<const EventMap*>(Win32::GetWindowLongPtrW(hwnd, Win32::Gwlp_UserData));
-				if (events)
+				auto controlId = static_cast<int>(Win32::GetLowWord(wParam));
+				if (auto* handler = data->events->findClickHandler(controlId))
 				{
-					auto controlId = static_cast<int>(Win32::GetLowWord(wParam));
-					if (auto* handler = events->findClickHandler(controlId))
-					{
-						auto event = ClickEvent{
-							.controlId = controlId,
-							.controlHwnd = reinterpret_cast<Win32::HWND>(lParam),
-							.formHwnd = hwnd,
-						};
-						(*handler)(event);
-						return 0;
-					}
+					auto event = ClickEvent{
+						.controlId = controlId,
+						.controlHwnd = reinterpret_cast<Win32::HWND>(lParam),
+						.formHwnd = hwnd,
+					};
+					(*handler)(event);
+					return 0;
 				}
 			}
 			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
 		case Win32::Messages::Destroy:
+		{
+			if (data)
+			{
+				if (data->bgBrush) Win32::DeleteObject(data->bgBrush);
+				delete data;
+			}
 			Win32::PostQuitMessage(0);
 			return 0;
+		}
 		default:
 			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
@@ -147,8 +170,14 @@ export namespace FormDesigner
 
 		CreateChildren(hwnd, hInstance, form.controls);
 
-		// Store event map pointer for WndProc dispatch.
-		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(&events));
+		// Store window data for WndProc dispatch.
+		auto* windowData = new FormWindowData{
+			.events = &events,
+			.bgBrush = form.backgroundColor != -1
+				? Win32::CreateSolidBrush(static_cast<Win32::DWORD>(form.backgroundColor))
+				: nullptr,
+		};
+		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 
 		Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);
 		Win32::UpdateWindow(hwnd);

@@ -16,6 +16,7 @@ export namespace Win32
 		::HBRUSH,
 		::HCURSOR,
 		::HFONT,
+		::HDC,
 		::HGDIOBJ,
 		::DWORD,
 		::WORD,
@@ -53,7 +54,11 @@ export namespace Win32
 		::SetWindowLongPtrW,
 		::LoadCursorW,
 		::AdjustWindowRectEx,
-		::InitCommonControlsEx
+		::InitCommonControlsEx,
+		::CreateSolidBrush,
+		::DeleteObject,
+		::FillRect,
+		::GetClientRect
 		;
 
 	// === HIWORD/LOWORD wrappers ===
@@ -86,6 +91,7 @@ export namespace Win32
 		constexpr auto Command = WM_COMMAND;
 		constexpr auto Destroy = WM_DESTROY;
 		constexpr auto SetFont = WM_SETFONT;
+		constexpr auto EraseBkgnd = WM_ERASEBKGND;
 	}
 
 	// === Notifications ===
@@ -110,6 +116,7 @@ export namespace Win32
 	constexpr auto Sw_ShowDefault = SW_SHOWDEFAULT;
 	constexpr auto DefaultGuiFont = DEFAULT_GUI_FONT;
 	constexpr auto ColorWindow = COLOR_WINDOW;
+	constexpr auto ColorBtnFace = COLOR_BTNFACE;
 
 	// === Cursors ===
 	namespace Cursors

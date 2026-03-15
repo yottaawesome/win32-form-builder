@@ -94,6 +94,18 @@ export namespace FormDesigner
 		if (j.contains("exStyle"))
 			form.exStyle = j["exStyle"].get<Win32::DWORD>();
 
+		if (j.contains("backgroundColor"))
+		{
+			auto hex = j["backgroundColor"].get<std::string>();
+			if (hex.size() == 7 && hex[0] == '#')
+			{
+				unsigned int r = std::stoul(hex.substr(1, 2), nullptr, 16);
+				unsigned int g = std::stoul(hex.substr(3, 2), nullptr, 16);
+				unsigned int b = std::stoul(hex.substr(5, 2), nullptr, 16);
+				form.backgroundColor = static_cast<int>(r | (g << 8) | (b << 16));
+			}
+		}
+
 		if (j.contains("controls"))
 			for (auto& control : j["controls"])
 				form.controls.push_back(ParseControl(control));
