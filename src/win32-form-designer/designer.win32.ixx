@@ -67,7 +67,10 @@ using
     ::GetScrollInfo,
     ::ScrollWindowEx,
     ::SetWindowPos,
-    ::GetWindowRect
+    ::GetWindowRect,
+    ::TrackPopupMenu,
+    ::ClientToScreen,
+    ::DestroyMenu
     ;
 
 const auto HwndBottom = HWND_BOTTOM;
@@ -112,6 +115,15 @@ namespace Messages
     constexpr auto MouseWheel   = WM_MOUSEWHEEL;
     constexpr auto Close        = WM_CLOSE;
     constexpr auto NcDestroy    = WM_NCDESTROY;
+    constexpr auto RButtonUp    = WM_RBUTTONUP;
+}
+
+namespace TrackPopup
+{
+    constexpr auto LeftAlign   = TPM_LEFTALIGN;
+    constexpr auto TopAlign    = TPM_TOPALIGN;
+    constexpr auto ReturnCmd   = TPM_RETURNCMD;
+    constexpr auto RightButton = TPM_RIGHTBUTTON;
 }
 
 // === Additional notifications ===
@@ -174,6 +186,7 @@ namespace Menu
 {
     constexpr auto String    = MF_STRING;
     constexpr auto Separator = MF_SEPARATOR;
+    constexpr auto Grayed    = MF_GRAYED;
     constexpr auto Popup     = MF_POPUP;
 }
 

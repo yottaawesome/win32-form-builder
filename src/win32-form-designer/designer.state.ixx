@@ -23,6 +23,10 @@ constexpr Win32::UINT IDM_EDIT_DELETE    = 40013;
 constexpr Win32::UINT IDM_EDIT_SELECTALL = 40014;
 constexpr Win32::UINT IDM_VIEW_ZORDER   = 40015;
 
+// Context menu IDs.
+constexpr Win32::UINT IDM_CTX_TOFRONT   = 40101;
+constexpr Win32::UINT IDM_CTX_TOBACK    = 40102;
+
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
 constexpr int PROPERTY_WIDTH = 220;

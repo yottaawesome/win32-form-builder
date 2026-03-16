@@ -569,6 +569,96 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         break;
     }
 
+    case Win32::Messages::RButtonUp:
+    {
+        if (!state) break;
+        int x = Win32::GetXParam(lParam);
+        int y = Win32::GetYParam(lParam);
+
+        // If right-clicked on a control that isn't selected, select it.
+        int hit = HitTest(*state, x, y);
+        if (hit >= 0 && !IsSelected(*state, hit))
+        {
+            state->selection = { hit };
+            Win32::InvalidateRect(hwnd, nullptr, true);
+            UpdatePropertyPanel(*state);
+        }
+        else if (hit < 0)
+        {
+            state->selection.clear();
+            Win32::InvalidateRect(hwnd, nullptr, true);
+            UpdatePropertyPanel(*state);
+        }
+
+        auto menu = Win32::CreatePopupMenu();
+        bool hasSelection = !state->selection.empty();
+        bool hasClipboard = !state->clipboard.empty();
+
+        if (hasSelection)
+        {
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_CUT, L"Cu&t\tCtrl+X");
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_COPY, L"&Copy\tCtrl+C");
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_PASTE, L"&Paste\tCtrl+V");
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_DUPLICATE, L"&Duplicate\tCtrl+D");
+            Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_DELETE, L"&Delete\tDel");
+            Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOFRONT, L"Bring to &Front");
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOBACK, L"Send to &Back");
+        }
+        else
+        {
+            Win32::AppendMenuW(menu, hasClipboard ? Win32::Menu::String : Win32::Menu::Grayed,
+                IDM_EDIT_PASTE, L"&Paste\tCtrl+V");
+            Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
+            Win32::AppendMenuW(menu,
+                state->entries.empty() ? Win32::Menu::Grayed : Win32::Menu::String,
+                IDM_EDIT_SELECTALL, L"Select &All\tCtrl+A");
+        }
+
+        Win32::POINT screen = { x, y };
+        Win32::ClientToScreen(hwnd, &screen);
+
+        auto cmd = Win32::TrackPopupMenu(menu,
+            Win32::TrackPopup::LeftAlign | Win32::TrackPopup::TopAlign |
+            Win32::TrackPopup::ReturnCmd | Win32::TrackPopup::RightButton,
+            screen.x, screen.y, 0, hwnd, nullptr);
+
+        Win32::DestroyMenu(menu);
+
+        if (cmd)
+        {
+            switch (cmd)
+            {
+            case IDM_EDIT_CUT:       CutSelected(*state); break;
+            case IDM_EDIT_COPY:      CopySelected(*state); break;
+            case IDM_EDIT_PASTE:     PasteControl(*state); break;
+            case IDM_EDIT_DUPLICATE: DuplicateSelected(*state); break;
+            case IDM_EDIT_DELETE:    DeleteSelectedControls(*state); break;
+            case IDM_EDIT_SELECTALL: SelectAll(*state); break;
+            case IDM_CTX_TOFRONT:
+            {
+                // Move all selected controls to front (index 0).
+                std::vector<int> sorted(state->selection.begin(), state->selection.end());
+                std::sort(sorted.begin(), sorted.end());
+                for (int i = 0; i < static_cast<int>(sorted.size()); ++i)
+                    MoveControlInZOrder(*state, sorted[i], i);
+                break;
+            }
+            case IDM_CTX_TOBACK:
+            {
+                int count = static_cast<int>(state->entries.size());
+                std::vector<int> sorted(state->selection.begin(), state->selection.end());
+                std::sort(sorted.rbegin(), sorted.rend());
+                for (int i = 0; i < static_cast<int>(sorted.size()); ++i)
+                    MoveControlInZOrder(*state, sorted[i], count - 1 - i);
+                break;
+            }
+            }
+        }
+        return 0;
+    }
+
     case Win32::Messages::KeyDown:
     {
         if (!state) break;
