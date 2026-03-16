@@ -142,6 +142,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="win32.ixx" />
     <ClCompile Include="state.ixx" />
+    <ClCompile Include="hit_testing.ixx" />
+    <ClCompile Include="rendering.ixx" />
+    <ClCompile Include="settings.ixx" />
     <ClCompile Include="helpers.ixx" />
     <ClCompile Include="properties.ixx" />
     <ClCompile Include="canvas.ixx" />

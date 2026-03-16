@@ -3,6 +3,7 @@ import std;
 import formbuilder;
 import :win32;
 import :state;
+import :settings;
 import :helpers;
 import :canvas;
 

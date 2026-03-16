@@ -3,6 +3,7 @@ import std;
 import formbuilder;
 import :win32;
 import :state;
+import :hit_testing;
 import :helpers;
 
 namespace Designer
@@ -53,16 +54,8 @@ namespace Designer
 		}
 	}
 
-	export void UpdatePropertyPanel(DesignState& state)
+	void UpdatePropertyVisibility(DesignState& state, Win32::HWND panel, bool hasSel)
 	{
-		if (!state.propertyHwnd) return;
-		state.updatingProperties = true;
-		state.invalidFields.clear();
-
-		auto panel = state.propertyHwnd;
-		int sel = SingleSelection(state);
-		bool hasSel = sel >= 0 && sel < static_cast<int>(state.entries.size());
-
 		constexpr Win32::UINT ctrlIds[] = {
 			IDC_PROP_TYPE, IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
@@ -77,146 +70,161 @@ namespace Designer
 			IDC_PROP_FORM_RESIZABLE, IDC_PROP_FORM_MINIMIZE, IDC_PROP_FORM_MAXIMIZE
 		};
 
-		SetPropertyGroupVisibility(panel, ctrlIds, 18, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
-		SetPropertyGroupVisibility(panel, formIds, 9, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+		int ctrlShow = hasSel ? Win32::Sw_Show : Win32::Sw_Hide;
+		int formShow = hasSel ? Win32::Sw_Hide : Win32::Sw_Show;
+
+		SetPropertyGroupVisibility(panel, ctrlIds, 18, ctrlShow);
+		SetPropertyGroupVisibility(panel, formIds, 9, formShow);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
-		if (bgBtn) Win32::ShowWindow(bgBtn, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+		if (bgBtn) Win32::ShowWindow(bgBtn, formShow);
 
-		// Font controls visibility.
-		auto fontLabel = Win32::GetDlgItem(panel, IDC_PROP_FONT_LABEL);
-		auto fontBtn = Win32::GetDlgItem(panel, IDC_PROP_FONT_BTN);
-		auto fontClear = Win32::GetDlgItem(panel, IDC_PROP_FONT_CLEAR);
-		if (fontLabel) Win32::ShowWindow(fontLabel, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
-		if (fontBtn)   Win32::ShowWindow(fontBtn, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
-		if (fontClear) Win32::ShowWindow(fontClear, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+		// Control font controls.
+		Win32::UINT ctrlFontIds[] = { IDC_PROP_FONT_LABEL, IDC_PROP_FONT_BTN, IDC_PROP_FONT_CLEAR };
+		for (auto id : ctrlFontIds)
+		{
+			auto h = Win32::GetDlgItem(panel, id);
+			if (h) Win32::ShowWindow(h, ctrlShow);
+		}
 
-		auto formFontLabel = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_LABEL);
-		auto formFontBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_BTN);
-		auto formFontClear = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_CLEAR);
-		if (formFontLabel) Win32::ShowWindow(formFontLabel, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
-		if (formFontBtn)   Win32::ShowWindow(formFontBtn, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
-		if (formFontClear) Win32::ShowWindow(formFontClear, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+		// Form font controls.
+		Win32::UINT formFontIds[] = { IDC_PROP_FORM_FONT_LABEL, IDC_PROP_FORM_FONT_BTN, IDC_PROP_FORM_FONT_CLEAR };
+		for (auto id : formFontIds)
+		{
+			auto h = Win32::GetDlgItem(panel, id);
+			if (h) Win32::ShowWindow(h, formShow);
+		}
 
-		// Font label for form properties.
+		// Font label headers.
 		auto fontLblHdr = Win32::GetDlgItem(panel, IDC_PROP_FONT_LABEL + IDL_OFFSET);
-		if (fontLblHdr) Win32::ShowWindow(fontLblHdr, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+		if (fontLblHdr) Win32::ShowWindow(fontLblHdr, ctrlShow);
 		auto formFontLblHdr = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_LABEL + IDL_OFFSET);
-		if (formFontLblHdr) Win32::ShowWindow(formFontLblHdr, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+		if (formFontLblHdr) Win32::ShowWindow(formFontLblHdr, formShow);
+	}
 
+	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
+	{
+		auto& ctrl = *state.entries[sel].control;
+
+		Win32::SetDlgItemTextW(panel, IDC_PROP_TYPE, ControlTypeDisplayName(ctrl.type));
+		Win32::SetDlgItemTextW(panel, IDC_PROP_TEXT, ctrl.text.c_str());
+		Win32::SetDlgItemInt(panel, IDC_PROP_ID, static_cast<Win32::UINT>(ctrl.id), false);
+		Win32::SetDlgItemInt(panel, IDC_PROP_X, ctrl.rect.x, true);
+		Win32::SetDlgItemInt(panel, IDC_PROP_Y, ctrl.rect.y, true);
+		Win32::SetDlgItemInt(panel, IDC_PROP_W, ctrl.rect.width, true);
+		Win32::SetDlgItemInt(panel, IDC_PROP_H, ctrl.rect.height, true);
+
+		// Event handler fields.
+		struct EventField { Win32::UINT id; const std::string& value; };
+		EventField events[] = {
+			{ IDC_PROP_ONCLICK,    ctrl.onClick },
+			{ IDC_PROP_ONCHANGE,   ctrl.onChange },
+			{ IDC_PROP_ONDBLCLICK, ctrl.onDoubleClick },
+			{ IDC_PROP_ONSELCHANGE, ctrl.onSelectionChange },
+			{ IDC_PROP_ONFOCUS,    ctrl.onFocus },
+			{ IDC_PROP_ONBLUR,     ctrl.onBlur },
+			{ IDC_PROP_ONCHECK,    ctrl.onCheck },
+		};
+		for (auto& [id, value] : events)
+		{
+			auto wide = std::wstring(value.begin(), value.end());
+			Win32::SetDlgItemTextW(panel, id, wide.c_str());
+		}
+
+		Win32::SetDlgItemInt(panel, IDC_PROP_TABINDEX, static_cast<Win32::UINT>(ctrl.tabIndex), true);
+
+		auto alignCombo = Win32::GetDlgItem(panel, IDC_PROP_TEXTALIGN);
+		if (alignCombo)
+			Win32::SendMessageW(alignCombo, Win32::ComboBox::SetCurSel,
+				static_cast<Win32::WPARAM>(ctrl.textAlign), 0);
+
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_LOCKED),
+			Win32::Button::SetCheck,
+			ctrl.locked ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
+		// Anchor dropdown.
+		{
+			using namespace FormDesigner::Anchor;
+			constexpr int anchorValues[] = {
+				Top | Left, Top | Right, Bottom | Left, Bottom | Right,
+				Top | Left | Right, Bottom | Left | Right,
+				Top | Bottom | Left, Top | Bottom | Right,
+				Top | Bottom | Left | Right,
+			};
+			int anchorIdx = 0;
+			for (int i = 0; i < 9; ++i)
+				if (anchorValues[i] == ctrl.anchor) { anchorIdx = i; break; }
+			Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_ANCHOR),
+				Win32::ComboBox::SetCurSel, anchorIdx, 0);
+		}
+
+		Win32::SetDlgItemTextW(panel, IDC_PROP_FONT_LABEL,
+			FontDisplayString(ctrl.font).c_str());
+
+		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
+			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
+			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
+			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX };
+		for (auto id : editableIds)
+			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
+	}
+
+	void UpdateFormProperties(DesignState& state, Win32::HWND panel)
+	{
+		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_TITLE, state.form.title.c_str());
+		Win32::SetDlgItemInt(panel, IDC_PROP_FORM_WIDTH, state.form.width, false);
+		Win32::SetDlgItemInt(panel, IDC_PROP_FORM_HEIGHT, state.form.height, false);
+		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_BGCOLOR,
+			ColorRefToHex(state.form.backgroundColor).c_str());
+
+		struct StyleBit { Win32::UINT id; Win32::DWORD flag; };
+		StyleBit bits[] = {
+			{ IDC_PROP_FORM_CAPTION,  Win32::Styles::Caption },
+			{ IDC_PROP_FORM_SYSMENU,  Win32::Styles::SysMenu },
+			{ IDC_PROP_FORM_RESIZABLE, Win32::Styles::ThickFrame },
+			{ IDC_PROP_FORM_MINIMIZE, Win32::Styles::MinimizeBox },
+			{ IDC_PROP_FORM_MAXIMIZE, Win32::Styles::MaximizeBox },
+		};
+		for (auto& b : bits)
+		{
+			bool on = (state.form.style & b.flag) != 0;
+			Win32::SendMessageW(Win32::GetDlgItem(panel, b.id),
+				Win32::Button::SetCheck,
+				on ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+		}
+
+		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_FONT_LABEL,
+			FormFontDisplayString(state.form.font).c_str());
+	}
+
+	export void UpdatePropertyPanel(DesignState& state)
+	{
+		if (!state.propertyHwnd) return;
+		state.updatingProperties = true;
+		state.invalidFields.clear();
+
+		auto panel = state.propertyHwnd;
+		int sel = SingleSelection(state);
+		bool hasSel = sel >= 0 && sel < static_cast<int>(state.entries.size());
+
+		UpdatePropertyVisibility(state, panel, hasSel);
 		ResetPropertyScroll(state);
 		UpdateScrollRange(state);
 
 		if (hasSel)
-		{
-			auto& ctrl = *state.entries[sel].control;
-
-			Win32::SetDlgItemTextW(panel, IDC_PROP_TYPE, ControlTypeDisplayName(ctrl.type));
-			Win32::SetDlgItemTextW(panel, IDC_PROP_TEXT, ctrl.text.c_str());
-			Win32::SetDlgItemInt(panel, IDC_PROP_ID, static_cast<Win32::UINT>(ctrl.id), false);
-			Win32::SetDlgItemInt(panel, IDC_PROP_X, ctrl.rect.x, true);
-			Win32::SetDlgItemInt(panel, IDC_PROP_Y, ctrl.rect.y, true);
-			Win32::SetDlgItemInt(panel, IDC_PROP_W, ctrl.rect.width, true);
-			Win32::SetDlgItemInt(panel, IDC_PROP_H, ctrl.rect.height, true);
-
-			auto onClick = std::wstring(ctrl.onClick.begin(), ctrl.onClick.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONCLICK, onClick.c_str());
-
-			auto onChange = std::wstring(ctrl.onChange.begin(), ctrl.onChange.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONCHANGE, onChange.c_str());
-
-			auto onDblClick = std::wstring(ctrl.onDoubleClick.begin(), ctrl.onDoubleClick.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONDBLCLICK, onDblClick.c_str());
-
-			auto onSelChange = std::wstring(ctrl.onSelectionChange.begin(), ctrl.onSelectionChange.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONSELCHANGE, onSelChange.c_str());
-
-			auto onFocus = std::wstring(ctrl.onFocus.begin(), ctrl.onFocus.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONFOCUS, onFocus.c_str());
-
-			auto onBlur = std::wstring(ctrl.onBlur.begin(), ctrl.onBlur.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONBLUR, onBlur.c_str());
-
-			auto onCheck = std::wstring(ctrl.onCheck.begin(), ctrl.onCheck.end());
-			Win32::SetDlgItemTextW(panel, IDC_PROP_ONCHECK, onCheck.c_str());
-
-			Win32::SetDlgItemInt(panel, IDC_PROP_TABINDEX, static_cast<Win32::UINT>(ctrl.tabIndex), true);
-
-			// Set text alignment dropdown.
-			auto alignCombo = Win32::GetDlgItem(panel, IDC_PROP_TEXTALIGN);
-			if (alignCombo)
-				Win32::SendMessageW(alignCombo, Win32::ComboBox::SetCurSel,
-					static_cast<Win32::WPARAM>(ctrl.textAlign), 0);
-
-			// Set locked checkbox.
-			Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_LOCKED),
-				Win32::Button::SetCheck,
-				ctrl.locked ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
-
-			// Set anchor dropdown.
-			{
-				using namespace FormDesigner::Anchor;
-				constexpr int anchorValues[] = {
-					Top | Left,             // 0: Top, Left
-					Top | Right,            // 1: Top, Right
-					Bottom | Left,          // 2: Bottom, Left
-					Bottom | Right,         // 3: Bottom, Right
-					Top | Left | Right,     // 4: Top, Left, Right
-					Bottom | Left | Right,  // 5: Bottom, Left, Right
-					Top | Bottom | Left,    // 6: Top, Bottom, Left
-					Top | Bottom | Right,   // 7: Top, Bottom, Right
-					Top | Bottom | Left | Right, // 8: All
-				};
-				int anchorIdx = 0;
-				for (int i = 0; i < 9; ++i)
-					if (anchorValues[i] == ctrl.anchor) { anchorIdx = i; break; }
-				Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_ANCHOR),
-					Win32::ComboBox::SetCurSel, anchorIdx, 0);
-			}
-
-			// Set font label.
-			Win32::SetDlgItemTextW(panel, IDC_PROP_FONT_LABEL,
-				FontDisplayString(ctrl.font).c_str());
-
-			Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
-				IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
-				IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
-				IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX };
-			for (auto id : editableIds)
-				Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
-		}
+			UpdateControlProperties(state, panel, sel);
 		else
-		{
-			Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_TITLE, state.form.title.c_str());
-			Win32::SetDlgItemInt(panel, IDC_PROP_FORM_WIDTH, state.form.width, false);
-			Win32::SetDlgItemInt(panel, IDC_PROP_FORM_HEIGHT, state.form.height, false);
-			Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_BGCOLOR,
-				ColorRefToHex(state.form.backgroundColor).c_str());
-
-			// Populate window style checkboxes.
-			struct StyleBit { Win32::UINT id; Win32::DWORD flag; };
-			StyleBit bits[] = {
-				{ IDC_PROP_FORM_CAPTION,  Win32::Styles::Caption },
-				{ IDC_PROP_FORM_SYSMENU,  Win32::Styles::SysMenu },
-				{ IDC_PROP_FORM_RESIZABLE, Win32::Styles::ThickFrame },
-				{ IDC_PROP_FORM_MINIMIZE, Win32::Styles::MinimizeBox },
-				{ IDC_PROP_FORM_MAXIMIZE, Win32::Styles::MaximizeBox },
-			};
-			for (auto& b : bits)
-			{
-				bool on = (state.form.style & b.flag) != 0;
-				Win32::SendMessageW(Win32::GetDlgItem(panel, b.id),
-					Win32::Button::SetCheck,
-					on ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
-			}
-
-			// Set form font label.
-			Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_FONT_LABEL,
-				FormFontDisplayString(state.form.font).c_str());
-		}
+			UpdateFormProperties(state, panel);
 
 		state.updatingProperties = false;
 		UpdateStatusBar(state);
+	}
+
+	void ReadEventHandler(Win32::HWND panel, Win32::UINT controlId, std::string& target)
+	{
+		wchar_t buf[256] = {};
+		Win32::GetDlgItemTextW(panel, controlId, buf, 256);
+		target = NarrowString(buf, std::wcslen(buf));
 	}
 
 	void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
@@ -249,98 +257,36 @@ namespace Designer
 			break;
 		}
 		case IDC_PROP_X:
-		{
-			Win32::BOOL ok = false;
-			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_X, &ok, true));
-			if (ok) ctrl.rect.x = val;
-			int ro = RulerOffset(state);
-			Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
-				ctrl.rect.width, ctrl.rect.height, true);
-			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
-			break;
-		}
 		case IDC_PROP_Y:
-		{
-			Win32::BOOL ok = false;
-			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_Y, &ok, true));
-			if (ok) ctrl.rect.y = val;
-			int ro = RulerOffset(state);
-			Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
-				ctrl.rect.width, ctrl.rect.height, true);
-			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
-			break;
-		}
 		case IDC_PROP_W:
-		{
-			Win32::BOOL ok = false;
-			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_W, &ok, false));
-			if (ok && val >= MIN_CONTROL_SIZE) ctrl.rect.width = val;
-			int ro = RulerOffset(state);
-			Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
-				ctrl.rect.width, ctrl.rect.height, true);
-			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
-			break;
-		}
 		case IDC_PROP_H:
 		{
 			Win32::BOOL ok = false;
-			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_H, &ok, false));
-			if (ok && val >= MIN_CONTROL_SIZE) ctrl.rect.height = val;
+			bool isSigned = (controlId == IDC_PROP_X || controlId == IDC_PROP_Y);
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, controlId, &ok, isSigned));
+			if (ok)
+			{
+				switch (controlId)
+				{
+				case IDC_PROP_X: ctrl.rect.x = val; break;
+				case IDC_PROP_Y: ctrl.rect.y = val; break;
+				case IDC_PROP_W: if (val >= MIN_CONTROL_SIZE) ctrl.rect.width = val; break;
+				case IDC_PROP_H: if (val >= MIN_CONTROL_SIZE) ctrl.rect.height = val; break;
+				}
+			}
 			int ro = RulerOffset(state);
 			Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
 				ctrl.rect.width, ctrl.rect.height, true);
 			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
 			break;
 		}
-		case IDC_PROP_ONCLICK:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONCLICK, buf, 256);
-			ctrl.onClick = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
-		case IDC_PROP_ONCHANGE:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONCHANGE, buf, 256);
-			ctrl.onChange = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
-		case IDC_PROP_ONDBLCLICK:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONDBLCLICK, buf, 256);
-			ctrl.onDoubleClick = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
-		case IDC_PROP_ONSELCHANGE:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONSELCHANGE, buf, 256);
-			ctrl.onSelectionChange = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
-		case IDC_PROP_ONFOCUS:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONFOCUS, buf, 256);
-			ctrl.onFocus = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
-		case IDC_PROP_ONBLUR:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONBLUR, buf, 256);
-			ctrl.onBlur = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
-		case IDC_PROP_ONCHECK:
-		{
-			wchar_t buf[256] = {};
-			Win32::GetDlgItemTextW(panel, IDC_PROP_ONCHECK, buf, 256);
-			ctrl.onCheck = NarrowString(buf, std::wcslen(buf));
-			break;
-		}
+		case IDC_PROP_ONCLICK:     ReadEventHandler(panel, controlId, ctrl.onClick); break;
+		case IDC_PROP_ONCHANGE:    ReadEventHandler(panel, controlId, ctrl.onChange); break;
+		case IDC_PROP_ONDBLCLICK:  ReadEventHandler(panel, controlId, ctrl.onDoubleClick); break;
+		case IDC_PROP_ONSELCHANGE: ReadEventHandler(panel, controlId, ctrl.onSelectionChange); break;
+		case IDC_PROP_ONFOCUS:     ReadEventHandler(panel, controlId, ctrl.onFocus); break;
+		case IDC_PROP_ONBLUR:      ReadEventHandler(panel, controlId, ctrl.onBlur); break;
+		case IDC_PROP_ONCHECK:     ReadEventHandler(panel, controlId, ctrl.onCheck); break;
 		case IDC_PROP_TABINDEX:
 		{
 			Win32::BOOL ok = false;
@@ -355,7 +301,6 @@ namespace Designer
 			if (sel >= 0 && sel <= 2)
 			{
 				ctrl.textAlign = static_cast<FormDesigner::TextAlign>(sel);
-				// Recreate the control HWND since style bits are set at creation.
 				RebuildSingleControl(state, entry);
 			}
 			break;
@@ -364,15 +309,10 @@ namespace Designer
 		{
 			using namespace FormDesigner::Anchor;
 			constexpr int anchorValues[] = {
-				Top | Left,                  // 0: Top, Left
-				Top | Right,                 // 1: Top, Right
-				Bottom | Left,               // 2: Bottom, Left
-				Bottom | Right,              // 3: Bottom, Right
-				Top | Left | Right,          // 4: Top, Left, Right
-				Bottom | Left | Right,       // 5: Bottom, Left, Right
-				Top | Bottom | Left,         // 6: Top, Bottom, Left
-				Top | Bottom | Right,        // 7: Top, Bottom, Right
-				Top | Bottom | Left | Right, // 8: All
+				Top | Left, Top | Right, Bottom | Left, Bottom | Right,
+				Top | Left | Right, Bottom | Left | Right,
+				Top | Bottom | Left, Top | Bottom | Right,
+				Top | Bottom | Left | Right,
 			};
 			auto combo = Win32::GetDlgItem(panel, IDC_PROP_ANCHOR);
 			auto sel = static_cast<int>(Win32::SendMessageW(combo, Win32::ComboBox::GetCurSel, 0, 0));
@@ -818,6 +758,66 @@ namespace Designer
 
 	Win32::COLORREF g_customColors[16] = {};
 
+	// Shows the Win32 ChooseFont dialog pre-populated with the given font info.
+	// Returns true and populates result if the user confirmed; false on cancel.
+	bool ShowFontDialog(DesignState& state, const FormDesigner::FontInfo& resolved,
+		FormDesigner::FontInfo& result)
+	{
+		Win32::LOGFONTW lf = {};
+		auto hdc = Win32::GetDC(state.surfaceHwnd);
+		lf.lfHeight = -Win32::MulDiv(resolved.size, Win32::GetDeviceCaps(
+			hdc, Win32::FontMetrics::LogPixelsY), 72);
+		Win32::ReleaseDC(state.surfaceHwnd, hdc);
+		lf.lfWeight = resolved.bold ? Win32::FontWeight::Bold : Win32::FontWeight::Normal;
+		lf.lfItalic = resolved.italic ? 1 : 0;
+		lf.lfCharSet = Win32::FontCharset::Default;
+		lf.lfOutPrecision = Win32::FontPrecision::OutDefault;
+		lf.lfClipPrecision = Win32::FontPrecision::ClipDefault;
+		lf.lfQuality = Win32::FontPrecision::QualityDefault;
+		auto len = resolved.family.size();
+		if (len > 31) len = 31;
+		for (size_t i = 0; i < len; ++i) lf.lfFaceName[i] = resolved.family[i];
+		lf.lfFaceName[len] = L'\0';
+
+		Win32::CHOOSEFONTW cf = {};
+		cf.lStructSize = sizeof(Win32::CHOOSEFONTW);
+		cf.hwndOwner = state.surfaceHwnd;
+		cf.lpLogFont = &lf;
+		cf.Flags = Win32::FontDialog::ScreenFonts | Win32::FontDialog::InitToLogFont
+			| Win32::FontDialog::NoSimulations;
+		cf.iPointSize = resolved.size * 10;
+
+		if (!Win32::ChooseFontW(&cf))
+			return false;
+
+		result.family = lf.lfFaceName;
+		result.size = cf.iPointSize / 10;
+		result.bold = (lf.lfWeight >= Win32::FontWeight::Bold);
+		result.italic = (lf.lfItalic != 0);
+		return true;
+	}
+
+	// Validates a property field and applies changes if valid, showing errors otherwise.
+	void ValidateAndApply(DesignState& state, Win32::HWND panel, Win32::UINT id, bool isFormProp)
+	{
+		auto err = ValidateField(state, id);
+		if (!err.empty())
+		{
+			state.invalidFields.insert(id);
+			ShowValidationError(state, err);
+		}
+		else
+		{
+			state.invalidFields.erase(id);
+			ShowValidationError(state, L"");
+			if (isFormProp)
+				ApplyFormPropertyChange(state, id);
+			else
+				ApplyPropertyChange(state, id);
+		}
+		Win32::InvalidateRect(Win32::GetDlgItem(panel, id), nullptr, true);
+	}
+
 	export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
 		Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
 	{
@@ -949,38 +949,11 @@ namespace Designer
 
 				auto& ctrl = *state->entries[sel].control;
 				auto resolved = FormDesigner::ResolveFont(ctrl.font, state->form.font);
-
-				Win32::LOGFONTW lf = {};
-				auto hdc = Win32::GetDC(state->surfaceHwnd);
-				lf.lfHeight = -Win32::MulDiv(resolved.size, Win32::GetDeviceCaps(
-					hdc, Win32::FontMetrics::LogPixelsY), 72);
-				Win32::ReleaseDC(state->surfaceHwnd, hdc);
-				lf.lfWeight = resolved.bold ? Win32::FontWeight::Bold : Win32::FontWeight::Normal;
-				lf.lfItalic = resolved.italic ? 1 : 0;
-				lf.lfCharSet = Win32::FontCharset::Default;
-				lf.lfOutPrecision = Win32::FontPrecision::OutDefault;
-				lf.lfClipPrecision = Win32::FontPrecision::ClipDefault;
-				lf.lfQuality = Win32::FontPrecision::QualityDefault;
-				auto len = resolved.family.size();
-				if (len > 31) len = 31;
-				for (size_t i = 0; i < len; ++i) lf.lfFaceName[i] = resolved.family[i];
-				lf.lfFaceName[len] = L'\0';
-
-				Win32::CHOOSEFONTW cf = {};
-				cf.lStructSize = sizeof(Win32::CHOOSEFONTW);
-				cf.hwndOwner = state->surfaceHwnd;
-				cf.lpLogFont = &lf;
-				cf.Flags = Win32::FontDialog::ScreenFonts | Win32::FontDialog::InitToLogFont
-					| Win32::FontDialog::NoSimulations;
-				cf.iPointSize = resolved.size * 10;
-
-				if (Win32::ChooseFontW(&cf))
+				FormDesigner::FontInfo result;
+				if (ShowFontDialog(*state, resolved, result))
 				{
 					PushUndo(*state);
-					ctrl.font.family = lf.lfFaceName;
-					ctrl.font.size = cf.iPointSize / 10;
-					ctrl.font.bold = (lf.lfWeight >= Win32::FontWeight::Bold);
-					ctrl.font.italic = (lf.lfItalic != 0);
+					ctrl.font = result;
 					RebuildSingleControl(*state, state->entries[sel]);
 					UpdatePropertyPanel(*state);
 					MarkDirty(*state);
@@ -1008,38 +981,11 @@ namespace Designer
 				auto resolved = state->form.font.isSet()
 					? state->form.font
 					: FormDesigner::FontInfo{ FormDesigner::DefaultFontFamily, FormDesigner::DefaultFontSize, false, false };
-
-				Win32::LOGFONTW lf = {};
-				auto hdc = Win32::GetDC(state->surfaceHwnd);
-				lf.lfHeight = -Win32::MulDiv(resolved.size, Win32::GetDeviceCaps(
-					hdc, Win32::FontMetrics::LogPixelsY), 72);
-				Win32::ReleaseDC(state->surfaceHwnd, hdc);
-				lf.lfWeight = resolved.bold ? Win32::FontWeight::Bold : Win32::FontWeight::Normal;
-				lf.lfItalic = resolved.italic ? 1 : 0;
-				lf.lfCharSet = Win32::FontCharset::Default;
-				lf.lfOutPrecision = Win32::FontPrecision::OutDefault;
-				lf.lfClipPrecision = Win32::FontPrecision::ClipDefault;
-				lf.lfQuality = Win32::FontPrecision::QualityDefault;
-				auto len = resolved.family.size();
-				if (len > 31) len = 31;
-				for (size_t i = 0; i < len; ++i) lf.lfFaceName[i] = resolved.family[i];
-				lf.lfFaceName[len] = L'\0';
-
-				Win32::CHOOSEFONTW cf = {};
-				cf.lStructSize = sizeof(Win32::CHOOSEFONTW);
-				cf.hwndOwner = state->surfaceHwnd;
-				cf.lpLogFont = &lf;
-				cf.Flags = Win32::FontDialog::ScreenFonts | Win32::FontDialog::InitToLogFont
-					| Win32::FontDialog::NoSimulations;
-				cf.iPointSize = resolved.size * 10;
-
-				if (Win32::ChooseFontW(&cf))
+				FormDesigner::FontInfo result;
+				if (ShowFontDialog(*state, resolved, result))
 				{
 					PushUndo(*state);
-					state->form.font.family = lf.lfFaceName;
-					state->form.font.size = cf.iPointSize / 10;
-					state->form.font.bold = (lf.lfWeight >= Win32::FontWeight::Bold);
-					state->form.font.italic = (lf.lfItalic != 0);
+					state->form.font = result;
 					for (auto& entry : state->entries)
 						RebuildSingleControl(*state, entry);
 					UpdatePropertyPanel(*state);
@@ -1063,44 +1009,10 @@ namespace Designer
 			// Property edits (validate then apply on focus loss).
 			if (code == Win32::Notifications::EditKillFocus)
 			{
-				if (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
-				{
-					auto err = ValidateField(*state, id);
-					if (!err.empty())
-					{
-						state->invalidFields.insert(id);
-						ShowValidationError(*state, err);
-						Win32::InvalidateRect(
-							Win32::GetDlgItem(hwnd, id), nullptr, true);
-					}
-					else
-					{
-						state->invalidFields.erase(id);
-						ShowValidationError(*state, L"");
-						Win32::InvalidateRect(
-							Win32::GetDlgItem(hwnd, id), nullptr, true);
-						ApplyPropertyChange(*state, id);
-					}
-				}
-				else if (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
-				{
-					auto err = ValidateField(*state, id);
-					if (!err.empty())
-					{
-						state->invalidFields.insert(id);
-						ShowValidationError(*state, err);
-						Win32::InvalidateRect(
-							Win32::GetDlgItem(hwnd, id), nullptr, true);
-					}
-					else
-					{
-						state->invalidFields.erase(id);
-						ShowValidationError(*state, L"");
-						Win32::InvalidateRect(
-							Win32::GetDlgItem(hwnd, id), nullptr, true);
-						ApplyFormPropertyChange(*state, id);
-					}
-				}
+				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX);
+				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR);
+				if (isCtrlProp || isFormProp)
+					ValidateAndApply(*state, hwnd, id, isFormProp);
 				return 0;
 			}
 
