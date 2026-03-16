@@ -135,6 +135,7 @@ export void UpdatePropertyPanel(DesignState& state)
     }
 
     state.updatingProperties = false;
+    UpdateStatusBar(state);
 }
 
 void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)

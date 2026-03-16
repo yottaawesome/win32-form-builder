@@ -79,6 +79,7 @@ export auto PromptSaveIfDirty(DesignState& state) -> bool
         FormDesigner::SaveFormToFile(state.form, state.currentFile);
         state.dirty = false;
         UpdateTitle(state);
+        UpdateStatusBar(state);
     }
 
     return true;
@@ -94,6 +95,7 @@ export void DoSave(DesignState& state)
     FormDesigner::SaveFormToFile(state.form, state.currentFile);
     state.dirty = false;
     UpdateTitle(state);
+    UpdateStatusBar(state);
 }
 
 export void DoSaveAs(DesignState& state)
@@ -105,6 +107,7 @@ export void DoSaveAs(DesignState& state)
     FormDesigner::SaveFormToFile(state.form, state.currentFile);
     state.dirty = false;
     UpdateTitle(state);
+    UpdateStatusBar(state);
 }
 
 export void DoOpen(DesignState& state)
@@ -124,6 +127,7 @@ export void DoOpen(DesignState& state)
         state.dirty = false;
         RebuildControls(state);
         UpdateTitle(state);
+        UpdateStatusBar(state);
     }
     catch (const std::exception& ex)
     {
@@ -145,6 +149,7 @@ export void DoNew(DesignState& state)
     state.dirty = false;
     RebuildControls(state);
     UpdateTitle(state);
+    UpdateStatusBar(state);
 }
 
 }

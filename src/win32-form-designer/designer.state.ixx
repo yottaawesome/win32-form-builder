@@ -167,6 +167,8 @@ struct DesignState
     bool dirty = false;
     Win32::HWND zorderHwnd = nullptr;
     Win32::HWND previewHwnd = nullptr;
+    Win32::HWND toolbarHwnd = nullptr;
+    Win32::HWND statusbarHwnd = nullptr;
 
     int gridSize = DEFAULT_GRID_SIZE;
     bool showGrid = true;

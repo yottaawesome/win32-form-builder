@@ -705,6 +705,14 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             else
                 Win32::SetCursor(Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow));
         }
+
+        // Update cursor position in status bar.
+        if (state->statusbarHwnd)
+        {
+            auto pos = std::format(L"X: {}, Y: {}", x, y);
+            Win32::SendMessageW(state->statusbarHwnd, Win32::StatusBar::SetTextW, 1,
+                reinterpret_cast<Win32::LPARAM>(pos.c_str()));
+        }
         break;
     }
 

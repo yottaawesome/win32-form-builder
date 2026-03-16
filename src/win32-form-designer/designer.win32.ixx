@@ -15,6 +15,7 @@ export namespace Win32
 using
     ::UINT_PTR,
     ::DWORD_PTR,
+    ::INT_PTR,
     ::SIZE,
     ::POINT,
     ::PAINTSTRUCT,
@@ -120,6 +121,7 @@ namespace Messages
     constexpr auto Close        = WM_CLOSE;
     constexpr auto NcDestroy    = WM_NCDESTROY;
     constexpr auto RButtonUp    = WM_RBUTTONUP;
+    constexpr auto Notify       = WM_NOTIFY;
 }
 
 namespace TrackPopup
@@ -281,6 +283,55 @@ namespace ScrollWindow
 
 // === Macro wrappers ===
 auto GetWheelDelta(WPARAM wParam) noexcept -> short { return GET_WHEEL_DELTA_WPARAM(wParam); }
+
+// === Toolbar ===
+using ::TBBUTTON;
+
+namespace Controls
+{
+    constexpr auto Toolbar   = TOOLBARCLASSNAMEW;
+    constexpr auto StatusBar = STATUSCLASSNAMEW;
+}
+
+namespace Toolbar
+{
+    constexpr auto ButtonStructSize = TB_BUTTONSTRUCTSIZE;
+    constexpr auto AddButtons       = TB_ADDBUTTONSW;
+    constexpr auto AutoSize         = TB_AUTOSIZE;
+    constexpr auto SetBitmapSize    = TB_SETBITMAPSIZE;
+}
+
+namespace ToolbarStyle
+{
+    constexpr auto Flat     = TBSTYLE_FLAT;
+    constexpr auto List     = TBSTYLE_LIST;
+    constexpr auto Tooltips = TBSTYLE_TOOLTIPS;
+}
+
+namespace CommonControlStyle
+{
+    constexpr auto Top = CCS_TOP;
+}
+
+namespace StatusBarStyle
+{
+    constexpr DWORD SizeGrip = SBARS_SIZEGRIP;
+}
+
+namespace ButtonStyle
+{
+    constexpr BYTE Button    = BTNS_BUTTON;
+    constexpr BYTE Sep       = BTNS_SEP;
+    constexpr BYTE ShowText  = BTNS_SHOWTEXT;
+    constexpr BYTE Enabled   = TBSTATE_ENABLED;
+}
+
+// === Status bar ===
+namespace StatusBar
+{
+    constexpr auto SetParts = SB_SETPARTS;
+    constexpr auto SetTextW = SB_SETTEXTW;
+}
 
 // === Miscellaneous ===
 constexpr auto MaxPath = MAX_PATH;

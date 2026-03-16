@@ -7,6 +7,8 @@ import :state;
 namespace Designer
 {
 
+auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wchar_t*;
+
 export auto ControlSubclassProc(
     Win32::HWND hwnd, Win32::UINT msg, Win32::WPARAM wParam, Win32::LPARAM lParam,
     Win32::UINT_PTR, Win32::DWORD_PTR) -> Win32::LRESULT
@@ -215,6 +217,42 @@ export void UpdateTitle(DesignState& state)
     Win32::SetWindowTextW(state.surfaceHwnd, title.c_str());
 }
 
+export void UpdateStatusBar(DesignState& state)
+{
+    if (!state.statusbarHwnd) return;
+
+    // Pane 0: selection info.
+    int sel = SingleSelection(state);
+    std::wstring info;
+    if (sel >= 0 && sel < static_cast<int>(state.entries.size()))
+    {
+        auto& ctrl = *state.entries[sel].control;
+        auto typeName = ControlTypeDisplayName(ctrl.type);
+        auto text = ctrl.text.size() > 20
+            ? ctrl.text.substr(0, 17) + L"..."
+            : ctrl.text;
+        info = std::format(L"{} '{}' ({},{} {}x{})",
+            typeName, text,
+            ctrl.rect.x, ctrl.rect.y, ctrl.rect.width, ctrl.rect.height);
+    }
+    else if (state.selection.size() > 1)
+    {
+        info = std::format(L"{} controls selected", state.selection.size());
+    }
+    else
+    {
+        auto& title = state.form.title;
+        info = std::format(L"Form: {}", title);
+    }
+    Win32::SendMessageW(state.statusbarHwnd, Win32::StatusBar::SetTextW, 0,
+        reinterpret_cast<Win32::LPARAM>(info.c_str()));
+
+    // Pane 2: file state.
+    auto fileState = state.dirty ? L"Modified" : L"Ready";
+    Win32::SendMessageW(state.statusbarHwnd, Win32::StatusBar::SetTextW, 2,
+        reinterpret_cast<Win32::LPARAM>(fileState));
+}
+
 export void MarkDirty(DesignState& state)
 {
     if (!state.dirty)
@@ -222,6 +260,7 @@ export void MarkDirty(DesignState& state)
         state.dirty = true;
         UpdateTitle(state);
     }
+    UpdateStatusBar(state);
 }
 
 export auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wchar_t*

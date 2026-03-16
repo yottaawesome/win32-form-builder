@@ -237,15 +237,46 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
     case Win32::Messages::Size:
     {
         if (!state) break;
+
+        // Let toolbar and statusbar auto-resize.
+        if (state->toolbarHwnd)
+            Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::AutoSize, 0, 0);
+        if (state->statusbarHwnd)
+            Win32::SendMessageW(state->statusbarHwnd, Win32::Messages::Size, 0, 0);
+
+        // Query bar heights.
+        int tbH = 0, sbH = 0;
+        if (state->toolbarHwnd)
+        {
+            Win32::RECT tbRc;
+            Win32::GetWindowRect(state->toolbarHwnd, &tbRc);
+            tbH = tbRc.bottom - tbRc.top;
+        }
+        if (state->statusbarHwnd)
+        {
+            Win32::RECT sbRc;
+            Win32::GetWindowRect(state->statusbarHwnd, &sbRc);
+            sbH = sbRc.bottom - sbRc.top;
+        }
+
         Win32::RECT rc;
         Win32::GetClientRect(hwnd, &rc);
         int w = rc.right - rc.left;
-        int h = rc.bottom - rc.top;
+        int h = rc.bottom - rc.top - tbH - sbH;
+        if (h < 0) h = 0;
         int canvasW = w - TOOLBOX_WIDTH - PROPERTY_WIDTH;
         if (canvasW < 0) canvasW = 0;
-        Win32::MoveWindow(state->toolboxHwnd, 0, 0, TOOLBOX_WIDTH, h, true);
-        Win32::MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, 0, canvasW, h, true);
-        Win32::MoveWindow(state->propertyHwnd, w - PROPERTY_WIDTH, 0, PROPERTY_WIDTH, h, true);
+        Win32::MoveWindow(state->toolboxHwnd, 0, tbH, TOOLBOX_WIDTH, h, true);
+        Win32::MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, tbH, canvasW, h, true);
+        Win32::MoveWindow(state->propertyHwnd, w - PROPERTY_WIDTH, tbH, PROPERTY_WIDTH, h, true);
+
+        // Update statusbar pane widths.
+        if (state->statusbarHwnd)
+        {
+            int parts[] = { w / 2, w - 100, -1 };
+            Win32::SendMessageW(state->statusbarHwnd, Win32::StatusBar::SetParts,
+                3, reinterpret_cast<Win32::LPARAM>(parts));
+        }
         return 0;
     }
 
@@ -420,6 +451,73 @@ auto CreateDesignSurface(
     state->surfaceHwnd = hwnd;
     Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData,
         reinterpret_cast<Win32::LONG_PTR>(state));
+
+    // Create toolbar.
+    state->toolbarHwnd = Win32::CreateWindowExW(0,
+        Win32::Controls::Toolbar, nullptr,
+        Win32::Styles::Child | Win32::Styles::Visible |
+            Win32::ToolbarStyle::Flat | Win32::ToolbarStyle::List |
+            Win32::ToolbarStyle::Tooltips | Win32::CommonControlStyle::Top,
+        0, 0, 0, 0, hwnd, nullptr, hInstance, nullptr);
+
+    Win32::SendMessageW(state->toolbarHwnd,
+        Win32::Toolbar::ButtonStructSize, sizeof(Win32::TBBUTTON), 0);
+
+    // Hide bitmap area — text-only buttons.
+    Win32::SendMessageW(state->toolbarHwnd,
+        Win32::Toolbar::SetBitmapSize, 0, 0);
+
+    // Toolbar button definitions reusing existing menu command IDs.
+    static const wchar_t* btnLabels[] = {
+        L"New", L"Open", L"Save", nullptr,
+        L"Undo", L"Redo", nullptr,
+        L"Cut", L"Copy", L"Paste", L"Delete", nullptr,
+        L"Preview"
+    };
+    Win32::UINT btnCmds[] = {
+        IDM_FILE_NEW, IDM_FILE_OPEN, IDM_FILE_SAVE, 0,
+        IDM_EDIT_UNDO, IDM_EDIT_REDO, 0,
+        IDM_EDIT_CUT, IDM_EDIT_COPY, IDM_EDIT_PASTE, IDM_EDIT_DELETE, 0,
+        IDM_FILE_PREVIEW
+    };
+
+    Win32::TBBUTTON buttons[13] = {};
+    for (int i = 0; i < 13; ++i)
+    {
+        if (btnLabels[i] == nullptr)
+        {
+            buttons[i].iBitmap = 0;
+            buttons[i].fsStyle = Win32::ButtonStyle::Sep;
+        }
+        else
+        {
+            buttons[i].iBitmap = -1; // no bitmap, use I_IMAGENONE
+            buttons[i].idCommand = static_cast<int>(btnCmds[i]);
+            buttons[i].fsState = Win32::ButtonStyle::Enabled;
+            buttons[i].fsStyle = Win32::ButtonStyle::Button | Win32::ButtonStyle::ShowText;
+            buttons[i].iString = reinterpret_cast<Win32::INT_PTR>(btnLabels[i]);
+        }
+    }
+    Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::AddButtons,
+        13, reinterpret_cast<Win32::LPARAM>(buttons));
+    Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::AutoSize, 0, 0);
+
+    // Create status bar.
+    state->statusbarHwnd = Win32::CreateWindowExW(0,
+        Win32::Controls::StatusBar, nullptr,
+        Win32::Styles::Child | Win32::Styles::Visible | Win32::StatusBarStyle::SizeGrip,
+        0, 0, 0, 0, hwnd, nullptr, hInstance, nullptr);
+
+    {
+        Win32::RECT clientRc;
+        Win32::GetClientRect(hwnd, &clientRc);
+        int w = clientRc.right;
+        int parts[] = { w / 2, w - 100, -1 };
+        Win32::SendMessageW(state->statusbarHwnd, Win32::StatusBar::SetParts,
+            3, reinterpret_cast<Win32::LPARAM>(parts));
+        Win32::SendMessageW(state->statusbarHwnd, Win32::StatusBar::SetTextW, 2,
+            reinterpret_cast<Win32::LPARAM>(L"Ready"));
+    }
 
     state->toolboxHwnd = Win32::CreateWindowExW(
         0, L"LISTBOX", nullptr,
