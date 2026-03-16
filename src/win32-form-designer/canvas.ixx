@@ -659,8 +659,20 @@ namespace Designer
 				}
 				else if (!IsSelected(*state, hit))
 				{
-					// Click on unselected without Ctrl: select only this one.
-					state->selection = { hit };
+					// Click on unselected without Ctrl: select this control
+					// (and all group members if grouped).
+					auto gid = state->entries[hit].control->groupId;
+					if (gid != 0)
+					{
+						state->selection.clear();
+						for (int i = 0; i < static_cast<int>(state->entries.size()); ++i)
+							if (state->entries[i].control->groupId == gid)
+								state->selection.insert(i);
+					}
+					else
+					{
+						state->selection = { hit };
+					}
 				}
 				// Click on already-selected without Ctrl: keep current selection (for drag).
 
@@ -984,6 +996,17 @@ namespace Designer
 				Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
 				Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOFRONT, L"Bring to &Front");
 				Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOBACK, L"Send to &Back");
+				Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
+				Win32::AppendMenuW(menu,
+					state->selection.size() >= 2 ? Win32::Menu::String : Win32::Menu::Grayed,
+					IDM_EDIT_GROUP, L"&Group\tCtrl+G");
+				// Show Ungroup only if any selected control is grouped.
+				bool anyGrouped = false;
+				for (int idx : state->selection)
+					if (state->entries[idx].control->groupId != 0) { anyGrouped = true; break; }
+				Win32::AppendMenuW(menu,
+					anyGrouped ? Win32::Menu::String : Win32::Menu::Grayed,
+					IDM_EDIT_UNGROUP, L"U&ngroup\tCtrl+Shift+G");
 			}
 			else
 			{
@@ -1035,7 +1058,6 @@ namespace Designer
 				}
 				case IDM_CTX_LOCK:
 				{
-					// Toggle: if any unlocked → lock all; if all locked → unlock all.
 					bool allLocked = true;
 					for (int idx : state->selection)
 						if (!state->entries[idx].control->locked) { allLocked = false; break; }
@@ -1047,6 +1069,8 @@ namespace Designer
 					UpdatePropertyPanel(*state);
 					break;
 				}
+				case IDM_EDIT_GROUP:   GroupSelected(*state); break;
+				case IDM_EDIT_UNGROUP: UngroupSelected(*state); break;
 				}
 			}
 			return 0;

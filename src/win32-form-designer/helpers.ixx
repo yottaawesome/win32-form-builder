@@ -285,6 +285,26 @@ namespace Designer
 
 		Win32::DeleteObject(locked);
 		Win32::DeleteObject(accent);
+
+		// Draw group indicators on grouped controls.
+		auto groupPen = Win32::CreatePen(Win32::PenStyles::Dash, 1, state.theme.userGuide);
+		auto oldPen = Win32::SelectObject(hdc, groupPen);
+		auto nullBrush = static_cast<Win32::HBRUSH>(Win32::GetStockObject(Win32::NullBrush));
+		auto oldBrush = Win32::SelectObject(hdc, nullBrush);
+
+		for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+		{
+			auto& ctrl = *state.entries[i].control;
+			if (ctrl.groupId == 0) continue;
+			int ox = ctrl.rect.x + offset;
+			int oy = ctrl.rect.y + offset;
+			Win32::Rectangle(hdc, ox - 4, oy - 4,
+				ox + ctrl.rect.width + 4, oy + ctrl.rect.height + 4);
+		}
+
+		Win32::SelectObject(hdc, oldBrush);
+		Win32::SelectObject(hdc, oldPen);
+		Win32::DeleteObject(groupPen);
 	}
 
 	export void UpdateTitle(DesignState& state)
@@ -587,6 +607,44 @@ namespace Designer
 	{
 		state.undoStack.push_back(state.form);
 		state.redoStack.clear();
+	}
+
+	// Assigns a new shared group ID to all selected controls.
+	export void GroupSelected(DesignState& state)
+	{
+		if (state.selection.size() < 2) return;
+		PushUndo(state);
+		int gid = state.nextGroupId++;
+		for (int idx : state.selection)
+		{
+			if (idx >= 0 && idx < static_cast<int>(state.entries.size()))
+				state.entries[idx].control->groupId = gid;
+		}
+		MarkDirty(state);
+		Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+	}
+
+	// Removes group membership from all selected controls.
+	export void UngroupSelected(DesignState& state)
+	{
+		if (state.selection.empty()) return;
+		PushUndo(state);
+		for (int idx : state.selection)
+		{
+			if (idx >= 0 && idx < static_cast<int>(state.entries.size()))
+				state.entries[idx].control->groupId = 0;
+		}
+		MarkDirty(state);
+		Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+	}
+
+	// Recalculates nextGroupId from existing controls (call after loading a file).
+	export void SyncNextGroupId(DesignState& state)
+	{
+		int maxId = 0;
+		for (auto& c : state.form.controls)
+			if (c.groupId > maxId) maxId = c.groupId;
+		state.nextGroupId = maxId + 1;
 	}
 
 	export int SnapValue(int value, int gridSize)

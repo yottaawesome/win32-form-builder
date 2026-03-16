@@ -80,6 +80,7 @@ TEST_CASE("Control has sensible default values", "[schema]")
     REQUIRE(c.onSelectionChange.empty());
     REQUIRE(c.onFocus.empty());
     REQUIRE(c.onBlur.empty());
+    REQUIRE(c.groupId == 0);
     REQUIRE(c.onCheck.empty());
     REQUIRE(c.textAlign == TextAlign::Left);
     REQUIRE(c.children.empty());

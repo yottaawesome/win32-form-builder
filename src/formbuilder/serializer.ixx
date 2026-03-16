@@ -88,6 +88,9 @@ export namespace FormDesigner
 		if (control.locked)
 			j["locked"] = true;
 
+		if (control.groupId != 0)
+			j["groupId"] = control.groupId;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

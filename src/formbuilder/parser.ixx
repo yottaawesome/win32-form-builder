@@ -100,6 +100,9 @@ export namespace FormDesigner
 		if (j.contains("locked"))
 			control.locked = j["locked"].get<bool>();
 
+		if (j.contains("groupId"))
+			control.groupId = j["groupId"].get<int>();
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

@@ -448,3 +448,74 @@ TEST_CASE("AutoAssignTabOrder single control gets index 1", "[helpers]")
 
     REQUIRE(state.form.controls[0].tabIndex == 1);
 }
+
+// === GroupSelected / UngroupSelected ===
+
+TEST_CASE("GroupSelected assigns same groupId to all selected controls", "[helpers]")
+{
+    Control c1, c2, c3;
+    auto state = MakeTestState({ c1, c2, c3 });
+    state.selection = { 0, 2 };
+
+    GroupSelected(state);
+
+    REQUIRE(state.form.controls[0].groupId != 0);
+    REQUIRE(state.form.controls[0].groupId == state.form.controls[2].groupId);
+    REQUIRE(state.form.controls[1].groupId == 0); // not selected
+}
+
+TEST_CASE("GroupSelected requires at least 2 selected", "[helpers]")
+{
+    Control c1;
+    auto state = MakeTestState({ c1 });
+    state.selection = { 0 };
+
+    GroupSelected(state);
+
+    REQUIRE(state.form.controls[0].groupId == 0); // unchanged
+}
+
+TEST_CASE("UngroupSelected clears groupId on selected controls", "[helpers]")
+{
+    Control c1, c2;
+    c1.groupId = 5;
+    c2.groupId = 5;
+    auto state = MakeTestState({ c1, c2 });
+    state.selection = { 0, 1 };
+
+    UngroupSelected(state);
+
+    REQUIRE(state.form.controls[0].groupId == 0);
+    REQUIRE(state.form.controls[1].groupId == 0);
+}
+
+TEST_CASE("SyncNextGroupId sets nextGroupId to max+1", "[helpers]")
+{
+    Control c1, c2, c3;
+    c1.groupId = 3;
+    c2.groupId = 7;
+    c3.groupId = 0;
+    auto state = MakeTestState({ c1, c2, c3 });
+
+    SyncNextGroupId(state);
+
+    REQUIRE(state.nextGroupId == 8);
+}
+
+TEST_CASE("Successive GroupSelected calls produce unique group IDs", "[helpers]")
+{
+    Control c1, c2, c3, c4;
+    auto state = MakeTestState({ c1, c2, c3, c4 });
+
+    state.selection = { 0, 1 };
+    GroupSelected(state);
+    int firstGroupId = state.form.controls[0].groupId;
+
+    state.selection = { 2, 3 };
+    GroupSelected(state);
+    int secondGroupId = state.form.controls[2].groupId;
+
+    REQUIRE(firstGroupId != secondGroupId);
+    REQUIRE(firstGroupId != 0);
+    REQUIRE(secondGroupId != 0);
+}

@@ -55,6 +55,7 @@ export namespace FormDesigner
 		int tabIndex = 0;
 		TextAlign textAlign = TextAlign::Left;
 		bool locked = false;
+		int groupId = 0;
 		std::vector<Control> children;
 	};
 

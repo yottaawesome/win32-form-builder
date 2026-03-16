@@ -46,6 +46,9 @@ namespace Designer
 		Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_DELETE,    L"De&lete\tDel");
 		Win32::AppendMenuW(editMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_SELECTALL, L"Select &All\tCtrl+A");
+		Win32::AppendMenuW(editMenu, Win32::Menu::Separator, 0, nullptr);
+		Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_GROUP,   L"&Group\tCtrl+G");
+		Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_UNGROUP, L"U&ngroup\tCtrl+Shift+G");
 
 		Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
 			reinterpret_cast<Win32::UINT_PTR>(editMenu), L"&Edit");
@@ -84,6 +87,8 @@ namespace Designer
 			{ Win32::Accel::Control | Win32::Accel::VirtKey, 'C', static_cast<Win32::WORD>(IDM_EDIT_COPY) },
 			{ Win32::Accel::Control | Win32::Accel::VirtKey, 'V', static_cast<Win32::WORD>(IDM_EDIT_PASTE) },
 			{ Win32::Accel::Control | Win32::Accel::VirtKey, 'D', static_cast<Win32::WORD>(IDM_EDIT_DUPLICATE) },
+			{ Win32::Accel::Control | Win32::Accel::VirtKey, 'G', static_cast<Win32::WORD>(IDM_EDIT_GROUP) },
+			{ Win32::Accel::Control | Win32::Accel::Shift | Win32::Accel::VirtKey, 'G', static_cast<Win32::WORD>(IDM_EDIT_UNGROUP) },
 			{ Win32::Accel::VirtKey, static_cast<Win32::WORD>(Win32::Keys::Escape), static_cast<Win32::WORD>(IDM_CANCEL_PLACE) },
 			{ Win32::Accel::VirtKey, static_cast<Win32::WORD>(Win32::Keys::F5), static_cast<Win32::WORD>(IDM_FILE_PREVIEW) },
 		};
@@ -329,6 +334,8 @@ namespace Designer
 			case IDM_EDIT_DUPLICATE: DuplicateSelected(*state); return 0;
 			case IDM_EDIT_DELETE:    DeleteSelectedControls(*state); return 0;
 			case IDM_EDIT_SELECTALL: SelectAll(*state);        return 0;
+			case IDM_EDIT_GROUP:    GroupSelected(*state);     return 0;
+			case IDM_EDIT_UNGROUP:  UngroupSelected(*state);  return 0;
 			case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
 			case IDM_VIEW_ZORDER:  ShowZOrderPanel(*state); return 0;
 			case IDM_VIEW_TABORDER:
@@ -655,6 +662,7 @@ namespace Designer
 
 		UpdateTitle(*state);
 		PopulateControls(*state);
+		SyncNextGroupId(*state);
 		UpdatePropertyPanel(*state);
 
 		Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);

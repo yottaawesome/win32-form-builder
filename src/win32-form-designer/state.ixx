@@ -21,6 +21,8 @@ export namespace Designer
 	constexpr Win32::UINT IDM_EDIT_DUPLICATE = 40012;
 	constexpr Win32::UINT IDM_EDIT_DELETE    = 40013;
 	constexpr Win32::UINT IDM_EDIT_SELECTALL = 40014;
+	constexpr Win32::UINT IDM_EDIT_GROUP    = 40024;
+	constexpr Win32::UINT IDM_EDIT_UNGROUP  = 40025;
 	constexpr Win32::UINT IDM_VIEW_ZORDER   = 40015;
 
 	// Context menu IDs.
@@ -264,6 +266,7 @@ export namespace Designer
 		std::set<Win32::UINT> invalidFields;
 		bool tabOrderMode = false;
 		int tabOrderNext = 1;
+		int nextGroupId = 1;
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

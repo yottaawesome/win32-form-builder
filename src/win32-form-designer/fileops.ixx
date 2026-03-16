@@ -129,6 +129,7 @@ namespace Designer
 			state.currentFile = path;
 			state.dirty = false;
 			RebuildControls(state);
+			SyncNextGroupId(state);
 			UpdateTitle(state);
 			UpdateStatusBar(state);
 		}
