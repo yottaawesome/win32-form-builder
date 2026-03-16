@@ -26,6 +26,7 @@ constexpr Win32::UINT IDM_VIEW_ZORDER   = 40015;
 // Context menu IDs.
 constexpr Win32::UINT IDM_CTX_TOFRONT   = 40101;
 constexpr Win32::UINT IDM_CTX_TOBACK    = 40102;
+constexpr Win32::UINT IDM_CTX_LOCK      = 40103;
 
 // View menu IDs.
 constexpr Win32::UINT IDM_VIEW_SHOWGRID = 40016;
@@ -56,6 +57,9 @@ constexpr Win32::UINT IDC_PROP_ONBLUR = 51013;
 constexpr Win32::UINT IDC_PROP_ONCHECK = 51014;
 constexpr Win32::UINT IDC_PROP_TABINDEX = 51015;
 constexpr Win32::UINT IDC_PROP_TEXTALIGN = 51016;
+
+// Locked checkbox for control properties.
+constexpr Win32::UINT IDC_PROP_LOCKED = 51017;
 
 // Form property edit IDs.
 constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;

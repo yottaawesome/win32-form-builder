@@ -124,3 +124,9 @@ TEST_CASE("AlignmentStyleFor returns 0 for unsupported control types", "[schema]
     REQUIRE(AlignmentStyleFor(ControlType::ListBox, TextAlign::Right) == 0);
     REQUIRE(AlignmentStyleFor(ControlType::ProgressBar, TextAlign::Center) == 0);
 }
+
+TEST_CASE("Control locked defaults to false", "[schema]")
+{
+    auto c = Control{};
+    REQUIRE(c.locked == false);
+}

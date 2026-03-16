@@ -97,6 +97,9 @@ export namespace FormDesigner
 			else if (align == "right") control.textAlign = TextAlign::Right;
 		}
 
+		if (j.contains("locked"))
+			control.locked = j["locked"].get<bool>();
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

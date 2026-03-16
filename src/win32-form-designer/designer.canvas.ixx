@@ -426,16 +426,21 @@ void DeleteSelectedControls(DesignState& state)
 {
     if (state.selection.empty()) return;
 
+    // Filter out locked controls.
+    std::vector<int> deletable;
+    for (int idx : state.selection)
+        if (idx >= 0 && idx < static_cast<int>(state.entries.size()) &&
+            !state.entries[idx].control->locked)
+            deletable.push_back(idx);
+    if (deletable.empty()) return;
+
     PushUndo(state);
 
     // Delete in reverse index order to keep earlier indices valid.
-    std::vector<int> sorted(state.selection.begin(), state.selection.end());
-    std::sort(sorted.rbegin(), sorted.rend());
+    std::sort(deletable.rbegin(), deletable.rend());
 
-    for (int idx : sorted)
+    for (int idx : deletable)
     {
-        if (idx < 0 || idx >= static_cast<int>(state.entries.size()))
-            continue;
         Win32::DestroyWindow(state.entries[idx].hwnd);
         state.form.controls.erase(state.form.controls.begin() + idx);
         state.entries.erase(state.entries.begin() + idx);
@@ -517,11 +522,12 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
 
         bool ctrlHeld = (Win32::GetKeyState(Win32::Keys::Control) & 0x8000) != 0;
 
-        // Resize handles: only when exactly one control is selected.
+        // Resize handles: only when exactly one unlocked control is selected.
         int handle = HitTestHandle(*state, x, y);
         if (handle >= 0)
         {
             int sel = SingleSelection(*state);
+            if (state->entries[sel].control->locked) return 0;
             PushUndo(*state);
             auto& r = state->entries[sel].control->rect;
             state->dragMode = DragMode::Resize;
@@ -556,9 +562,14 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             Win32::InvalidateRect(hwnd, nullptr, true);
             UpdatePropertyPanel(*state);
 
-            // Start dragging all selected controls.
+            // Start dragging all selected controls (skip if all are locked).
             if (IsSelected(*state, hit))
             {
+                bool allLocked = true;
+                for (int idx : state->selection)
+                    if (!state->entries[idx].control->locked) { allLocked = false; break; }
+                if (allLocked) return 0;
+
                 PushUndo(*state);
                 state->dragMode = DragMode::Move;
                 state->activeHandle = -1;
@@ -593,9 +604,10 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             int dx = x - state->dragStart.x;
             int dy = y - state->dragStart.y;
 
-            // Move all selected controls by the same delta.
+            // Move all selected unlocked controls by the same delta.
             for (int idx : state->selection)
             {
+                if (state->entries[idx].control->locked) continue;
                 auto it = state->dragOrigins.find(idx);
                 if (it == state->dragOrigins.end()) continue;
                 auto& entry = state->entries[idx];
@@ -741,12 +753,20 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
 
         if (hasSelection)
         {
+            // Determine lock label: "Lock" if any unlocked, "Unlock" if all locked.
+            bool allLocked = true;
+            for (int idx : state->selection)
+                if (!state->entries[idx].control->locked) { allLocked = false; break; }
+
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_CUT, L"Cu&t\tCtrl+X");
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_COPY, L"&Copy\tCtrl+C");
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_PASTE, L"&Paste\tCtrl+V");
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_DUPLICATE, L"&Duplicate\tCtrl+D");
             Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_EDIT_DELETE, L"&Delete\tDel");
+            Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
+            Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_LOCK,
+                allLocked ? L"&Unlock" : L"&Lock");
             Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOFRONT, L"Bring to &Front");
             Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOBACK, L"Send to &Back");
@@ -799,6 +819,20 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
                     MoveControlInZOrder(*state, sorted[i], count - 1 - i);
                 break;
             }
+            case IDM_CTX_LOCK:
+            {
+                // Toggle: if any unlocked → lock all; if all locked → unlock all.
+                bool allLocked = true;
+                for (int idx : state->selection)
+                    if (!state->entries[idx].control->locked) { allLocked = false; break; }
+                PushUndo(*state);
+                for (int idx : state->selection)
+                    state->entries[idx].control->locked = !allLocked;
+                MarkDirty(*state);
+                Win32::InvalidateRect(hwnd, nullptr, true);
+                UpdatePropertyPanel(*state);
+                break;
+            }
             }
         }
         return 0;
@@ -836,6 +870,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             PushUndo(*state);
             for (int idx : state->selection)
             {
+                if (state->entries[idx].control->locked) continue;
                 auto& r = state->entries[idx].control->rect;
                 r.x += dx;
                 r.y += dy;

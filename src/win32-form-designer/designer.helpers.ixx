@@ -158,13 +158,16 @@ export void DrawSelection(const DesignState& state, Win32::HDC hdc)
     if (state.selection.empty()) return;
 
     auto accent = Win32::CreateSolidBrush(Win32::MakeRgb(0, 120, 215));
+    auto locked = Win32::CreateSolidBrush(Win32::MakeRgb(128, 128, 128));
 
     for (int idx : state.selection)
     {
         if (idx < 0 || idx >= static_cast<int>(state.entries.size()))
             continue;
 
-        auto& r = state.entries[idx].control->rect;
+        auto& ctrl = *state.entries[idx].control;
+        auto& r = ctrl.rect;
+        auto brush = ctrl.locked ? locked : accent;
 
         Win32::RECT sides[] = {
             { r.x - 2, r.y - 2,          r.x + r.width + 2, r.y },
@@ -173,12 +176,13 @@ export void DrawSelection(const DesignState& state, Win32::HDC hdc)
             { r.x + r.width, r.y,        r.x + r.width + 2,  r.y + r.height },
         };
         for (auto& s : sides)
-            Win32::FillRect(hdc, &s, accent);
+            Win32::FillRect(hdc, &s, brush);
     }
 
-    // Resize handles only when exactly one control is selected.
+    // Resize handles only when exactly one unlocked control is selected.
     int sel = SingleSelection(state);
-    if (sel >= 0 && sel < static_cast<int>(state.entries.size()))
+    if (sel >= 0 && sel < static_cast<int>(state.entries.size()) &&
+        !state.entries[sel].control->locked)
     {
         auto& r = state.entries[sel].control->rect;
         Win32::POINT anchors[8];
@@ -195,6 +199,7 @@ export void DrawSelection(const DesignState& state, Win32::HDC hdc)
         Win32::DeleteObject(white);
     }
 
+    Win32::DeleteObject(locked);
     Win32::DeleteObject(accent);
 }
 

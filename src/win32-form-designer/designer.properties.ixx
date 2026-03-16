@@ -37,7 +37,7 @@ export void UpdatePropertyPanel(DesignState& state)
         IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
         IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
         IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-        IDC_PROP_TEXTALIGN
+        IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED
     };
     constexpr Win32::UINT formIds[] = {
         IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
@@ -46,7 +46,7 @@ export void UpdatePropertyPanel(DesignState& state)
         IDC_PROP_FORM_RESIZABLE, IDC_PROP_FORM_MINIMIZE, IDC_PROP_FORM_MAXIMIZE
     };
 
-    SetPropertyGroupVisibility(panel, ctrlIds, 16, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+    SetPropertyGroupVisibility(panel, ctrlIds, 17, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
     SetPropertyGroupVisibility(panel, formIds, 9, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
     auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -95,6 +95,11 @@ export void UpdatePropertyPanel(DesignState& state)
         if (alignCombo)
             Win32::SendMessageW(alignCombo, Win32::ComboBox::SetCurSel,
                 static_cast<Win32::WPARAM>(ctrl.textAlign), 0);
+
+        // Set locked checkbox.
+        Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_LOCKED),
+            Win32::Button::SetCheck,
+            ctrl.locked ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
 
         Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
             IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
@@ -398,6 +403,17 @@ export void CreatePropertyControls(DesignState& state)
         Win32::SendMessageW(combo, Win32::ComboBox::SetCurSel, 0, 0);
     }
 
+    // Locked checkbox (visible when a control is selected).
+    y += 26;
+    {
+        auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Locked",
+            Win32::Styles::Child | Win32::Styles::AutoCheckBox,
+            15, y, 200, 20, parent,
+            reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_LOCKED)),
+            hInst, nullptr);
+        Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+    }
+
     // Form property rows (visible when no control is selected).
     PropRow formRows[] = {
         { L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -466,7 +482,7 @@ export void CreatePropertyControls(DesignState& state)
     }
 }
 
-constexpr int PROP_CONTENT_CTRL = 30 + 16 * 26 + 10;  // control properties: 456px
+constexpr int PROP_CONTENT_CTRL = 30 + 17 * 26 + 10;  // control properties: 482px
 constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 10;  // form properties + style checkboxes: 264px
 constexpr int SCROLL_LINE = 26;                         // one row height
 
@@ -597,6 +613,20 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
                 Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
                 MarkDirty(*state);
             }
+            return 0;
+        }
+
+        // Locked checkbox for selected control.
+        if (id == IDC_PROP_LOCKED && code == Win32::Notifications::ButtonClicked)
+        {
+            int sel = SingleSelection(*state);
+            if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+            PushUndo(*state);
+            auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_LOCKED);
+            state->entries[sel].control->locked =
+                Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+            MarkDirty(*state);
+            Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
             return 0;
         }
 

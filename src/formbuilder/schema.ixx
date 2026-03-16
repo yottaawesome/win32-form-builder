@@ -54,6 +54,7 @@ export namespace FormDesigner
 		std::string onCheck;
 		int tabIndex = 0;
 		TextAlign textAlign = TextAlign::Left;
+		bool locked = false;
 		std::vector<Control> children;
 	};
 

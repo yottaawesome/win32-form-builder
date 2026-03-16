@@ -85,6 +85,9 @@ export namespace FormDesigner
 			}
 		}
 
+		if (control.locked)
+			j["locked"] = true;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

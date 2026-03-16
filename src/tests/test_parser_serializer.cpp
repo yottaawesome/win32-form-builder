@@ -421,3 +421,60 @@ TEST_CASE("textAlign roundtrips through serialize/parse", "[parser][serializer]"
     REQUIRE(parsed.controls[0].textAlign == TextAlign::Center);
     REQUIRE(parsed.controls[1].textAlign == TextAlign::Right);
 }
+
+// === Locked field ===
+
+TEST_CASE("ParseControl reads locked field", "[parser]")
+{
+    auto j = R"({"type":"Button","rect":[10,20,100,25],"locked":true})";
+    auto ctrl = ParseControl(nlohmann::json::parse(j));
+    REQUIRE(ctrl.locked == true);
+}
+
+TEST_CASE("ParseControl defaults locked to false when absent", "[parser]")
+{
+    auto j = R"({"type":"Button","rect":[10,20,100,25]})";
+    auto ctrl = ParseControl(nlohmann::json::parse(j));
+    REQUIRE(ctrl.locked == false);
+}
+
+TEST_CASE("SerializeControl omits locked when false", "[serializer]")
+{
+    auto ctrl = Control{};
+    ctrl.type = ControlType::Button;
+    ctrl.locked = false;
+    auto j = SerializeControl(ctrl);
+    REQUIRE_FALSE(j.contains("locked"));
+}
+
+TEST_CASE("SerializeControl includes locked when true", "[serializer]")
+{
+    auto ctrl = Control{};
+    ctrl.type = ControlType::Button;
+    ctrl.locked = true;
+    auto j = SerializeControl(ctrl);
+    REQUIRE(j.contains("locked"));
+    REQUIRE(j["locked"].get<bool>() == true);
+}
+
+TEST_CASE("Locked field survives parse-serialize roundtrip", "[parser][serializer]")
+{
+    auto form = Form{};
+    auto btn = Control{};
+    btn.type = ControlType::Button;
+    btn.text = L"Locked";
+    btn.locked = true;
+    form.controls.push_back(btn);
+
+    auto lbl = Control{};
+    lbl.type = ControlType::Label;
+    lbl.text = L"Not locked";
+    lbl.locked = false;
+    form.controls.push_back(lbl);
+
+    auto json = SerializeForm(form);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].locked == true);
+    REQUIRE(parsed.controls[1].locked == false);
+}
