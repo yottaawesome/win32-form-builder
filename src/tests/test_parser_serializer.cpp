@@ -478,3 +478,72 @@ TEST_CASE("Locked field survives parse-serialize roundtrip", "[parser][serialize
     REQUIRE(parsed.controls[0].locked == true);
     REQUIRE(parsed.controls[1].locked == false);
 }
+
+// === Designer guides ===
+
+TEST_CASE("ParseForm reads guides array", "[parser]")
+{
+    auto json = R"({
+        "title": "Guided",
+        "width": 400,
+        "height": 300,
+        "controls": [],
+        "guides": [
+            { "horizontal": true, "position": 100 },
+            { "horizontal": false, "position": 200 }
+        ]
+    })";
+
+    auto form = ParseForm(json);
+    REQUIRE(form.guides.size() == 2);
+    REQUIRE(form.guides[0].horizontal == true);
+    REQUIRE(form.guides[0].position == 100);
+    REQUIRE(form.guides[1].horizontal == false);
+    REQUIRE(form.guides[1].position == 200);
+}
+
+TEST_CASE("ParseForm defaults to empty guides when absent", "[parser]")
+{
+    auto json = R"({"title":"NoGuides","width":400,"height":300,"controls":[]})";
+    auto form = ParseForm(json);
+    REQUIRE(form.guides.empty());
+}
+
+TEST_CASE("SerializeForm omits guides when empty", "[serializer]")
+{
+    Form form;
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("guides") == std::string::npos);
+}
+
+TEST_CASE("SerializeForm includes guides when present", "[serializer]")
+{
+    Form form;
+    form.guides.push_back({ true, 50 });
+    form.guides.push_back({ false, 120 });
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("guides") != std::string::npos);
+
+    auto parsed = ParseForm(json);
+    REQUIRE(parsed.guides.size() == 2);
+    REQUIRE(parsed.guides[0].horizontal == true);
+    REQUIRE(parsed.guides[0].position == 50);
+    REQUIRE(parsed.guides[1].horizontal == false);
+    REQUIRE(parsed.guides[1].position == 120);
+}
+
+TEST_CASE("Guides survive parse-serialize roundtrip", "[parser][serializer]")
+{
+    Form form;
+    form.guides.push_back({ true, 75 });
+    form.guides.push_back({ false, 300 });
+
+    auto json = SerializeForm(form);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.guides.size() == 2);
+    REQUIRE(parsed.guides[0].horizontal == true);
+    REQUIRE(parsed.guides[0].position == 75);
+    REQUIRE(parsed.guides[1].horizontal == false);
+    REQUIRE(parsed.guides[1].position == 300);
+}

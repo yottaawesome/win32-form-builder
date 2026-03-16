@@ -150,6 +150,13 @@ export namespace FormDesigner
 			for (auto& control : j["controls"])
 				form.controls.push_back(ParseControl(control));
 
+		if (j.contains("guides"))
+			for (auto& g : j["guides"])
+				form.guides.push_back({
+					g.value("horizontal", false),
+					g.value("position", 0)
+				});
+
 		return form;
 	}
 

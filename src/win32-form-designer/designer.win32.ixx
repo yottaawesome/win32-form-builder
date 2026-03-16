@@ -75,7 +75,11 @@ using
     ::DestroyMenu,
     ::CheckMenuItem,
     ::GetMenu,
-    ::IsWindow
+    ::IsWindow,
+    ::TextOutW,
+    ::SetTextColor,
+    ::SetBkColor,
+    ::CreateFontW
     ;
 
 const auto HwndBottom = HWND_BOTTOM;
@@ -94,7 +98,8 @@ using ::SCROLLINFO;
 // === Pen styles ===
 namespace PenStyles
 {
-    constexpr auto Dot = PS_DOT;
+    constexpr auto Dot  = PS_DOT;
+    constexpr auto Dash = PS_DASH;
 }
 
 // === Background modes ===

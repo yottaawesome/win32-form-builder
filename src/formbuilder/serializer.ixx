@@ -127,6 +127,18 @@ export namespace FormDesigner
 		for (auto& control : form.controls)
 			j["controls"].push_back(SerializeControl(control));
 
+		if (!form.guides.empty())
+		{
+			j["guides"] = nlohmann::json::array();
+			for (auto& g : form.guides)
+			{
+				auto gj = nlohmann::json{};
+				gj["horizontal"] = g.horizontal;
+				gj["position"] = g.position;
+				j["guides"].push_back(gj);
+			}
+		}
+
 		return j.dump(indent);
 	}
 

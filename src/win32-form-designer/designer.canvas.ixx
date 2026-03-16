@@ -50,7 +50,8 @@ export void PopulateControls(DesignState& state)
             className,
             control.text.c_str(),
             style,
-            control.rect.x, control.rect.y,
+            control.rect.x + RulerOffset(state),
+            control.rect.y + RulerOffset(state),
             control.rect.width, control.rect.height,
             state.canvasHwnd,
             reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(control.id)),
@@ -74,10 +75,24 @@ export void RebuildControls(DesignState& state)
         Win32::DestroyWindow(entry.hwnd);
     state.entries.clear();
     state.selection.clear();
+
+    // Sync guides from form to design state.
+    state.userGuides.clear();
+    for (auto& g : state.form.guides)
+        state.userGuides.push_back({ g.horizontal, g.position });
+
     PopulateControls(state);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
     RefreshZOrderPanel(state);
+}
+
+// Syncs user guides back into the form for serialization.
+export void SyncGuidesToForm(DesignState& state)
+{
+    state.form.guides.clear();
+    for (auto& g : state.userGuides)
+        state.form.guides.push_back({ g.horizontal, g.position });
 }
 
 // Preview window procedure — mirrors FormWndProc but does NOT call PostQuitMessage.
@@ -216,7 +231,8 @@ void PlaceControl(DesignState& state, int x, int y)
         className,
         ctrl.text.c_str(),
         style,
-        ctrl.rect.x, ctrl.rect.y,
+        ctrl.rect.x + RulerOffset(state),
+        ctrl.rect.y + RulerOffset(state),
         ctrl.rect.width, ctrl.rect.height,
         state.canvasHwnd,
         reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(ctrl.id)),
@@ -466,18 +482,25 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
     {
     case Win32::Messages::EraseBkgnd:
     {
+        auto hdc = reinterpret_cast<Win32::HDC>(wParam);
+        Win32::RECT rc;
+        Win32::GetClientRect(hwnd, &rc);
+
+        // Fill entire client area with system window color.
+        auto sysBrush = Win32::CreateSolidBrush(Win32::GetSysColor(Win32::ColorWindow));
+        Win32::FillRect(hdc, &rc, sysBrush);
+        Win32::DeleteObject(sysBrush);
+
         if (state && state->form.backgroundColor != -1)
         {
-            auto hdc = reinterpret_cast<Win32::HDC>(wParam);
-            Win32::RECT rc;
-            Win32::GetClientRect(hwnd, &rc);
+            int offset = RulerOffset(*state);
+            Win32::RECT formArea = { offset, offset, rc.right, rc.bottom };
             auto brush = Win32::CreateSolidBrush(
                 static_cast<Win32::COLORREF>(state->form.backgroundColor));
-            Win32::FillRect(hdc, &rc, brush);
+            Win32::FillRect(hdc, &formArea, brush);
             Win32::DeleteObject(brush);
-            return 1;
         }
-        break;
+        return 1;
     }
 
     case Win32::Messages::Paint:
@@ -489,19 +512,25 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         if (state)
         {
             auto hdc = Win32::GetDC(hwnd);
+            int offset = RulerOffset(*state);
 
             if (state->showGrid)
             {
                 Win32::RECT rc;
                 Win32::GetClientRect(hwnd, &rc);
                 auto dotColor = static_cast<Win32::COLORREF>(Win32::MakeRgb(192, 192, 192));
-                for (int gx = 0; gx < rc.right; gx += state->gridSize)
-                    for (int gy = 0; gy < rc.bottom; gy += state->gridSize)
-                        Win32::SetPixel(hdc, gx, gy, dotColor);
+                for (int gx = 0; gx < rc.right - offset; gx += state->gridSize)
+                    for (int gy = 0; gy < rc.bottom - offset; gy += state->gridSize)
+                        Win32::SetPixel(hdc, gx + offset, gy + offset, dotColor);
             }
 
+            DrawUserGuides(*state, hdc);
             DrawSelection(*state, hdc);
             DrawAlignGuides(*state, hdc);
+            DrawRulers(*state, hdc);
+            if (state->lastCursorPos.x >= 0)
+                DrawRulerCursorIndicator(*state, hdc,
+                    state->lastCursorPos.x, state->lastCursorPos.y);
             Win32::ReleaseDC(hwnd, hdc);
         }
         return 0;
@@ -511,8 +540,33 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
     {
         if (!state) break;
         Win32::SetFocus(hwnd);
-        int x = Win32::GetXParam(lParam);
-        int y = Win32::GetYParam(lParam);
+        int rawX = Win32::GetXParam(lParam);
+        int rawY = Win32::GetYParam(lParam);
+        int offset = RulerOffset(*state);
+        int x = rawX - offset;  // form coordinates
+        int y = rawY - offset;
+
+        // Check if click is in the ruler area — start guide drag.
+        if (state->showRulers && (rawX < RULER_SIZE || rawY < RULER_SIZE))
+        {
+            if (rawX < RULER_SIZE && rawY >= RULER_SIZE)
+            {
+                // Left ruler: create vertical guide.
+                state->dragMode = DragMode::CreateGuide;
+                state->draggingGuideHorizontal = false;
+                state->draggingGuidePos = x;
+                Win32::SetCapture(hwnd);
+            }
+            else if (rawY < RULER_SIZE && rawX >= RULER_SIZE)
+            {
+                // Top ruler: create horizontal guide.
+                state->dragMode = DragMode::CreateGuide;
+                state->draggingGuideHorizontal = true;
+                state->draggingGuidePos = y;
+                Win32::SetCapture(hwnd);
+            }
+            return 0;
+        }
 
         if (state->placementMode)
         {
@@ -596,8 +650,19 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
     case Win32::Messages::MouseMove:
     {
         if (!state) break;
-        int x = Win32::GetXParam(lParam);
-        int y = Win32::GetYParam(lParam);
+        int rawX = Win32::GetXParam(lParam);
+        int rawY = Win32::GetYParam(lParam);
+        int offset = RulerOffset(*state);
+        int x = rawX - offset;  // form coordinates
+        int y = rawY - offset;
+        state->lastCursorPos = { x, y };
+
+        if (state->dragMode == DragMode::CreateGuide)
+        {
+            state->draggingGuidePos = state->draggingGuideHorizontal ? y : x;
+            Win32::InvalidateRect(hwnd, nullptr, true);
+            return 0;
+        }
 
         if (state->dragMode == DragMode::Move)
         {
@@ -658,7 +723,8 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             {
                 auto& entry = state->entries[idx];
                 Win32::MoveWindow(entry.hwnd,
-                    entry.control->rect.x, entry.control->rect.y,
+                    entry.control->rect.x + offset,
+                    entry.control->rect.y + offset,
                     entry.control->rect.width, entry.control->rect.height,
                     true);
             }
@@ -684,7 +750,8 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
                 SnapRectToGrid(entry.control->rect, state->gridSize);
 
             Win32::MoveWindow(entry.hwnd,
-                entry.control->rect.x, entry.control->rect.y,
+                entry.control->rect.x + offset,
+                entry.control->rect.y + offset,
                 entry.control->rect.width, entry.control->rect.height,
                 true);
             Win32::InvalidateRect(hwnd, nullptr, true);
@@ -713,12 +780,39 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             Win32::SendMessageW(state->statusbarHwnd, Win32::StatusBar::SetTextW, 1,
                 reinterpret_cast<Win32::LPARAM>(pos.c_str()));
         }
+
+        // Update ruler cursor indicator — invalidate ruler strips only.
+        if (state->showRulers)
+        {
+            Win32::RECT topRuler = { 0, 0, 32767, RULER_SIZE };
+            Win32::RECT leftRuler = { 0, 0, RULER_SIZE, 32767 };
+            Win32::InvalidateRect(hwnd, &topRuler, true);
+            Win32::InvalidateRect(hwnd, &leftRuler, true);
+        }
         break;
     }
 
     case Win32::Messages::LButtonUp:
     {
         if (!state || state->dragMode == DragMode::None) break;
+
+        if (state->dragMode == DragMode::CreateGuide)
+        {
+            int offset = RulerOffset(*state);
+            int rawX = Win32::GetXParam(lParam);
+            int rawY = Win32::GetYParam(lParam);
+            int pos = state->draggingGuidePos;
+
+            // Only commit if dragged into the canvas area (past the ruler).
+            bool inCanvas = state->draggingGuideHorizontal
+                ? (rawY >= RULER_SIZE)
+                : (rawX >= RULER_SIZE);
+            if (inCanvas && pos >= 0)
+                state->userGuides.push_back({ state->draggingGuideHorizontal, pos });
+
+            state->draggingGuidePos = -1;
+        }
+
         state->dragMode = DragMode::None;
         state->activeHandle = -1;
         state->guides.clear();
@@ -737,8 +831,30 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
     case Win32::Messages::RButtonUp:
     {
         if (!state) break;
-        int x = Win32::GetXParam(lParam);
-        int y = Win32::GetYParam(lParam);
+        int offset = RulerOffset(*state);
+        int x = Win32::GetXParam(lParam) - offset;  // form coordinates
+        int y = Win32::GetYParam(lParam) - offset;
+
+        // Check if right-clicking near a user guide to delete it.
+        int guideHit = HitTestUserGuide(*state, x, y);
+        if (guideHit >= 0)
+        {
+            auto menu = Win32::CreatePopupMenu();
+            Win32::AppendMenuW(menu, Win32::Menu::String, 1, L"&Delete Guide");
+            Win32::POINT screen = { x + offset, y + offset };
+            Win32::ClientToScreen(hwnd, &screen);
+            auto cmd = Win32::TrackPopupMenu(menu,
+                Win32::TrackPopup::LeftAlign | Win32::TrackPopup::TopAlign |
+                Win32::TrackPopup::ReturnCmd | Win32::TrackPopup::RightButton,
+                screen.x, screen.y, 0, hwnd, nullptr);
+            Win32::DestroyMenu(menu);
+            if (cmd == 1)
+            {
+                state->userGuides.erase(state->userGuides.begin() + guideHit);
+                Win32::InvalidateRect(hwnd, nullptr, true);
+            }
+            return 0;
+        }
 
         // If right-clicked on a control that isn't selected, select it.
         int hit = HitTest(*state, x, y);
@@ -789,7 +905,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
                 IDM_EDIT_SELECTALL, L"Select &All\tCtrl+A");
         }
 
-        Win32::POINT screen = { x, y };
+        Win32::POINT screen = { x + offset, y + offset };
         Win32::ClientToScreen(hwnd, &screen);
 
         auto cmd = Win32::TrackPopupMenu(menu,
@@ -876,6 +992,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
             if (wParam == Win32::Keys::Down)  dy =  step;
 
             PushUndo(*state);
+            int offset = RulerOffset(*state);
             for (int idx : state->selection)
             {
                 if (state->entries[idx].control->locked) continue;
@@ -885,7 +1002,7 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
                 if (state->snapToGrid && !shift)
                     SnapRectToGrid(r, state->gridSize);
                 Win32::MoveWindow(state->entries[idx].hwnd,
-                    r.x, r.y, r.width, r.height, true);
+                    r.x + offset, r.y + offset, r.width, r.height, true);
             }
             Win32::InvalidateRect(hwnd, nullptr, true);
             MarkDirty(*state);

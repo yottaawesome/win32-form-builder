@@ -130,3 +130,16 @@ TEST_CASE("Control locked defaults to false", "[schema]")
     auto c = Control{};
     REQUIRE(c.locked == false);
 }
+
+TEST_CASE("DesignerGuide defaults", "[schema]")
+{
+    auto g = DesignerGuide{};
+    REQUIRE(g.horizontal == false);
+    REQUIRE(g.position == 0);
+}
+
+TEST_CASE("Form guides defaults to empty", "[schema]")
+{
+    auto f = Form{};
+    REQUIRE(f.guides.empty());
+}

@@ -172,7 +172,8 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         Win32::BOOL ok = false;
         auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_X, &ok, true));
         if (ok) ctrl.rect.x = val;
-        Win32::MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+        int ro = RulerOffset(state);
+        Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
             ctrl.rect.width, ctrl.rect.height, true);
         Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
         break;
@@ -182,7 +183,8 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         Win32::BOOL ok = false;
         auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_Y, &ok, true));
         if (ok) ctrl.rect.y = val;
-        Win32::MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+        int ro = RulerOffset(state);
+        Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
             ctrl.rect.width, ctrl.rect.height, true);
         Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
         break;
@@ -192,7 +194,8 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         Win32::BOOL ok = false;
         auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_W, &ok, false));
         if (ok && val >= MIN_CONTROL_SIZE) ctrl.rect.width = val;
-        Win32::MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+        int ro = RulerOffset(state);
+        Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
             ctrl.rect.width, ctrl.rect.height, true);
         Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
         break;
@@ -202,7 +205,8 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         Win32::BOOL ok = false;
         auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_H, &ok, false));
         if (ok && val >= MIN_CONTROL_SIZE) ctrl.rect.height = val;
-        Win32::MoveWindow(entry.hwnd, ctrl.rect.x, ctrl.rect.y,
+        int ro = RulerOffset(state);
+        Win32::MoveWindow(entry.hwnd, ctrl.rect.x + ro, ctrl.rect.y + ro,
             ctrl.rect.width, ctrl.rect.height, true);
         Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
         break;

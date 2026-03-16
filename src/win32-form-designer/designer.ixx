@@ -51,6 +51,10 @@ auto CreateMenuBar() -> Win32::HMENU
         IDM_VIEW_SHOWGRID, L"Show &Grid");
     Win32::AppendMenuW(viewMenu, Win32::Menu::String | Win32::Menu::Checked,
         IDM_VIEW_SNAPTOGRID, L"&Snap to Grid");
+    Win32::AppendMenuW(viewMenu, Win32::Menu::String | Win32::Menu::Checked,
+        IDM_VIEW_SHOWRULERS, L"Show &Rulers");
+    Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_CLEARGUIDES, L"&Clear All Guides");
     Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
     Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_ZORDER, L"Tab && &Z-Order...");
 
@@ -334,6 +338,21 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
             auto menu = Win32::GetMenu(hwnd);
             Win32::CheckMenuItem(menu, IDM_VIEW_SNAPTOGRID,
                 state->snapToGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+            return 0;
+        }
+        case IDM_VIEW_SHOWRULERS:
+        {
+            state->showRulers = !state->showRulers;
+            auto menu = Win32::GetMenu(hwnd);
+            Win32::CheckMenuItem(menu, IDM_VIEW_SHOWRULERS,
+                state->showRulers ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+            RebuildControls(*state);
+            return 0;
+        }
+        case IDM_VIEW_CLEARGUIDES:
+        {
+            state->userGuides.clear();
+            Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
             return 0;
         }
         }

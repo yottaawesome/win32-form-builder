@@ -31,6 +31,8 @@ constexpr Win32::UINT IDM_CTX_LOCK      = 40103;
 // View menu IDs.
 constexpr Win32::UINT IDM_VIEW_SHOWGRID = 40016;
 constexpr Win32::UINT IDM_VIEW_SNAPTOGRID = 40017;
+constexpr Win32::UINT IDM_VIEW_SHOWRULERS = 40019;
+constexpr Win32::UINT IDM_VIEW_CLEARGUIDES = 40020;
 
 // File menu IDs (continued).
 constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
@@ -89,7 +91,7 @@ struct ControlEntry
     Win32::HWND hwnd;
 };
 
-enum class DragMode { None, Move, Resize };
+enum class DragMode { None, Move, Resize, CreateGuide };
 
 constexpr int HANDLE_SIZE = 6;
 constexpr int HANDLE_HALF = HANDLE_SIZE / 2;
@@ -102,8 +104,16 @@ struct AlignGuide
     int position;     // pixel coordinate on the guide's axis
 };
 
+// User-created guide line dragged from a ruler.
+struct UserGuide
+{
+    bool horizontal;  // true = horizontal (dragged from top ruler), false = vertical (from left ruler)
+    int position;     // pixel coordinate in form space
+};
+
 constexpr int SNAP_THRESHOLD = 5;
 constexpr int DEFAULT_GRID_SIZE = 10;
+constexpr int RULER_SIZE = 20;
 
 // Control types available in the toolbox.
 struct ToolboxItem
@@ -173,6 +183,11 @@ struct DesignState
     int gridSize = DEFAULT_GRID_SIZE;
     bool showGrid = true;
     bool snapToGrid = true;
+    bool showRulers = true;
+    std::vector<UserGuide> userGuides;
+    bool draggingGuideHorizontal = false;
+    int draggingGuidePos = -1;
+    Win32::POINT lastCursorPos = { -1, -1 }; // form coordinates for ruler indicator
 };
 
 constexpr Win32::UINT SUBCLASS_ID = 1;

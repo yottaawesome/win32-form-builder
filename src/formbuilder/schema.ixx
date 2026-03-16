@@ -58,6 +58,13 @@ export namespace FormDesigner
 		std::vector<Control> children;
 	};
 
+	// A designer guide line (persisted with the form).
+	struct DesignerGuide
+	{
+		bool horizontal = false;
+		int position = 0;
+	};
+
 	// A complete form definition: a top-level window with child controls.
 	struct Form
 	{
@@ -68,6 +75,7 @@ export namespace FormDesigner
 		Win32::DWORD exStyle = 0;
 		int backgroundColor = -1; // -1 = system default; otherwise COLORREF
 		std::vector<Control> controls;
+		std::vector<DesignerGuide> guides;
 	};
 
 	// Returns the Win32 window class name for a given ControlType.

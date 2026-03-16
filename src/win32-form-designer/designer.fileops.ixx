@@ -76,6 +76,7 @@ export auto PromptSaveIfDirty(DesignState& state) -> bool
             if (!ShowSaveDialog(state.surfaceHwnd, state.currentFile))
                 return false;
         }
+        SyncGuidesToForm(state);
         FormDesigner::SaveFormToFile(state.form, state.currentFile);
         state.dirty = false;
         UpdateTitle(state);
@@ -92,6 +93,7 @@ export void DoSave(DesignState& state)
         if (!ShowSaveDialog(state.surfaceHwnd, state.currentFile))
             return;
     }
+    SyncGuidesToForm(state);
     FormDesigner::SaveFormToFile(state.form, state.currentFile);
     state.dirty = false;
     UpdateTitle(state);
@@ -104,6 +106,7 @@ export void DoSaveAs(DesignState& state)
     if (!ShowSaveDialog(state.surfaceHwnd, path))
         return;
     state.currentFile = path;
+    SyncGuidesToForm(state);
     FormDesigner::SaveFormToFile(state.form, state.currentFile);
     state.dirty = false;
     UpdateTitle(state);

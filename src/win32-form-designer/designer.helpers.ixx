@@ -9,6 +9,12 @@ namespace Designer
 
 auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wchar_t*;
 
+// Returns the pixel offset for rulers (0 when rulers are hidden).
+export auto RulerOffset(const DesignState& state) -> int
+{
+    return state.showRulers ? RULER_SIZE : 0;
+}
+
 export auto ControlSubclassProc(
     Win32::HWND hwnd, Win32::UINT msg, Win32::WPARAM wParam, Win32::LPARAM lParam,
     Win32::UINT_PTR, Win32::DWORD_PTR) -> Win32::LRESULT
@@ -33,9 +39,11 @@ export void RebuildSingleControl(DesignState& state, ControlEntry& entry)
         FormDesigner::AlignmentStyleFor(ctrl.type, ctrl.textAlign) |
         ctrl.style};
 
+    int offset = RulerOffset(state);
     entry.hwnd = Win32::CreateWindowExW(
         ctrl.exStyle, className, ctrl.text.c_str(), style,
-        ctrl.rect.x, ctrl.rect.y, ctrl.rect.width, ctrl.rect.height,
+        ctrl.rect.x + offset, ctrl.rect.y + offset,
+        ctrl.rect.width, ctrl.rect.height,
         state.canvasHwnd,
         reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(ctrl.id)),
         state.hInstance, nullptr);
@@ -159,6 +167,7 @@ export void DrawSelection(const DesignState& state, Win32::HDC hdc)
 {
     if (state.selection.empty()) return;
 
+    int offset = RulerOffset(state);
     auto accent = Win32::CreateSolidBrush(Win32::MakeRgb(0, 120, 215));
     auto locked = Win32::CreateSolidBrush(Win32::MakeRgb(128, 128, 128));
 
@@ -170,12 +179,14 @@ export void DrawSelection(const DesignState& state, Win32::HDC hdc)
         auto& ctrl = *state.entries[idx].control;
         auto& r = ctrl.rect;
         auto brush = ctrl.locked ? locked : accent;
+        int ox = r.x + offset;
+        int oy = r.y + offset;
 
         Win32::RECT sides[] = {
-            { r.x - 2, r.y - 2,          r.x + r.width + 2, r.y },
-            { r.x - 2, r.y + r.height,   r.x + r.width + 2, r.y + r.height + 2 },
-            { r.x - 2, r.y,              r.x,                r.y + r.height },
-            { r.x + r.width, r.y,        r.x + r.width + 2,  r.y + r.height },
+            { ox - 2, oy - 2,            ox + r.width + 2, oy },
+            { ox - 2, oy + r.height,     ox + r.width + 2, oy + r.height + 2 },
+            { ox - 2, oy,                ox,                oy + r.height },
+            { ox + r.width, oy,          ox + r.width + 2,  oy + r.height },
         };
         for (auto& s : sides)
             Win32::FillRect(hdc, &s, brush);
@@ -193,8 +204,10 @@ export void DrawSelection(const DesignState& state, Win32::HDC hdc)
         auto white = Win32::CreateSolidBrush(Win32::MakeRgb(255, 255, 255));
         for (auto& a : anchors)
         {
-            Win32::RECT outer = { a.x, a.y, a.x + HANDLE_SIZE, a.y + HANDLE_SIZE };
-            Win32::RECT inner = { a.x + 1, a.y + 1, a.x + HANDLE_SIZE - 1, a.y + HANDLE_SIZE - 1 };
+            Win32::RECT outer = { a.x + offset, a.y + offset,
+                                  a.x + HANDLE_SIZE + offset, a.y + HANDLE_SIZE + offset };
+            Win32::RECT inner = { a.x + 1 + offset, a.y + 1 + offset,
+                                  a.x + HANDLE_SIZE - 1 + offset, a.y + HANDLE_SIZE - 1 + offset };
             Win32::FillRect(hdc, &outer, accent);
             Win32::FillRect(hdc, &inner, white);
         }
@@ -261,6 +274,171 @@ export void MarkDirty(DesignState& state)
         UpdateTitle(state);
     }
     UpdateStatusBar(state);
+}
+
+export void DrawRulers(const DesignState& state, Win32::HDC hdc)
+{
+    if (!state.showRulers) return;
+
+    Win32::RECT rc;
+    Win32::GetClientRect(state.canvasHwnd, &rc);
+
+    // Create a small font for ruler labels.
+    auto font = Win32::CreateFontW(
+        11, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, L"Segoe UI");
+    auto oldFont = Win32::SelectObject(hdc, font);
+    auto oldTextColor = Win32::SetTextColor(hdc, Win32::MakeRgb(80, 80, 80));
+    auto oldBkMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+
+    // Fill ruler backgrounds.
+    auto rulerBrush = Win32::CreateSolidBrush(Win32::MakeRgb(240, 240, 240));
+    Win32::RECT topRuler = { RULER_SIZE, 0, rc.right, RULER_SIZE };
+    Win32::RECT leftRuler = { 0, RULER_SIZE, RULER_SIZE, rc.bottom };
+    Win32::RECT corner = { 0, 0, RULER_SIZE, RULER_SIZE };
+    Win32::FillRect(hdc, &topRuler, rulerBrush);
+    Win32::FillRect(hdc, &leftRuler, rulerBrush);
+    Win32::FillRect(hdc, &corner, rulerBrush);
+    Win32::DeleteObject(rulerBrush);
+
+    // Draw ruler border lines.
+    auto borderPen = Win32::CreatePen(0, 1, Win32::MakeRgb(200, 200, 200));
+    auto oldPen = Win32::SelectObject(hdc, borderPen);
+    Win32::MoveToEx(hdc, RULER_SIZE, 0, nullptr);
+    Win32::LineTo(hdc, RULER_SIZE, rc.bottom);
+    Win32::MoveToEx(hdc, 0, RULER_SIZE, nullptr);
+    Win32::LineTo(hdc, rc.right, RULER_SIZE);
+    Win32::SelectObject(hdc, oldPen);
+    Win32::DeleteObject(borderPen);
+
+    auto tickPen = Win32::CreatePen(0, 1, Win32::MakeRgb(160, 160, 160));
+    oldPen = Win32::SelectObject(hdc, tickPen);
+
+    // Horizontal ruler ticks.
+    for (int px = 0; px < rc.right - RULER_SIZE; px += 10)
+    {
+        int screenX = px + RULER_SIZE;
+        if (px % 50 == 0)
+        {
+            // Major tick with label.
+            Win32::MoveToEx(hdc, screenX, RULER_SIZE - 8, nullptr);
+            Win32::LineTo(hdc, screenX, RULER_SIZE);
+            auto label = std::to_wstring(px);
+            Win32::TextOutW(hdc, screenX + 2, 1, label.c_str(), static_cast<int>(label.size()));
+        }
+        else
+        {
+            // Minor tick.
+            Win32::MoveToEx(hdc, screenX, RULER_SIZE - 4, nullptr);
+            Win32::LineTo(hdc, screenX, RULER_SIZE);
+        }
+    }
+
+    // Vertical ruler ticks.
+    for (int py = 0; py < rc.bottom - RULER_SIZE; py += 10)
+    {
+        int screenY = py + RULER_SIZE;
+        if (py % 50 == 0)
+        {
+            Win32::MoveToEx(hdc, RULER_SIZE - 8, screenY, nullptr);
+            Win32::LineTo(hdc, RULER_SIZE, screenY);
+            auto label = std::to_wstring(py);
+            Win32::TextOutW(hdc, 1, screenY + 2, label.c_str(), static_cast<int>(label.size()));
+        }
+        else
+        {
+            Win32::MoveToEx(hdc, RULER_SIZE - 4, screenY, nullptr);
+            Win32::LineTo(hdc, RULER_SIZE, screenY);
+        }
+    }
+
+    Win32::SelectObject(hdc, oldPen);
+    Win32::DeleteObject(tickPen);
+
+    Win32::SetBkMode(hdc, oldBkMode);
+    Win32::SetTextColor(hdc, oldTextColor);
+    Win32::SelectObject(hdc, oldFont);
+    Win32::DeleteObject(font);
+}
+
+export void DrawRulerCursorIndicator(const DesignState& state, Win32::HDC hdc, int formX, int formY)
+{
+    if (!state.showRulers) return;
+
+    int offset = RULER_SIZE;
+    auto pen = Win32::CreatePen(0, 1, Win32::MakeRgb(255, 0, 0));
+    auto oldPen = Win32::SelectObject(hdc, pen);
+
+    // Horizontal indicator.
+    int sx = formX + offset;
+    Win32::MoveToEx(hdc, sx, 0, nullptr);
+    Win32::LineTo(hdc, sx, RULER_SIZE);
+
+    // Vertical indicator.
+    int sy = formY + offset;
+    Win32::MoveToEx(hdc, 0, sy, nullptr);
+    Win32::LineTo(hdc, RULER_SIZE, sy);
+
+    Win32::SelectObject(hdc, oldPen);
+    Win32::DeleteObject(pen);
+}
+
+export void DrawUserGuides(const DesignState& state, Win32::HDC hdc)
+{
+    if (state.userGuides.empty() && state.dragMode != DragMode::CreateGuide) return;
+
+    int offset = RulerOffset(state);
+    Win32::RECT rc;
+    Win32::GetClientRect(state.canvasHwnd, &rc);
+
+    auto pen = Win32::CreatePen(Win32::PenStyles::Dash, 0, Win32::MakeRgb(0, 120, 215));
+    auto oldPen = Win32::SelectObject(hdc, pen);
+    auto oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+
+    for (auto& guide : state.userGuides)
+    {
+        if (guide.horizontal)
+        {
+            Win32::MoveToEx(hdc, 0, guide.position + offset, nullptr);
+            Win32::LineTo(hdc, rc.right, guide.position + offset);
+        }
+        else
+        {
+            Win32::MoveToEx(hdc, guide.position + offset, 0, nullptr);
+            Win32::LineTo(hdc, guide.position + offset, rc.bottom);
+        }
+    }
+
+    // Draw the guide being dragged (preview line).
+    if (state.dragMode == DragMode::CreateGuide && state.draggingGuidePos >= 0)
+    {
+        if (state.draggingGuideHorizontal)
+        {
+            Win32::MoveToEx(hdc, 0, state.draggingGuidePos + offset, nullptr);
+            Win32::LineTo(hdc, rc.right, state.draggingGuidePos + offset);
+        }
+        else
+        {
+            Win32::MoveToEx(hdc, state.draggingGuidePos + offset, 0, nullptr);
+            Win32::LineTo(hdc, state.draggingGuidePos + offset, rc.bottom);
+        }
+    }
+
+    Win32::SetBkMode(hdc, oldMode);
+    Win32::SelectObject(hdc, oldPen);
+    Win32::DeleteObject(pen);
+}
+
+// Hit test for existing user guides (returns index or -1).
+export auto HitTestUserGuide(const DesignState& state, int formX, int formY) -> int
+{
+    for (int i = 0; i < static_cast<int>(state.userGuides.size()); ++i)
+    {
+        auto& g = state.userGuides[i];
+        int coord = g.horizontal ? formY : formX;
+        if (std::abs(coord - g.position) <= 3)
+            return i;
+    }
+    return -1;
 }
 
 export auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wchar_t*
@@ -406,12 +584,51 @@ export void FindAlignGuides(DesignState& state, FormDesigner::Rect& rect)
 
         if (snappedX && snappedY) break;
     }
+
+    // Snap to user guides.
+    if (!snappedX || !snappedY)
+    {
+        auto movingEdges = edges(rect);
+        for (auto& ug : state.userGuides)
+        {
+            if (!ug.horizontal && !snappedX)
+            {
+                for (int m = 0; m < 3; ++m)
+                {
+                    int diff = movingEdges[m] - ug.position;
+                    if (std::abs(diff) <= SNAP_THRESHOLD)
+                    {
+                        rect.x -= diff;
+                        state.guides.push_back({ false, ug.position });
+                        snappedX = true;
+                        break;
+                    }
+                }
+            }
+            if (ug.horizontal && !snappedY)
+            {
+                for (int m = 3; m < 6; ++m)
+                {
+                    int diff = movingEdges[m] - ug.position;
+                    if (std::abs(diff) <= SNAP_THRESHOLD)
+                    {
+                        rect.y -= diff;
+                        state.guides.push_back({ true, ug.position });
+                        snappedY = true;
+                        break;
+                    }
+                }
+            }
+            if (snappedX && snappedY) break;
+        }
+    }
 }
 
 export void DrawAlignGuides(const DesignState& state, Win32::HDC hdc)
 {
     if (state.guides.empty()) return;
 
+    int offset = RulerOffset(state);
     Win32::RECT rc;
     Win32::GetClientRect(state.canvasHwnd, &rc);
 
@@ -423,13 +640,13 @@ export void DrawAlignGuides(const DesignState& state, Win32::HDC hdc)
     {
         if (guide.horizontal)
         {
-            Win32::MoveToEx(hdc, rc.left, guide.position, nullptr);
-            Win32::LineTo(hdc, rc.right, guide.position);
+            Win32::MoveToEx(hdc, rc.left, guide.position + offset, nullptr);
+            Win32::LineTo(hdc, rc.right, guide.position + offset);
         }
         else
         {
-            Win32::MoveToEx(hdc, guide.position, rc.top, nullptr);
-            Win32::LineTo(hdc, guide.position, rc.bottom);
+            Win32::MoveToEx(hdc, guide.position + offset, rc.top, nullptr);
+            Win32::LineTo(hdc, guide.position + offset, rc.bottom);
         }
     }
 
