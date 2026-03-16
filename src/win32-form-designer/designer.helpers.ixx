@@ -276,110 +276,130 @@ export void MarkDirty(DesignState& state)
     UpdateStatusBar(state);
 }
 
+// Paints ruler contents into a memory DC (called by DrawRulers).
+void PaintRulersToBuffer(const DesignState& state, Win32::HDC memDC, int canvasW, int canvasH)
+{
+	auto font = Win32::CreateFontW(
+		11, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, L"Segoe UI");
+	auto oldFont = Win32::SelectObject(memDC, font);
+	auto oldTextColor = Win32::SetTextColor(memDC, Win32::MakeRgb(80, 80, 80));
+	auto oldBkMode = Win32::SetBkMode(memDC, Win32::Bk_Transparent);
+
+	auto rulerBrush = Win32::CreateSolidBrush(Win32::MakeRgb(240, 240, 240));
+	Win32::RECT topRuler = { RULER_SIZE, 0, canvasW, RULER_SIZE };
+	Win32::RECT leftRuler = { 0, RULER_SIZE, RULER_SIZE, canvasH };
+	Win32::RECT corner = { 0, 0, RULER_SIZE, RULER_SIZE };
+	Win32::FillRect(memDC, &topRuler, rulerBrush);
+	Win32::FillRect(memDC, &leftRuler, rulerBrush);
+	Win32::FillRect(memDC, &corner, rulerBrush);
+	Win32::DeleteObject(rulerBrush);
+
+	auto borderPen = Win32::CreatePen(0, 1, Win32::MakeRgb(200, 200, 200));
+	auto oldPen = Win32::SelectObject(memDC, borderPen);
+	Win32::MoveToEx(memDC, RULER_SIZE, 0, nullptr);
+	Win32::LineTo(memDC, RULER_SIZE, canvasH);
+	Win32::MoveToEx(memDC, 0, RULER_SIZE, nullptr);
+	Win32::LineTo(memDC, canvasW, RULER_SIZE);
+	Win32::SelectObject(memDC, oldPen);
+	Win32::DeleteObject(borderPen);
+
+	auto tickPen = Win32::CreatePen(0, 1, Win32::MakeRgb(160, 160, 160));
+	oldPen = Win32::SelectObject(memDC, tickPen);
+
+	for (int px = 0; px < canvasW - RULER_SIZE; px += 10)
+	{
+		int screenX = px + RULER_SIZE;
+		if (px % 50 == 0)
+		{
+			Win32::MoveToEx(memDC, screenX, RULER_SIZE - 8, nullptr);
+			Win32::LineTo(memDC, screenX, RULER_SIZE);
+			auto label = std::to_wstring(px);
+			Win32::TextOutW(memDC, screenX + 2, 1, label.c_str(), static_cast<int>(label.size()));
+		}
+		else
+		{
+			Win32::MoveToEx(memDC, screenX, RULER_SIZE - 4, nullptr);
+			Win32::LineTo(memDC, screenX, RULER_SIZE);
+		}
+	}
+
+	for (int py = 0; py < canvasH - RULER_SIZE; py += 10)
+	{
+		int screenY = py + RULER_SIZE;
+		if (py % 50 == 0)
+		{
+			Win32::MoveToEx(memDC, RULER_SIZE - 8, screenY, nullptr);
+			Win32::LineTo(memDC, RULER_SIZE, screenY);
+			auto label = std::to_wstring(py);
+			Win32::TextOutW(memDC, 1, screenY + 2, label.c_str(), static_cast<int>(label.size()));
+		}
+		else
+		{
+			Win32::MoveToEx(memDC, RULER_SIZE - 4, screenY, nullptr);
+			Win32::LineTo(memDC, RULER_SIZE, screenY);
+		}
+	}
+
+	Win32::SelectObject(memDC, oldPen);
+	Win32::DeleteObject(tickPen);
+	Win32::SetBkMode(memDC, oldBkMode);
+	Win32::SetTextColor(memDC, oldTextColor);
+	Win32::SelectObject(memDC, oldFont);
+	Win32::DeleteObject(font);
+}
+
+// Paints cursor indicator lines into a memory DC.
+void PaintCursorIndicatorToBuffer(Win32::HDC memDC, int formX, int formY)
+{
+	int offset = RULER_SIZE;
+	auto pen = Win32::CreatePen(0, 1, Win32::MakeRgb(255, 0, 0));
+	auto oldPen = Win32::SelectObject(memDC, pen);
+
+	int sx = formX + offset;
+	Win32::MoveToEx(memDC, sx, 0, nullptr);
+	Win32::LineTo(memDC, sx, RULER_SIZE);
+
+	int sy = formY + offset;
+	Win32::MoveToEx(memDC, 0, sy, nullptr);
+	Win32::LineTo(memDC, RULER_SIZE, sy);
+
+	Win32::SelectObject(memDC, oldPen);
+	Win32::DeleteObject(pen);
+}
+
 export void DrawRulers(const DesignState& state, Win32::HDC hdc)
 {
-    if (!state.showRulers) return;
+	if (!state.showRulers) return;
 
-    Win32::RECT rc;
-    Win32::GetClientRect(state.canvasHwnd, &rc);
+	Win32::RECT rc;
+	Win32::GetClientRect(state.canvasHwnd, &rc);
+	int w = rc.right;
+	int h = rc.bottom;
 
-    // Create a small font for ruler labels.
-    auto font = Win32::CreateFontW(
-        11, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, L"Segoe UI");
-    auto oldFont = Win32::SelectObject(hdc, font);
-    auto oldTextColor = Win32::SetTextColor(hdc, Win32::MakeRgb(80, 80, 80));
-    auto oldBkMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+	// Double-buffer: draw rulers + indicator to off-screen bitmap, then blit.
+	auto memDC = Win32::CreateCompatibleDC(hdc);
+	auto memBmp = Win32::CreateCompatibleBitmap(hdc, w, h);
+	auto oldBmp = Win32::SelectObject(memDC, memBmp);
 
-    // Fill ruler backgrounds.
-    auto rulerBrush = Win32::CreateSolidBrush(Win32::MakeRgb(240, 240, 240));
-    Win32::RECT topRuler = { RULER_SIZE, 0, rc.right, RULER_SIZE };
-    Win32::RECT leftRuler = { 0, RULER_SIZE, RULER_SIZE, rc.bottom };
-    Win32::RECT corner = { 0, 0, RULER_SIZE, RULER_SIZE };
-    Win32::FillRect(hdc, &topRuler, rulerBrush);
-    Win32::FillRect(hdc, &leftRuler, rulerBrush);
-    Win32::FillRect(hdc, &corner, rulerBrush);
-    Win32::DeleteObject(rulerBrush);
+	PaintRulersToBuffer(state, memDC, w, h);
 
-    // Draw ruler border lines.
-    auto borderPen = Win32::CreatePen(0, 1, Win32::MakeRgb(200, 200, 200));
-    auto oldPen = Win32::SelectObject(hdc, borderPen);
-    Win32::MoveToEx(hdc, RULER_SIZE, 0, nullptr);
-    Win32::LineTo(hdc, RULER_SIZE, rc.bottom);
-    Win32::MoveToEx(hdc, 0, RULER_SIZE, nullptr);
-    Win32::LineTo(hdc, rc.right, RULER_SIZE);
-    Win32::SelectObject(hdc, oldPen);
-    Win32::DeleteObject(borderPen);
+	if (state.lastCursorPos.x >= 0)
+		PaintCursorIndicatorToBuffer(memDC, state.lastCursorPos.x, state.lastCursorPos.y);
 
-    auto tickPen = Win32::CreatePen(0, 1, Win32::MakeRgb(160, 160, 160));
-    oldPen = Win32::SelectObject(hdc, tickPen);
+	// Blit top ruler strip.
+	Win32::BitBlt(hdc, 0, 0, w, RULER_SIZE, memDC, 0, 0, Win32::SrcCopy);
+	// Blit left ruler strip.
+	Win32::BitBlt(hdc, 0, RULER_SIZE, RULER_SIZE, h - RULER_SIZE, memDC, 0, RULER_SIZE, Win32::SrcCopy);
 
-    // Horizontal ruler ticks.
-    for (int px = 0; px < rc.right - RULER_SIZE; px += 10)
-    {
-        int screenX = px + RULER_SIZE;
-        if (px % 50 == 0)
-        {
-            // Major tick with label.
-            Win32::MoveToEx(hdc, screenX, RULER_SIZE - 8, nullptr);
-            Win32::LineTo(hdc, screenX, RULER_SIZE);
-            auto label = std::to_wstring(px);
-            Win32::TextOutW(hdc, screenX + 2, 1, label.c_str(), static_cast<int>(label.size()));
-        }
-        else
-        {
-            // Minor tick.
-            Win32::MoveToEx(hdc, screenX, RULER_SIZE - 4, nullptr);
-            Win32::LineTo(hdc, screenX, RULER_SIZE);
-        }
-    }
-
-    // Vertical ruler ticks.
-    for (int py = 0; py < rc.bottom - RULER_SIZE; py += 10)
-    {
-        int screenY = py + RULER_SIZE;
-        if (py % 50 == 0)
-        {
-            Win32::MoveToEx(hdc, RULER_SIZE - 8, screenY, nullptr);
-            Win32::LineTo(hdc, RULER_SIZE, screenY);
-            auto label = std::to_wstring(py);
-            Win32::TextOutW(hdc, 1, screenY + 2, label.c_str(), static_cast<int>(label.size()));
-        }
-        else
-        {
-            Win32::MoveToEx(hdc, RULER_SIZE - 4, screenY, nullptr);
-            Win32::LineTo(hdc, RULER_SIZE, screenY);
-        }
-    }
-
-    Win32::SelectObject(hdc, oldPen);
-    Win32::DeleteObject(tickPen);
-
-    Win32::SetBkMode(hdc, oldBkMode);
-    Win32::SetTextColor(hdc, oldTextColor);
-    Win32::SelectObject(hdc, oldFont);
-    Win32::DeleteObject(font);
+	Win32::SelectObject(memDC, oldBmp);
+	Win32::DeleteObject(memBmp);
+	Win32::DeleteDC(memDC);
 }
 
 export void DrawRulerCursorIndicator(const DesignState& state, Win32::HDC hdc, int formX, int formY)
 {
-    if (!state.showRulers) return;
-
-    int offset = RULER_SIZE;
-    auto pen = Win32::CreatePen(0, 1, Win32::MakeRgb(255, 0, 0));
-    auto oldPen = Win32::SelectObject(hdc, pen);
-
-    // Horizontal indicator.
-    int sx = formX + offset;
-    Win32::MoveToEx(hdc, sx, 0, nullptr);
-    Win32::LineTo(hdc, sx, RULER_SIZE);
-
-    // Vertical indicator.
-    int sy = formY + offset;
-    Win32::MoveToEx(hdc, 0, sy, nullptr);
-    Win32::LineTo(hdc, RULER_SIZE, sy);
-
-    Win32::SelectObject(hdc, oldPen);
-    Win32::DeleteObject(pen);
+	// Now handled inside DrawRulers() via the double buffer - kept for API compatibility.
+	(void)state; (void)hdc; (void)formX; (void)formY;
 }
 
 export void DrawUserGuides(const DesignState& state, Win32::HDC hdc)

@@ -80,8 +80,14 @@ using
     ::SetTextColor,
     ::SetBkColor,
     ::CreateFontW,
-    ::Rectangle
+    ::Rectangle,
+    ::CreateCompatibleDC,
+    ::CreateCompatibleBitmap,
+    ::BitBlt,
+    ::DeleteDC
     ;
+
+constexpr auto SrcCopy = SRCCOPY;
 
 const auto HwndBottom = HWND_BOTTOM;
 const auto HwndTop    = HWND_TOP;
