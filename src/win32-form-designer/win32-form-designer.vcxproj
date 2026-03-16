@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="state.ixx" />
+    <ClCompile Include="alignment.ixx" />
     <ClCompile Include="hit_testing.ixx" />
     <ClCompile Include="rendering.ixx" />
     <ClCompile Include="settings.ixx" />

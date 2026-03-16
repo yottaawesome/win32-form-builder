@@ -923,6 +923,38 @@ namespace Designer
 			Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
 			Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOFRONT, L"Bring to &Front");
 			Win32::AppendMenuW(menu, Win32::Menu::String, IDM_CTX_TOBACK, L"Send to &Back");
+
+			if (state.selection.size() >= 2)
+			{
+				Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
+				auto alignSub = Win32::CreatePopupMenu();
+				Win32::AppendMenuW(alignSub, Win32::Menu::String, IDM_FORMAT_ALIGN_LEFT,     L"Align &Left");
+				Win32::AppendMenuW(alignSub, Win32::Menu::String, IDM_FORMAT_ALIGN_CENTER_H, L"Align &Center H");
+				Win32::AppendMenuW(alignSub, Win32::Menu::String, IDM_FORMAT_ALIGN_RIGHT,    L"Align &Right");
+				Win32::AppendMenuW(alignSub, Win32::Menu::Separator, 0, nullptr);
+				Win32::AppendMenuW(alignSub, Win32::Menu::String, IDM_FORMAT_ALIGN_TOP,      L"Align &Top");
+				Win32::AppendMenuW(alignSub, Win32::Menu::String, IDM_FORMAT_ALIGN_MIDDLE_V, L"Align &Middle V");
+				Win32::AppendMenuW(alignSub, Win32::Menu::String, IDM_FORMAT_ALIGN_BOTTOM,   L"Align &Bottom");
+				Win32::AppendMenuW(menu, Win32::Menu::Popup,
+					reinterpret_cast<Win32::UINT_PTR>(alignSub), L"Ali&gn");
+
+				auto sizeSub = Win32::CreatePopupMenu();
+				Win32::AppendMenuW(sizeSub, Win32::Menu::String, IDM_FORMAT_SAME_WIDTH,  L"Same &Width");
+				Win32::AppendMenuW(sizeSub, Win32::Menu::String, IDM_FORMAT_SAME_HEIGHT, L"Same &Height");
+				Win32::AppendMenuW(sizeSub, Win32::Menu::String, IDM_FORMAT_SAME_SIZE,   L"Same &Size");
+				Win32::AppendMenuW(menu, Win32::Menu::Popup,
+					reinterpret_cast<Win32::UINT_PTR>(sizeSub), L"Si&ze");
+
+				if (state.selection.size() >= 3)
+				{
+					auto distSub = Win32::CreatePopupMenu();
+					Win32::AppendMenuW(distSub, Win32::Menu::String, IDM_FORMAT_DIST_HORIZ, L"&Horizontally");
+					Win32::AppendMenuW(distSub, Win32::Menu::String, IDM_FORMAT_DIST_VERT,  L"&Vertically");
+					Win32::AppendMenuW(menu, Win32::Menu::Popup,
+						reinterpret_cast<Win32::UINT_PTR>(distSub), L"Dis&tribute");
+				}
+			}
+
 			Win32::AppendMenuW(menu, Win32::Menu::Separator, 0, nullptr);
 			Win32::AppendMenuW(menu,
 				state.selection.size() >= 2 ? Win32::Menu::String : Win32::Menu::Grayed,

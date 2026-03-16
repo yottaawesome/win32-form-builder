@@ -9,6 +9,7 @@ export import :helpers;
 export import :properties;
 export import :canvas;
 export import :fileops;
+export import :alignment;
 
 namespace Designer
 {
@@ -54,6 +55,34 @@ namespace Designer
 
 		Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
 			reinterpret_cast<Win32::UINT_PTR>(editMenu), L"&Edit");
+
+		auto formatMenu = Win32::CreatePopupMenu();
+		auto alignMenu = Win32::CreatePopupMenu();
+		Win32::AppendMenuW(alignMenu, Win32::Menu::String, IDM_FORMAT_ALIGN_LEFT,     L"Align &Left");
+		Win32::AppendMenuW(alignMenu, Win32::Menu::String, IDM_FORMAT_ALIGN_CENTER_H, L"Align &Center Horizontally");
+		Win32::AppendMenuW(alignMenu, Win32::Menu::String, IDM_FORMAT_ALIGN_RIGHT,    L"Align &Right");
+		Win32::AppendMenuW(alignMenu, Win32::Menu::Separator, 0, nullptr);
+		Win32::AppendMenuW(alignMenu, Win32::Menu::String, IDM_FORMAT_ALIGN_TOP,      L"Align &Top");
+		Win32::AppendMenuW(alignMenu, Win32::Menu::String, IDM_FORMAT_ALIGN_MIDDLE_V, L"Align &Middle Vertically");
+		Win32::AppendMenuW(alignMenu, Win32::Menu::String, IDM_FORMAT_ALIGN_BOTTOM,   L"Align &Bottom");
+		Win32::AppendMenuW(formatMenu, Win32::Menu::Popup,
+			reinterpret_cast<Win32::UINT_PTR>(alignMenu), L"&Align");
+
+		auto distMenu = Win32::CreatePopupMenu();
+		Win32::AppendMenuW(distMenu, Win32::Menu::String, IDM_FORMAT_DIST_HORIZ, L"Distribute &Horizontally");
+		Win32::AppendMenuW(distMenu, Win32::Menu::String, IDM_FORMAT_DIST_VERT,  L"Distribute &Vertically");
+		Win32::AppendMenuW(formatMenu, Win32::Menu::Popup,
+			reinterpret_cast<Win32::UINT_PTR>(distMenu), L"&Distribute");
+
+		auto sizeMenu = Win32::CreatePopupMenu();
+		Win32::AppendMenuW(sizeMenu, Win32::Menu::String, IDM_FORMAT_SAME_WIDTH,  L"Same &Width");
+		Win32::AppendMenuW(sizeMenu, Win32::Menu::String, IDM_FORMAT_SAME_HEIGHT, L"Same &Height");
+		Win32::AppendMenuW(sizeMenu, Win32::Menu::String, IDM_FORMAT_SAME_SIZE,   L"Same &Size");
+		Win32::AppendMenuW(formatMenu, Win32::Menu::Popup,
+			reinterpret_cast<Win32::UINT_PTR>(sizeMenu), L"&Size");
+
+		Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
+			reinterpret_cast<Win32::UINT_PTR>(formatMenu), L"F&ormat");
 
 		auto viewMenu = Win32::CreatePopupMenu();
 		Win32::AppendMenuW(viewMenu, Win32::Menu::String | Win32::Menu::Checked,
@@ -298,6 +327,42 @@ namespace Designer
 			return 0;
 		}
 
+		case Win32::Messages::InitMenuPopup:
+		{
+			if (!state) break;
+			auto menu = reinterpret_cast<Win32::HMENU>(wParam);
+			auto selCount = state->selection.size();
+			auto flag2 = (selCount >= 2) ? Win32::Menu::Enabled : Win32::Menu::Grayed;
+			auto flag3 = (selCount >= 3) ? Win32::Menu::Enabled : Win32::Menu::Grayed;
+
+			Win32::EnableMenuItem(menu, IDM_FORMAT_ALIGN_LEFT,     Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_ALIGN_CENTER_H, Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_ALIGN_RIGHT,    Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_ALIGN_TOP,      Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_ALIGN_MIDDLE_V, Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_ALIGN_BOTTOM,   Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_DIST_HORIZ,     Win32::Menu::ByCommand | flag3);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_DIST_VERT,      Win32::Menu::ByCommand | flag3);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_SAME_WIDTH,     Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_SAME_HEIGHT,    Win32::Menu::ByCommand | flag2);
+			Win32::EnableMenuItem(menu, IDM_FORMAT_SAME_SIZE,      Win32::Menu::ByCommand | flag2);
+
+			// Update toolbar alignment buttons.
+			Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::EnableButton,
+				IDM_FORMAT_ALIGN_LEFT,     selCount >= 2 ? 1 : 0);
+			Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::EnableButton,
+				IDM_FORMAT_ALIGN_CENTER_H, selCount >= 2 ? 1 : 0);
+			Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::EnableButton,
+				IDM_FORMAT_ALIGN_RIGHT,    selCount >= 2 ? 1 : 0);
+			Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::EnableButton,
+				IDM_FORMAT_ALIGN_TOP,      selCount >= 2 ? 1 : 0);
+			Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::EnableButton,
+				IDM_FORMAT_ALIGN_MIDDLE_V, selCount >= 2 ? 1 : 0);
+			Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::EnableButton,
+				IDM_FORMAT_ALIGN_BOTTOM,   selCount >= 2 ? 1 : 0);
+			break;
+		}
+
 		case Win32::Messages::Command:
 		{
 			if (!state) break;
@@ -356,6 +421,50 @@ namespace Designer
 			case IDM_EDIT_GROUP:    GroupSelected(*state);     return 0;
 			case IDM_EDIT_UNGROUP:  UngroupSelected(*state);  return 0;
 			case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
+
+			// Format menu — alignment, distribution, sizing.
+			case IDM_FORMAT_ALIGN_LEFT:
+			case IDM_FORMAT_ALIGN_CENTER_H:
+			case IDM_FORMAT_ALIGN_RIGHT:
+			case IDM_FORMAT_ALIGN_TOP:
+			case IDM_FORMAT_ALIGN_MIDDLE_V:
+			case IDM_FORMAT_ALIGN_BOTTOM:
+			case IDM_FORMAT_DIST_HORIZ:
+			case IDM_FORMAT_DIST_VERT:
+			case IDM_FORMAT_SAME_WIDTH:
+			case IDM_FORMAT_SAME_HEIGHT:
+			case IDM_FORMAT_SAME_SIZE:
+			{
+				auto ctrls = CollectUnlocked(state->form.controls, state->selection);
+				if (ctrls.size() < 2) return 0;
+				PushUndo(*state);
+				auto fmtCmd = Win32::GetLowWord(wParam);
+				switch (fmtCmd)
+				{
+				case IDM_FORMAT_ALIGN_LEFT:     AlignLeft(ctrls); break;
+				case IDM_FORMAT_ALIGN_CENTER_H: AlignCenterH(ctrls); break;
+				case IDM_FORMAT_ALIGN_RIGHT:    AlignRight(ctrls); break;
+				case IDM_FORMAT_ALIGN_TOP:      AlignTop(ctrls); break;
+				case IDM_FORMAT_ALIGN_MIDDLE_V: AlignMiddleV(ctrls); break;
+				case IDM_FORMAT_ALIGN_BOTTOM:   AlignBottom(ctrls); break;
+				case IDM_FORMAT_DIST_HORIZ:     DistributeHorizontally(ctrls); break;
+				case IDM_FORMAT_DIST_VERT:      DistributeVertically(ctrls); break;
+				case IDM_FORMAT_SAME_WIDTH:     MakeSameWidth(ctrls); break;
+				case IDM_FORMAT_SAME_HEIGHT:    MakeSameHeight(ctrls); break;
+				case IDM_FORMAT_SAME_SIZE:      MakeSameSize(ctrls); break;
+				}
+				int offset = RulerOffset(*state);
+				for (int idx : state->selection)
+				{
+					auto& r = state->entries[idx].control->rect;
+					Win32::MoveWindow(state->entries[idx].hwnd,
+						r.x + offset, r.y + offset, r.width, r.height, true);
+				}
+				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+				MarkDirty(*state);
+				UpdatePropertyPanel(*state);
+				return 0;
+			}
 			case IDM_VIEW_ZORDER:  ShowZOrderPanel(*state); return 0;
 			case IDM_VIEW_TABORDER:
 			{
@@ -585,17 +694,21 @@ namespace Designer
 			L"New", L"Open", L"Save", nullptr,
 			L"Undo", L"Redo", nullptr,
 			L"Cut", L"Copy", L"Paste", L"Delete", nullptr,
-			L"Preview"
+			L"Preview", nullptr,
+			L"\x2190", L"\x2194", L"\x2192", L"\x2191", L"\x2195", L"\x2193"
 		};
 		Win32::UINT btnCmds[] = {
 			IDM_FILE_NEW, IDM_FILE_OPEN, IDM_FILE_SAVE, 0,
 			IDM_EDIT_UNDO, IDM_EDIT_REDO, 0,
 			IDM_EDIT_CUT, IDM_EDIT_COPY, IDM_EDIT_PASTE, IDM_EDIT_DELETE, 0,
-			IDM_FILE_PREVIEW
+			IDM_FILE_PREVIEW, 0,
+			IDM_FORMAT_ALIGN_LEFT, IDM_FORMAT_ALIGN_CENTER_H, IDM_FORMAT_ALIGN_RIGHT,
+			IDM_FORMAT_ALIGN_TOP, IDM_FORMAT_ALIGN_MIDDLE_V, IDM_FORMAT_ALIGN_BOTTOM
 		};
 
-		Win32::TBBUTTON buttons[13] = {};
-		for (int i = 0; i < 13; ++i)
+		constexpr int btnCount = 20;
+		Win32::TBBUTTON buttons[btnCount] = {};
+		for (int i = 0; i < btnCount; ++i)
 		{
 			if (btnLabels[i] == nullptr)
 			{
@@ -612,7 +725,7 @@ namespace Designer
 			}
 		}
 		Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::AddButtons,
-			13, reinterpret_cast<Win32::LPARAM>(buttons));
+			btnCount, reinterpret_cast<Win32::LPARAM>(buttons));
 		Win32::SendMessageW(state->toolbarHwnd, Win32::Toolbar::AutoSize, 0, 0);
 
 		// Create status bar.

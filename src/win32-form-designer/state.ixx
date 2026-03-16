@@ -44,6 +44,19 @@ export namespace Designer
 	constexpr Win32::UINT IDM_FILE_RECENT_BASE = 40200;
 	constexpr int MAX_RECENT_FILES = 10;
 
+	// Format menu IDs — alignment, distribution, sizing.
+	constexpr Win32::UINT IDM_FORMAT_ALIGN_LEFT      = 40301;
+	constexpr Win32::UINT IDM_FORMAT_ALIGN_CENTER_H  = 40302;
+	constexpr Win32::UINT IDM_FORMAT_ALIGN_RIGHT     = 40303;
+	constexpr Win32::UINT IDM_FORMAT_ALIGN_TOP       = 40304;
+	constexpr Win32::UINT IDM_FORMAT_ALIGN_MIDDLE_V  = 40305;
+	constexpr Win32::UINT IDM_FORMAT_ALIGN_BOTTOM    = 40306;
+	constexpr Win32::UINT IDM_FORMAT_DIST_HORIZ      = 40307;
+	constexpr Win32::UINT IDM_FORMAT_DIST_VERT       = 40308;
+	constexpr Win32::UINT IDM_FORMAT_SAME_WIDTH      = 40309;
+	constexpr Win32::UINT IDM_FORMAT_SAME_HEIGHT     = 40310;
+	constexpr Win32::UINT IDM_FORMAT_SAME_SIZE       = 40311;
+
 	// Toolbox and layout constants.
 	constexpr int TOOLBOX_WIDTH  = 140;
 	constexpr int PROPERTY_WIDTH = 240;

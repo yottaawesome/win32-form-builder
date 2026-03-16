@@ -148,6 +148,7 @@
     <ClCompile Include="test_events.cpp" />
     <ClCompile Include="test_codegen.cpp" />
     <ClCompile Include="test_helpers.cpp" />
+    <ClCompile Include="test_alignment.cpp" />
     <!-- Designer module partitions (compiled in-project for testing) -->
     <ClCompile Include="..\win32-form-designer\state.ixx" />
     <ClCompile Include="..\win32-form-designer\hit_testing.ixx" />
@@ -156,6 +157,7 @@
     <ClCompile Include="..\win32-form-designer\helpers.ixx" />
     <ClCompile Include="..\win32-form-designer\properties.ixx" />
     <ClCompile Include="..\win32-form-designer\canvas.ixx" />
+    <ClCompile Include="..\win32-form-designer\alignment.ixx" />
     <ClCompile Include="..\win32-form-designer\fileops.ixx" />
     <ClCompile Include="..\win32-form-designer\designer.ixx" />
   </ItemGroup>

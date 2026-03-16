@@ -161,6 +161,7 @@ export namespace Win32
 		::GetMenuItemCount,
 		::GetMenuItemID,
 		::CheckMenuItem,
+		::EnableMenuItem,
 		::TrackPopupMenu,
 
 		// Accelerators.
@@ -296,6 +297,7 @@ export namespace Win32
 		constexpr auto KeyDown      = WM_KEYDOWN;
 		constexpr auto VScroll      = WM_VSCROLL;
 		constexpr auto CtlColorEdit = WM_CTLCOLOREDIT;
+		constexpr auto InitMenuPopup = WM_INITMENUPOPUP;
 	}
 
 	// ===================================================================
@@ -464,6 +466,7 @@ export namespace Win32
 		constexpr auto String     = MF_STRING;
 		constexpr auto Separator  = MF_SEPARATOR;
 		constexpr auto Grayed     = MF_GRAYED;
+		constexpr auto Enabled    = MF_ENABLED;
 		constexpr auto Checked    = MF_CHECKED;
 		constexpr auto Unchecked  = MF_UNCHECKED;
 		constexpr auto Popup      = MF_POPUP;
@@ -567,6 +570,7 @@ export namespace Win32
 		constexpr auto AddButtons       = TB_ADDBUTTONSW;
 		constexpr auto AutoSize         = TB_AUTOSIZE;
 		constexpr auto SetBitmapSize    = TB_SETBITMAPSIZE;
+		constexpr auto EnableButton     = TB_ENABLEBUTTON;
 	}
 
 	namespace ToolbarStyle
