@@ -10,6 +10,10 @@ Native Win32 form builders are sorely lacking, and the idea has been in the back
 
 On the Microsoft front for UI frameworks, things are even worse. Despite being billed as the premier UI framework for Windows, WinUI3 still lacks a visual designer years after its release. Moreover, Microsoft seems to be living up to its track record of creating UI frameworks only to slowly abandon them years later, with WinUI3 seeing significantly less investment from Microsoft as time has gone on. This is not even mentioning that building WinUI3 UIs with C++ is a hot mess of IDL and COM, with the end result being a UI that consumes Electron-like amounts of system resources for even the most basic examples.
 
+## AI disclosure
+
+This project has been pretty much written by Copilot with Claude Opus 4.6, with review and feature suggestions from me.
+
 ## Projects
 
 | Project | Type | Description |
