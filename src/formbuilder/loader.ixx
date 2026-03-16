@@ -13,6 +13,7 @@ export namespace FormDesigner
 		std::span<const Control> controls,
 		const FontInfo& formFont,
 		std::vector<Win32::HFONT>& createdFonts,
+		int dpi,
 		Win32::HWND hTooltips = nullptr)
 	{
 		for (auto& control : controls)
@@ -34,10 +35,10 @@ export namespace FormDesigner
 				className,
 				control.text.c_str(),
 				childStyle,
-				control.rect.x,
-				control.rect.y,
-				control.rect.width,
-				control.rect.height,
+				Win32::ScaleDpi(control.rect.x, dpi),
+				Win32::ScaleDpi(control.rect.y, dpi),
+				Win32::ScaleDpi(control.rect.width, dpi),
+				Win32::ScaleDpi(control.rect.height, dpi),
 				parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(control.id)),
 				hInstance,
@@ -99,7 +100,7 @@ export namespace FormDesigner
 			}
 
 			if (not control.children.empty())
-				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, hTooltips);
+				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, dpi, hTooltips);
 		}
 	}
 
@@ -370,9 +371,12 @@ export namespace FormDesigner
 			registered = true;
 		}
 
-		// Calculate window rect so client area matches requested size.
-		auto rc = Win32::RECT{ 0, 0, form.width, form.height };
-		Win32::AdjustWindowRectEx(&rc, form.style, 0, form.exStyle);
+		// Calculate window rect so client area matches requested size (DPI-aware).
+		auto dpi = static_cast<Win32::UINT>(Win32::GetDpiForSystem());
+		auto rc = Win32::RECT{ 0, 0,
+			Win32::ScaleDpi(form.width, dpi),
+			Win32::ScaleDpi(form.height, dpi) };
+		Win32::AdjustWindowRectExForDpi(&rc, form.style, 0, form.exStyle, dpi);
 
 		auto hwnd = Win32::CreateWindowExW(
 			form.exStyle,
@@ -423,7 +427,7 @@ export namespace FormDesigner
 			windowData->hTooltips = CreateTooltipWindow(hwnd, hInstance);
 
 		CreateChildren(hwnd, hInstance, form.controls, form.font, windowData->createdFonts,
-			windowData->hTooltips);
+			static_cast<int>(dpi), windowData->hTooltips);
 
 		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 

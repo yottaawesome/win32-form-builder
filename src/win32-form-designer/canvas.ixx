@@ -200,8 +200,12 @@ namespace Designer
 		auto& form = state.form;
 		auto style = form.style != 0 ? form.style : Win32::Styles::OverlappedWindow;
 
-		auto rc = Win32::RECT{ 0, 0, form.width, form.height };
-		Win32::AdjustWindowRectEx(&rc, style, 0, form.exStyle);
+		int dpi = state.dpiInfo.dpi;
+		auto rc = Win32::RECT{ 0, 0,
+			Win32::ScaleDpi(form.width, dpi),
+			Win32::ScaleDpi(form.height, dpi) };
+		Win32::AdjustWindowRectExForDpi(&rc, style, 0, form.exStyle,
+			static_cast<Win32::UINT>(dpi));
 
 		auto title = std::wstring{L"Preview: "} + form.title;
 		state.previewHwnd = Win32::CreateWindowExW(
@@ -234,7 +238,7 @@ namespace Designer
 			previewTooltips = FormDesigner::CreateTooltipWindow(state.previewHwnd, state.hInstance);
 
 		FormDesigner::CreateChildren(state.previewHwnd, state.hInstance, form.controls, form.font,
-			previewFonts, previewTooltips);
+			previewFonts, dpi, previewTooltips);
 		// Preview fonts/tooltips are leaked intentionally (preview is short-lived).
 
 		Win32::ShowWindow(state.previewHwnd, Win32::Sw_ShowDefault);
@@ -547,16 +551,16 @@ namespace Designer
 		int y = rawY - offset;
 
 		// Check if click is in the ruler area — start guide drag.
-		if (state.showRulers && (rawX < RULER_SIZE || rawY < RULER_SIZE))
+		if (state.showRulers && (rawX < state.dpiInfo.RulerSize() || rawY < state.dpiInfo.RulerSize()))
 		{
-			if (rawX < RULER_SIZE && rawY >= RULER_SIZE)
+			if (rawX < state.dpiInfo.RulerSize() && rawY >= state.dpiInfo.RulerSize())
 			{
 				state.dragMode = DragMode::CreateGuide;
 				state.draggingGuideHorizontal = false;
 				state.draggingGuidePos = x;
 				Win32::SetCapture(hwnd);
 			}
-			else if (rawY < RULER_SIZE && rawX >= RULER_SIZE)
+			else if (rawY < state.dpiInfo.RulerSize() && rawX >= state.dpiInfo.RulerSize())
 			{
 				state.dragMode = DragMode::CreateGuide;
 				state.draggingGuideHorizontal = true;
@@ -804,7 +808,7 @@ namespace Designer
 			int dy = y - state.dragStart.y;
 
 			ApplyResize(entry.control->rect, state.activeHandle, dx, dy,
-				state.controlStart, state.controlStartSize);
+				state.controlStart, state.controlStartSize, state.dpiInfo.MinControlSize());
 
 			if (state.snapToGrid)
 				SnapRectToGrid(entry.control->rect, state.gridSize);
@@ -851,8 +855,8 @@ namespace Designer
 		// Invalidate ruler strips for cursor indicator update.
 		if (state.showRulers)
 		{
-			Win32::RECT topRuler = { 0, 0, 32767, RULER_SIZE };
-			Win32::RECT leftRuler = { 0, 0, RULER_SIZE, 32767 };
+			Win32::RECT topRuler = { 0, 0, 32767, state.dpiInfo.RulerSize() };
+			Win32::RECT leftRuler = { 0, 0, state.dpiInfo.RulerSize(), 32767 };
 			Win32::InvalidateRect(hwnd, &topRuler, false);
 			Win32::InvalidateRect(hwnd, &leftRuler, false);
 		}
@@ -1208,8 +1212,8 @@ namespace Designer
 				int pos = state->draggingGuidePos;
 
 				bool inCanvas = state->draggingGuideHorizontal
-					? (rawY >= RULER_SIZE)
-					: (rawX >= RULER_SIZE);
+					? (rawY >= state->dpiInfo.RulerSize())
+					: (rawX >= state->dpiInfo.RulerSize());
 				if (inCanvas && pos >= 0)
 					state->userGuides.push_back({ state->draggingGuideHorizontal, pos });
 

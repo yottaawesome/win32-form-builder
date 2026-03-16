@@ -126,11 +126,11 @@ namespace Designer
 		return Win32::CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
 	}
 
-	constexpr int ZORDER_WIDTH = 260;
-	constexpr int ZORDER_HEIGHT = 340;
-	constexpr int ZORDER_BTN_H = 28;
-	constexpr int ZORDER_BTN_W = 115;
-	constexpr int ZORDER_PAD = 6;
+	constexpr int BASE_ZORDER_WIDTH  = 260;
+	constexpr int BASE_ZORDER_HEIGHT = 340;
+	constexpr int BASE_ZORDER_BTN_H  = 28;
+	constexpr int BASE_ZORDER_BTN_W  = 115;
+	constexpr int BASE_ZORDER_PAD    = 6;
 
 	auto ZOrderPanelProc(Win32::HWND hwnd, Win32::UINT msg,
 		Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
@@ -215,10 +215,17 @@ namespace Designer
 		Win32::RECT rc;
 		Win32::GetWindowRect(state.surfaceHwnd, &rc);
 
+		auto& d = state.dpiInfo;
+		int zw   = d.Scale(BASE_ZORDER_WIDTH);
+		int zh   = d.Scale(BASE_ZORDER_HEIGHT);
+		int zbh  = d.Scale(BASE_ZORDER_BTN_H);
+		int zbw  = d.Scale(BASE_ZORDER_BTN_W);
+		int zpad = d.Scale(BASE_ZORDER_PAD);
+
 		state.zorderHwnd = Win32::CreateWindowExW(
 			0, L"ZOrderPanel", L"Tab & Z-Order",
 			Win32::Styles::OverlappedWindow & ~Win32::Styles::ThickFrame & ~Win32::Styles::MaximizeBox,
-			rc.right + 4, rc.top, ZORDER_WIDTH, ZORDER_HEIGHT,
+			rc.right + 4, rc.top, zw, zh,
 			state.surfaceHwnd, nullptr, state.hInstance, nullptr);
 
 		Win32::SetWindowLongPtrW(state.zorderHwnd, Win32::Gwlp_UserData,
@@ -231,36 +238,36 @@ namespace Designer
 		Win32::GetClientRect(state.zorderHwnd, &clientRc);
 		int cw = clientRc.right;
 		int ch = clientRc.bottom;
-		int listH = ch - 2 * (ZORDER_BTN_H + ZORDER_PAD) - ZORDER_PAD * 2;
+		int listH = ch - 2 * (zbh + zpad) - zpad * 2;
 
 		auto list = Win32::CreateWindowExW(
 			Win32::ExStyles::ClientEdge, L"LISTBOX", nullptr,
 			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border |
 				Win32::Styles::ListBoxNotify | Win32::Styles::ListBoxNoIntegralHeight |
 				Win32::Styles::VScroll,
-			ZORDER_PAD, ZORDER_PAD, cw - ZORDER_PAD * 2, listH,
+			zpad, zpad, cw - zpad * 2, listH,
 			state.zorderHwnd,
 			reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_ZORDER_LIST)),
 			state.hInstance, nullptr);
 		Win32::SendMessageW(list, Win32::Messages::SetFont, font, true);
 
-		int btnY = ZORDER_PAD + listH + ZORDER_PAD;
-		int btnX1 = ZORDER_PAD;
-		int btnX2 = ZORDER_PAD + ZORDER_BTN_W + ZORDER_PAD;
+		int btnY = zpad + listH + zpad;
+		int btnX1 = zpad;
+		int btnX2 = zpad + zbw + zpad;
 
 		struct Btn { const wchar_t* text; Win32::UINT id; int x; int y; };
 		Btn buttons[] = {
 			{ L"\u25B2 Move Up",   IDC_ZORDER_UP,     btnX1, btnY },
 			{ L"\u25BC Move Down", IDC_ZORDER_DOWN,   btnX2, btnY },
-			{ L"\u25B2\u25B2 To Top", IDC_ZORDER_TOP, btnX1, btnY + ZORDER_BTN_H + ZORDER_PAD },
-			{ L"\u25BC\u25BC To Bottom", IDC_ZORDER_BOTTOM, btnX2, btnY + ZORDER_BTN_H + ZORDER_PAD },
+			{ L"\u25B2\u25B2 To Top", IDC_ZORDER_TOP, btnX1, btnY + zbh + zpad },
+			{ L"\u25BC\u25BC To Bottom", IDC_ZORDER_BOTTOM, btnX2, btnY + zbh + zpad },
 		};
 
 		for (auto& btn : buttons)
 		{
 			auto hwnd = Win32::CreateWindowExW(0, L"BUTTON", btn.text,
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
-				btn.x, btn.y, ZORDER_BTN_W, ZORDER_BTN_H,
+				btn.x, btn.y, zbw, zbh,
 				state.zorderHwnd,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(btn.id)),
 				state.hInstance, nullptr);
@@ -311,11 +318,13 @@ namespace Designer
 			int w = rc.right - rc.left;
 			int h = rc.bottom - rc.top - tbH - sbH;
 			if (h < 0) h = 0;
-			int canvasW = w - TOOLBOX_WIDTH - PROPERTY_WIDTH;
+			int tw = state->dpiInfo.ToolboxWidth();
+			int pw = state->dpiInfo.PropertyWidth();
+			int canvasW = w - tw - pw;
 			if (canvasW < 0) canvasW = 0;
-			Win32::MoveWindow(state->toolboxHwnd, 0, tbH, TOOLBOX_WIDTH, h, true);
-			Win32::MoveWindow(state->canvasHwnd, TOOLBOX_WIDTH, tbH, canvasW, h, true);
-			Win32::MoveWindow(state->propertyHwnd, w - PROPERTY_WIDTH, tbH, PROPERTY_WIDTH, h, true);
+			Win32::MoveWindow(state->toolboxHwnd, 0, tbH, tw, h, true);
+			Win32::MoveWindow(state->canvasHwnd, tw, tbH, canvasW, h, true);
+			Win32::MoveWindow(state->propertyHwnd, w - pw, tbH, pw, h, true);
 
 			// Update statusbar pane widths.
 			if (state->statusbarHwnd)
@@ -324,6 +333,33 @@ namespace Designer
 				Win32::SendMessageW(state->statusbarHwnd, Win32::StatusBar::SetParts,
 					3, reinterpret_cast<Win32::LPARAM>(parts));
 			}
+			return 0;
+		}
+
+		case Win32::Messages::DpiChanged:
+		{
+			if (!state) break;
+
+			// Update DPI and resize to the system-suggested rect.
+			state->dpiInfo.dpi = Win32::GetHighWord(wParam);
+			auto* suggested = reinterpret_cast<Win32::RECT*>(lParam);
+			Win32::SetWindowPos(hwnd, nullptr,
+				suggested->left, suggested->top,
+				suggested->right - suggested->left,
+				suggested->bottom - suggested->top,
+				Win32::Swp::NoZOrder | Win32::Swp::NoActivate);
+
+			// Rebuild property panel controls for new DPI.
+			Win32::EnumChildWindows(state->propertyHwnd,
+				[](Win32::HWND child, Win32::LPARAM) -> Win32::BOOL {
+					Win32::DestroyWindow(child);
+					return true;
+				}, 0);
+			state->propertyScrollY = 0;
+			CreatePropertyControls(*state);
+			UpdatePropertyPanel(*state);
+
+			Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
 			return 0;
 		}
 
@@ -647,13 +683,17 @@ namespace Designer
 			.hInstance = hInstance,
 			.currentFile = std::move(filePath),
 		};
+		state->dpiInfo.dpi = static_cast<int>(Win32::GetDpiForSystem());
 
 		auto menu = CreateMenuBar();
 
+		int tw = state->dpiInfo.ToolboxWidth();
+		int pw = state->dpiInfo.PropertyWidth();
 		Win32::RECT rc = { 0, 0,
-			state->form.width + TOOLBOX_WIDTH + PROPERTY_WIDTH,
+			state->form.width + tw + pw,
 			state->form.height };
-		Win32::AdjustWindowRectEx(&rc, Win32::Styles::OverlappedWindow, true, 0);
+		Win32::AdjustWindowRectExForDpi(&rc, Win32::Styles::OverlappedWindow, true, 0,
+			static_cast<Win32::UINT>(state->dpiInfo.dpi));
 
 		auto hwnd = Win32::CreateWindowExW(
 			0,
@@ -749,7 +789,7 @@ namespace Designer
 			0, L"LISTBOX", nullptr,
 			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border |
 				Win32::Styles::ListBoxNotify | Win32::Styles::ListBoxNoIntegralHeight,
-			0, 0, TOOLBOX_WIDTH, state->form.height,
+			0, 0, tw, state->form.height,
 			hwnd,
 			reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_TOOLBOX)),
 			hInstance, nullptr);
@@ -764,7 +804,7 @@ namespace Designer
 		state->canvasHwnd = Win32::CreateWindowExW(
 			0, L"DesignCanvas", nullptr,
 			Win32::Styles::Child | Win32::Styles::Visible,
-			TOOLBOX_WIDTH, 0, state->form.width, state->form.height,
+			tw, 0, state->form.width, state->form.height,
 			hwnd, nullptr, hInstance, nullptr);
 
 		Win32::SetWindowLongPtrW(state->canvasHwnd, Win32::Gwlp_UserData,
@@ -774,8 +814,8 @@ namespace Designer
 			0, L"PropertyPanel", nullptr,
 			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border |
 				Win32::Styles::VScroll,
-			state->form.width + TOOLBOX_WIDTH, 0,
-			PROPERTY_WIDTH, state->form.height,
+			state->form.width + tw, 0,
+			pw, state->form.height,
 			hwnd, nullptr, hInstance, nullptr);
 
 		Win32::SetWindowLongPtrW(state->propertyHwnd, Win32::Gwlp_UserData,

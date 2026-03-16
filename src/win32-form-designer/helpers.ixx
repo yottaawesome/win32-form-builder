@@ -53,7 +53,7 @@ namespace Designer
 	// Returns the pixel offset for rulers (0 when rulers are hidden).
 	export auto RulerOffset(const DesignState& state) -> int
 	{
-		return state.showRulers ? RULER_SIZE : 0;
+		return state.showRulers ? state.dpiInfo.RulerSize() : 0;
 	}
 
 	export auto ControlSubclassProc(
@@ -321,7 +321,7 @@ namespace Designer
 					for (int o = 0; o < 3; ++o)
 					{
 						int diff = movingEdges[m] - otherEdges[o];
-						if (std::abs(diff) <= SNAP_THRESHOLD)
+						if (std::abs(diff) <= state.dpiInfo.SnapThreshold())
 						{
 							// Snap: adjust rect.x so moving edge m aligns with other edge o
 							rect.x -= diff;
@@ -342,7 +342,7 @@ namespace Designer
 					for (int o = 3; o < 6; ++o)
 					{
 						int diff = movingEdges[m] - otherEdges[o];
-						if (std::abs(diff) <= SNAP_THRESHOLD)
+						if (std::abs(diff) <= state.dpiInfo.SnapThreshold())
 						{
 							rect.y -= diff;
 							state.guides.push_back({ true, otherEdges[o] });
@@ -368,7 +368,7 @@ namespace Designer
 					for (int m = 0; m < 3; ++m)
 					{
 						int diff = movingEdges[m] - ug.position;
-						if (std::abs(diff) <= SNAP_THRESHOLD)
+						if (std::abs(diff) <= state.dpiInfo.SnapThreshold())
 						{
 							rect.x -= diff;
 							state.guides.push_back({ false, ug.position });
@@ -382,7 +382,7 @@ namespace Designer
 					for (int m = 3; m < 6; ++m)
 					{
 						int diff = movingEdges[m] - ug.position;
-						if (std::abs(diff) <= SNAP_THRESHOLD)
+						if (std::abs(diff) <= state.dpiInfo.SnapThreshold())
 						{
 							rect.y -= diff;
 							state.guides.push_back({ true, ug.position });

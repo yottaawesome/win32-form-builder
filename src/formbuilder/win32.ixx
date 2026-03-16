@@ -184,12 +184,19 @@ export namespace Win32
 
 		// Miscellaneous.
 		::AdjustWindowRectEx,
+		::AdjustWindowRectExForDpi,
 		::InitCommonControlsEx,
 		::LoadLibraryW,
 		::GetLastError,
 		::GetSysColor,
 		::EnumChildWindows,
-		::GetModuleFileNameW
+		::GetModuleFileNameW,
+
+		// DPI awareness.
+		::SetProcessDpiAwarenessContext,
+		::GetDpiForWindow,
+		::GetDpiForSystem,
+		::GetSystemMetricsForDpi
 		;
 
 	// ===================================================================
@@ -202,6 +209,15 @@ export namespace Win32
 	auto GetYParam(LPARAM lp) noexcept -> int { return GET_Y_LPARAM(lp); }
 	auto MakeRgb(int r, int g, int b) noexcept -> COLORREF { return RGB(r, g, b); }
 	auto GetWheelDelta(WPARAM wParam) noexcept -> short { return GET_WHEEL_DELTA_WPARAM(wParam); }
+
+	// DPI context constants (cannot export macros directly).
+	inline const auto DpiContextPerMonitorAwareV2 = DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2;
+	constexpr int DefaultDpi = USER_DEFAULT_SCREEN_DPI;  // 96
+
+	inline auto ScaleDpi(int value, int dpi) noexcept -> int
+	{
+		return ::MulDiv(value, dpi, USER_DEFAULT_SCREEN_DPI);
+	}
 
 	// ===================================================================
 	// Window & control styles
@@ -298,6 +314,7 @@ export namespace Win32
 		constexpr auto VScroll      = WM_VSCROLL;
 		constexpr auto CtlColorEdit = WM_CTLCOLOREDIT;
 		constexpr auto InitMenuPopup = WM_INITMENUPOPUP;
+		constexpr auto DpiChanged    = WM_DPICHANGED;
 	}
 
 	// ===================================================================
@@ -699,6 +716,7 @@ export namespace Win32
 		constexpr auto NoMove     = SWP_NOMOVE;
 		constexpr auto NoSize     = SWP_NOSIZE;
 		constexpr auto NoActivate = SWP_NOACTIVATE;
+		constexpr auto NoZOrder   = SWP_NOZORDER;
 	}
 
 	// Common controls.

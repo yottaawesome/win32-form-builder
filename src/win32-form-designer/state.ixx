@@ -57,9 +57,7 @@ export namespace Designer
 	constexpr Win32::UINT IDM_FORMAT_SAME_HEIGHT     = 40310;
 	constexpr Win32::UINT IDM_FORMAT_SAME_SIZE       = 40311;
 
-	// Toolbox and layout constants.
-	constexpr int TOOLBOX_WIDTH  = 140;
-	constexpr int PROPERTY_WIDTH = 240;
+	// Toolbox control ID.
 	constexpr Win32::UINT IDC_TOOLBOX   = 50001;
 
 	// Control property edit IDs.
@@ -135,9 +133,10 @@ export namespace Designer
 	// Which edge(s) of the form boundary are being dragged.
 	enum class FormEdge { None, Right, Bottom, BottomRight };
 
-	constexpr int HANDLE_SIZE = 6;
-	constexpr int HANDLE_HALF = HANDLE_SIZE / 2;
-	constexpr int MIN_CONTROL_SIZE = 10;
+	// Base pixel values at 96 DPI — scaled at runtime via DpiInfo.
+	constexpr int BASE_HANDLE_SIZE = 6;
+	constexpr int BASE_HANDLE_HALF = BASE_HANDLE_SIZE / 2;
+	constexpr int BASE_MIN_CONTROL_SIZE = 10;
 
 	// Alignment guide shown during drag operations.
 	struct AlignGuide
@@ -153,9 +152,11 @@ export namespace Designer
 		int position;     // pixel coordinate in form space
 	};
 
-	constexpr int SNAP_THRESHOLD = 5;
-	constexpr int DEFAULT_GRID_SIZE = 10;
-	constexpr int RULER_SIZE = 20;
+	constexpr int BASE_SNAP_THRESHOLD = 5;
+	constexpr int BASE_DEFAULT_GRID_SIZE = 10;
+	constexpr int BASE_RULER_SIZE = 20;
+	constexpr int BASE_TOOLBOX_WIDTH = 140;
+	constexpr int BASE_PROPERTY_WIDTH = 240;
 
 	// Designer color theme.
 	struct Theme
@@ -255,6 +256,25 @@ export namespace Designer
 		{ FormDesigner::ControlType::Animation,      L"Animation" },
 	};
 
+	// DPI scaling information. Updated on startup and WM_DPICHANGED.
+	struct DpiInfo
+	{
+		int dpi = Win32::DefaultDpi;
+
+		auto Scale(int baseValue) const noexcept -> int
+		{
+			return Win32::ScaleDpi(baseValue, dpi);
+		}
+
+		auto HandleSize()      const noexcept -> int { return Scale(BASE_HANDLE_SIZE); }
+		auto HandleHalf()      const noexcept -> int { return Scale(BASE_HANDLE_HALF); }
+		auto MinControlSize()  const noexcept -> int { return Scale(BASE_MIN_CONTROL_SIZE); }
+		auto SnapThreshold()   const noexcept -> int { return Scale(BASE_SNAP_THRESHOLD); }
+		auto RulerSize()       const noexcept -> int { return Scale(BASE_RULER_SIZE); }
+		auto ToolboxWidth()    const noexcept -> int { return Scale(BASE_TOOLBOX_WIDTH); }
+		auto PropertyWidth()   const noexcept -> int { return Scale(BASE_PROPERTY_WIDTH); }
+	};
+
 	struct DesignState
 	{
 		FormDesigner::Form form;
@@ -295,7 +315,7 @@ export namespace Designer
 		Win32::HWND toolbarHwnd = nullptr;
 		Win32::HWND statusbarHwnd = nullptr;
 
-		int gridSize = DEFAULT_GRID_SIZE;
+		int gridSize = BASE_DEFAULT_GRID_SIZE;
 		bool showGrid = true;
 		bool snapToGrid = true;
 		bool showRulers = true;
@@ -310,6 +330,7 @@ export namespace Designer
 		int nextGroupId = 1;
 		std::vector<std::filesystem::path> recentFiles;
 		std::vector<Win32::HFONT> controlFonts; // Fonts created for design-time controls.
+		DpiInfo dpiInfo;
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

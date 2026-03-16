@@ -105,7 +105,7 @@ TEST_CASE("GenerateCode creates controls with correct class names and styles", "
 	REQUIRE(contains(code, "WC_BUTTON"));
 	REQUIRE(contains(code, "L\"Click Me\""));
 	REQUIRE(contains(code, "IDC_BUTTON_101"));
-	REQUIRE(contains(code, "10, 20, 100, 30"));
+	REQUIRE(contains(code, "MulDiv(10, dpi, 96), MulDiv(20, dpi, 96), MulDiv(100, dpi, 96), MulDiv(30, dpi, 96)"));
 
 	// TextBox
 	REQUIRE(contains(code, "WC_EDIT"));

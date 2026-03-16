@@ -102,13 +102,14 @@ TEST_CASE("GetHandleAnchors computes 8 handle positions", "[helpers]")
 {
     Rect r = { 100, 200, 80, 40 };
     Win32::POINT anchors[8];
-    GetHandleAnchors(r, anchors);
+    DpiInfo dpi{};
+    GetHandleAnchors(r, anchors, dpi);
 
-    // Top-left handle should be at (100 - HANDLE_HALF, 200 - HANDLE_HALF).
+    // Top-left handle should be at (100 - BASE_HANDLE_HALF, 200 - BASE_HANDLE_HALF).
     REQUIRE(anchors[0].x == 100 - 3);
     REQUIRE(anchors[0].y == 200 - 3);
 
-    // Bottom-right handle should be at (180 - HANDLE_HALF, 240 - HANDLE_HALF).
+    // Bottom-right handle should be at (180 - BASE_HANDLE_HALF, 240 - BASE_HANDLE_HALF).
     REQUIRE(anchors[7].x == 180 - 3);
     REQUIRE(anchors[7].y == 240 - 3);
 

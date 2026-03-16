@@ -519,8 +519,8 @@ namespace FormDesigner
 			out << indent << "    " << (ctrl.exStyle != 0 ? std::format("0x{:X}", ctrl.exStyle) : "0") << ",\n";
 			out << indent << "    " << className << ", " << textLiteral << ",\n";
 			out << indent << "    " << styleExpr << ",\n";
-			out << indent << "    " << ctrl.rect.x << ", " << ctrl.rect.y << ", "
-				<< ctrl.rect.width << ", " << ctrl.rect.height << ",\n";
+			out << indent << "    MulDiv(" << ctrl.rect.x << ", dpi, 96), MulDiv(" << ctrl.rect.y << ", dpi, 96), "
+				<< "MulDiv(" << ctrl.rect.width << ", dpi, 96), MulDiv(" << ctrl.rect.height << ", dpi, 96),\n";
 			out << indent << "    " << parentVar << ", " << menuExpr << ", hInstance, NULL);\n";
 
 			auto fontVar = FontVarForControl(ctrl, formFont, fontMap);
@@ -855,10 +855,10 @@ export namespace FormDesigner
 					bool anchorT = (ae.anchor & Anchor::Top) != 0;
 					bool anchorB = (ae.anchor & Anchor::Bottom) != 0;
 
-					auto x = std::to_string(ae.rect.x);
-					auto y = std::to_string(ae.rect.y);
-					auto w = std::to_string(ae.rect.width);
-					auto h = std::to_string(ae.rect.height);
+					auto x = std::format("MulDiv({}, dpi, 96)", ae.rect.x);
+					auto y = std::format("MulDiv({}, dpi, 96)", ae.rect.y);
+					auto w = std::format("MulDiv({}, dpi, 96)", ae.rect.width);
+					auto h = std::format("MulDiv({}, dpi, 96)", ae.rect.height);
 
 					if (anchorL && anchorR)
 						w += " + deltaW";
@@ -907,6 +907,7 @@ export namespace FormDesigner
 		// ============================
 		out << "int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)\n";
 		out << "{\n";
+		out << "    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);\n\n";
 		out << "    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_STANDARD_CLASSES };\n";
 		out << "    InitCommonControlsEx(&icc);\n\n";
 
@@ -923,9 +924,10 @@ export namespace FormDesigner
 		out << "    wc.lpszClassName = L\"" << className << "\";\n";
 		out << "    RegisterClassExW(&wc);\n\n";
 
-		out << "    RECT rc = { 0, 0, " << form.width << ", " << form.height << " };\n";
-		out << "    AdjustWindowRectEx(&rc, " << formStyleExpr << ", FALSE, "
-			<< (form.exStyle != 0 ? std::format("0x{:X}", form.exStyle) : "0") << ");\n\n";
+		out << "    UINT dpi = GetDpiForSystem();\n";
+		out << "    RECT rc = { 0, 0, MulDiv(" << form.width << ", dpi, 96), MulDiv(" << form.height << ", dpi, 96) };\n";
+		out << "    AdjustWindowRectExForDpi(&rc, " << formStyleExpr << ", FALSE, "
+			<< (form.exStyle != 0 ? std::format("0x{:X}", form.exStyle) : "0") << ", dpi);\n\n";
 
 		out << "    HWND hwnd = CreateWindowExW(\n";
 		out << "        " << (form.exStyle != 0 ? std::format("0x{:X}", form.exStyle) : "0") << ",\n";

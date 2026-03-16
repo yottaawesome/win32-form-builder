@@ -12,6 +12,8 @@ import designer;
 auto wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
 try
 {
+	Win32::SetProcessDpiAwarenessContext(Win32::DpiContextPerMonitorAwareV2);
+
 	auto icc = Win32::INITCOMMONCONTROLSEX{
 		.dwSize = sizeof(Win32::INITCOMMONCONTROLSEX),
 		.dwICC = Win32::Icc_StandardClasses,

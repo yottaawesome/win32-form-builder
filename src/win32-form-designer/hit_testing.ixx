@@ -30,21 +30,22 @@ namespace Designer
 		return -1;
 	}
 
-	export void GetHandleAnchors(const FormDesigner::Rect& r, Win32::POINT out[8])
+	export void GetHandleAnchors(const FormDesigner::Rect& r, Win32::POINT out[8], const DpiInfo& dpi)
 	{
 		int cx = r.x + r.width / 2;
 		int cy = r.y + r.height / 2;
 		int rx = r.x + r.width;
 		int by = r.y + r.height;
+		int hh = dpi.HandleHalf();
 
-		out[0] = { r.x - HANDLE_HALF, r.y - HANDLE_HALF };
-		out[1] = { cx  - HANDLE_HALF, r.y - HANDLE_HALF };
-		out[2] = { rx  - HANDLE_HALF, r.y - HANDLE_HALF };
-		out[3] = { r.x - HANDLE_HALF, cy  - HANDLE_HALF };
-		out[4] = { rx  - HANDLE_HALF, cy  - HANDLE_HALF };
-		out[5] = { r.x - HANDLE_HALF, by  - HANDLE_HALF };
-		out[6] = { cx  - HANDLE_HALF, by  - HANDLE_HALF };
-		out[7] = { rx  - HANDLE_HALF, by  - HANDLE_HALF };
+		out[0] = { r.x - hh, r.y - hh };
+		out[1] = { cx  - hh, r.y - hh };
+		out[2] = { rx  - hh, r.y - hh };
+		out[3] = { r.x - hh, cy  - hh };
+		out[4] = { rx  - hh, cy  - hh };
+		out[5] = { r.x - hh, by  - hh };
+		out[6] = { cx  - hh, by  - hh };
+		out[7] = { rx  - hh, by  - hh };
 	}
 
 	export auto HitTestHandle(const DesignState& state, int x, int y) -> int
@@ -54,12 +55,13 @@ namespace Designer
 			return -1;
 
 		Win32::POINT anchors[8];
-		GetHandleAnchors(state.entries[sel].control->rect, anchors);
+		GetHandleAnchors(state.entries[sel].control->rect, anchors, state.dpiInfo);
+		int hs = state.dpiInfo.HandleSize();
 
 		for (int i = 0; i < 8; ++i)
 		{
-			if (x >= anchors[i].x && x < anchors[i].x + HANDLE_SIZE &&
-				y >= anchors[i].y && y < anchors[i].y + HANDLE_SIZE)
+			if (x >= anchors[i].x && x < anchors[i].x + hs &&
+				y >= anchors[i].y && y < anchors[i].y + hs)
 				return i;
 		}
 		return -1;
@@ -77,14 +79,13 @@ namespace Designer
 		}
 	}
 
-	constexpr int FORM_EDGE_THRESHOLD = 5;
-
 	export auto HitTestFormBoundary(const DesignState& state, int x, int y) -> FormEdge
 	{
+		int threshold = state.dpiInfo.SnapThreshold();
 		int fw = state.form.width;
 		int fh = state.form.height;
-		bool nearRight  = std::abs(x - fw) <= FORM_EDGE_THRESHOLD && y >= -FORM_EDGE_THRESHOLD && y <= fh + FORM_EDGE_THRESHOLD;
-		bool nearBottom = std::abs(y - fh) <= FORM_EDGE_THRESHOLD && x >= -FORM_EDGE_THRESHOLD && x <= fw + FORM_EDGE_THRESHOLD;
+		bool nearRight  = std::abs(x - fw) <= threshold && y >= -threshold && y <= fh + threshold;
+		bool nearBottom = std::abs(y - fh) <= threshold && x >= -threshold && x <= fw + threshold;
 
 		if (nearRight && nearBottom) return FormEdge::BottomRight;
 		if (nearRight)              return FormEdge::Right;
@@ -104,7 +105,7 @@ namespace Designer
 	}
 
 	export void ApplyResize(FormDesigner::Rect& r, int handle, int dx, int dy,
-		const Win32::POINT& startPos, const Win32::SIZE& startSize)
+		const Win32::POINT& startPos, const Win32::SIZE& startSize, int minSize = BASE_MIN_CONTROL_SIZE)
 	{
 		bool moveLeft   = (handle == 0 || handle == 3 || handle == 5);
 		bool moveTop    = (handle == 0 || handle == 1 || handle == 2);
@@ -121,15 +122,15 @@ namespace Designer
 		if (moveRight)  { newW += dx; }
 		if (moveBottom) { newH += dy; }
 
-		if (newW < MIN_CONTROL_SIZE)
+		if (newW < minSize)
 		{
-			if (moveLeft) newX -= (MIN_CONTROL_SIZE - newW);
-			newW = MIN_CONTROL_SIZE;
+			if (moveLeft) newX -= (minSize - newW);
+			newW = minSize;
 		}
-		if (newH < MIN_CONTROL_SIZE)
+		if (newH < minSize)
 		{
-			if (moveTop) newY -= (MIN_CONTROL_SIZE - newH);
-			newH = MIN_CONTROL_SIZE;
+			if (moveTop) newY -= (minSize - newH);
+			newH = minSize;
 		}
 
 		r.x = newX;

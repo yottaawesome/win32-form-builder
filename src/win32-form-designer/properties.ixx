@@ -449,8 +449,8 @@ namespace Designer
 				{
 				case IDC_PROP_X: ctrl.rect.x = val; break;
 				case IDC_PROP_Y: ctrl.rect.y = val; break;
-				case IDC_PROP_W: if (val >= MIN_CONTROL_SIZE) ctrl.rect.width = val; break;
-				case IDC_PROP_H: if (val >= MIN_CONTROL_SIZE) ctrl.rect.height = val; break;
+				case IDC_PROP_W: if (val >= BASE_MIN_CONTROL_SIZE) ctrl.rect.width = val; break;
+				case IDC_PROP_H: if (val >= BASE_MIN_CONTROL_SIZE) ctrl.rect.height = val; break;
 				}
 			}
 			int ro = RulerOffset(state);
@@ -582,8 +582,8 @@ namespace Designer
 			Win32::BOOL ok = false;
 			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, id, &ok, false));
 			if (!ok) return L"Must be a number";
-			if (val < MIN_CONTROL_SIZE)
-				return std::format(L"Must be >= {}", MIN_CONTROL_SIZE);
+			if (val < BASE_MIN_CONTROL_SIZE)
+				return std::format(L"Must be >= {}", BASE_MIN_CONTROL_SIZE);
 			break;
 		}
 		case IDC_PROP_X:
@@ -660,9 +660,21 @@ namespace Designer
 		auto font = reinterpret_cast<Win32::WPARAM>(
 			Win32::GetStockObject(Win32::DefaultGuiFont));
 
+		// DPI-scaled layout constants.
+		auto& d = state.dpiInfo;
+		int pad    = d.Scale(5);
+		int lw     = d.Scale(55);   // label width
+		int lh     = d.Scale(18);   // label height
+		int ex     = d.Scale(65);   // edit x
+		int ew     = d.Scale(150);  // edit width
+		int ch     = d.Scale(22);   // control height
+		int rh     = d.Scale(26);   // row height
+		int hdrH   = d.Scale(20);   // header height
+		int startY = d.Scale(30);   // first row y
+
 		auto header = Win32::CreateWindowExW(0, L"STATIC", L"Properties",
 			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticLeft,
-			5, 5, 210, 20, parent, nullptr, hInst, nullptr);
+			pad, pad, d.Scale(210), hdrH, parent, nullptr, hInst, nullptr);
 		Win32::SendMessageW(header, Win32::Messages::SetFont, font, true);
 
 		// Control property rows (visible when a control is selected).
@@ -687,39 +699,39 @@ namespace Designer
 			{ L"Tooltip:", IDC_PROP_TOOLTIP,    Win32::Styles::EditAutoHScroll },
 		};
 
-		int y = 30;
+		int y = startY;
 		for (auto& row : ctrlRows)
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", row.label,
 				Win32::Styles::Child | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
 				Win32::Styles::Child | Win32::Styles::TabStop | row.extraStyle,
-				65, y, 150, 22, parent,
+				ex, y, ew, ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId)),
 				hInst, nullptr);
 			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
 			Win32::EnableWindow(edit, false);
 
-			y += 26;
+			y += rh;
 		}
 
 		// Text alignment dropdown (ComboBox instead of EDIT).
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Align:",
 				Win32::Styles::Child | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_TEXTALIGN + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto combo = Win32::CreateWindowExW(0, Win32::Controls::ComboBox, nullptr,
 				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::ComboBoxDropDownList,
-				65, y, 150, 120, parent,
+				ex, y, ew, d.Scale(120), parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_TEXTALIGN)),
 				hInst, nullptr);
 			Win32::SendMessageW(combo, Win32::Messages::SetFont, font, true);
@@ -733,29 +745,29 @@ namespace Designer
 		}
 
 		// Locked checkbox (visible when a control is selected).
-		y += 26;
+		y += rh;
 		{
 			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Locked",
 				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
-				15, y, 200, 20, parent,
+				d.Scale(15), y, d.Scale(200), hdrH, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_LOCKED)),
 				hInst, nullptr);
 			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
 		}
 
 		// Anchor dropdown.
-		y += 24;
+		y += d.Scale(24);
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Anchor:",
 				Win32::Styles::Child | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ANCHOR + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto combo = Win32::CreateWindowExW(0, Win32::Controls::ComboBox, nullptr,
 				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::ComboBoxDropDownList,
-				65, y, 150, 200, parent,
+				ex, y, ew, d.Scale(200), parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ANCHOR)),
 				hInst, nullptr);
 			Win32::SendMessageW(combo, Win32::Messages::SetFont, font, true);
@@ -777,75 +789,75 @@ namespace Designer
 		}
 
 		// Control font row: label + "..." button + "Clear" button.
-		y += 26;
+		y += rh;
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Font:",
 				Win32::Styles::Child | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_LABEL + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto fontLabel = Win32::CreateWindowExW(0, L"STATIC", L"(inherited)",
 				Win32::Styles::Child | Win32::Styles::StaticLeft,
-				65, y + 2, 85, 18, parent,
+				ex, y + 2, d.Scale(85), lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_LABEL)),
 				hInst, nullptr);
 			Win32::SendMessageW(fontLabel, Win32::Messages::SetFont, font, true);
 
 			auto fontBtn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
 				Win32::Styles::Child | Win32::Styles::ButtonPush,
-				155, y, 30, 22, parent,
+				d.Scale(155), y, d.Scale(30), ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_BTN)),
 				hInst, nullptr);
 			Win32::SendMessageW(fontBtn, Win32::Messages::SetFont, font, true);
 
 			auto fontClear = Win32::CreateWindowExW(0, L"BUTTON", L"X",
 				Win32::Styles::Child | Win32::Styles::ButtonPush,
-				190, y, 25, 22, parent,
+				d.Scale(190), y, d.Scale(25), ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_CLEAR)),
 				hInst, nullptr);
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
 
 		// Items row: read-only label + "Edit..." button (ComboBox/ListBox only).
-		y += 26;
+		y += rh;
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Items:",
 				Win32::Styles::Child | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ITEMS_LABEL + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto itemsLabel = Win32::CreateWindowExW(0, L"STATIC", L"0 items",
 				Win32::Styles::Child | Win32::Styles::StaticLeft,
-				65, y + 2, 85, 18, parent,
+				ex, y + 2, d.Scale(85), lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ITEMS_LABEL)),
 				hInst, nullptr);
 			Win32::SendMessageW(itemsLabel, Win32::Messages::SetFont, font, true);
 
 			auto itemsBtn = Win32::CreateWindowExW(0, L"BUTTON", L"Edit...",
 				Win32::Styles::Child | Win32::Styles::ButtonPush,
-				155, y, 60, 22, parent,
+				d.Scale(155), y, d.Scale(60), ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ITEMS_BTN)),
 				hInst, nullptr);
 			Win32::SendMessageW(itemsBtn, Win32::Messages::SetFont, font, true);
 		}
 
 		// SelectedIndex row (ComboBox/ListBox only).
-		y += 26;
+		y += rh;
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"SelIdx:",
 				Win32::Styles::Child | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_SELINDEX + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"-1",
 				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
-				65, y, 150, 22, parent,
+				ex, y, ew, ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_SELINDEX)),
 				hInst, nullptr);
 			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
@@ -860,31 +872,31 @@ namespace Designer
 			{ L"BgColor:", IDC_PROP_FORM_BGCOLOR, Win32::Styles::EditAutoHScroll },
 		};
 
-		y = 30;
+		y = startY;
 		for (auto& row : formRows)
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", row.label,
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
-			int editW = (row.editId == IDC_PROP_FORM_BGCOLOR) ? 105 : 150;
+			int editW = (row.editId == IDC_PROP_FORM_BGCOLOR) ? d.Scale(105) : ew;
 			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::TabStop | row.extraStyle,
-				65, y, editW, 22, parent,
+				ex, y, editW, ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId)),
 				hInst, nullptr);
 			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
 
-			y += 26;
+			y += rh;
 		}
 
 		// Color picker button next to BgColor.
 		auto bgBtn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
 			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
-			175, 30 + 3 * 26, 40, 22, parent,
+			d.Scale(175), startY + 3 * rh, d.Scale(40), ch, parent,
 			reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_BGCOLOR_BTN)),
 			hInst, nullptr);
 		Win32::SendMessageW(bgBtn, Win32::Messages::SetFont, font, true);
@@ -899,69 +911,69 @@ namespace Designer
 			{ L"Maximize Box",   IDC_PROP_FORM_MAXIMIZE },
 		};
 
-		y = 30 + 4 * 26 + 10; // After the 4 form property edit rows + spacing.
+		y = startY + 4 * rh + d.Scale(10); // After the 4 form property edit rows + spacing.
 		auto styleHeader = Win32::CreateWindowExW(0, L"STATIC", L"Window Style",
 			Win32::Styles::Child | Win32::Styles::Visible,
-			5, y, 210, 18, parent,
+			pad, y, d.Scale(210), lh, parent,
 			reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_CAPTION + IDL_OFFSET)),
 			hInst, nullptr);
 		Win32::SendMessageW(styleHeader, Win32::Messages::SetFont, font, true);
-		y += 22;
+		y += ch;
 
 		for (auto& sc : styleChecks)
 		{
 			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, sc.label,
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::AutoCheckBox,
-				15, y, 200, 20, parent,
+				d.Scale(15), y, d.Scale(200), hdrH, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(sc.id)),
 				hInst, nullptr);
 			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
-			y += 22;
+			y += ch;
 		}
 
 		// Form font row: label + "..." button + "Clear" button.
-		y += 8;
+		y += d.Scale(8);
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Font:",
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticRight,
-				5, y + 2, 55, 18, parent,
+				pad, y + 2, lw, lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_LABEL + IDL_OFFSET)),
 				hInst, nullptr);
 			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
 
 			auto fontLabel = Win32::CreateWindowExW(0, L"STATIC", L"(default)",
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticLeft,
-				65, y + 2, 85, 18, parent,
+				ex, y + 2, d.Scale(85), lh, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_LABEL)),
 				hInst, nullptr);
 			Win32::SendMessageW(fontLabel, Win32::Messages::SetFont, font, true);
 
 			auto fontBtn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
-				155, y, 30, 22, parent,
+				d.Scale(155), y, d.Scale(30), ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_BTN)),
 				hInst, nullptr);
 			Win32::SendMessageW(fontBtn, Win32::Messages::SetFont, font, true);
 
 			auto fontClear = Win32::CreateWindowExW(0, L"BUTTON", L"X",
 				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
-				190, y, 25, 22, parent,
+				d.Scale(190), y, d.Scale(25), ch, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_CLEAR)),
 				hInst, nullptr);
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
 	}
 
-	constexpr int PROP_CONTENT_CTRL = 30 + 21 * 26 + 10;  // control props + items/selIndex rows: 586px
-	constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 8 + 26 + 10;  // form properties + style checkboxes + font row: 298px
-	constexpr int SCROLL_LINE = 26;                         // one row height
+	auto PropContentCtrl(const DpiInfo& d) -> int { return d.Scale(30) + 21 * d.Scale(26) + d.Scale(10); }
+	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(10); }
+	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
 
 	void UpdateScrollRange(DesignState& state)
 	{
 		auto panel = state.propertyHwnd;
 		int sel = SingleSelection(state);
 		bool hasSel = sel >= 0 && sel < static_cast<int>(state.entries.size());
-		int contentHeight = hasSel ? PROP_CONTENT_CTRL : PROP_CONTENT_FORM;
+		int contentHeight = hasSel ? PropContentCtrl(state.dpiInfo) : PropContentForm(state.dpiInfo);
 
 		Win32::RECT rc;
 		Win32::GetClientRect(panel, &rc);
@@ -1089,10 +1101,11 @@ namespace Designer
 			Win32::GetScrollInfo(hwnd, Win32::ScrollBar::Vert, &si);
 			int pos = state->propertyScrollY;
 
+			int scrollLine = PropScrollLine(state->dpiInfo);
 			switch (Win32::GetLowWord(wParam))
 			{
-			case Win32::ScrollBar::LineUp:        pos -= SCROLL_LINE; break;
-			case Win32::ScrollBar::LineDown:      pos += SCROLL_LINE; break;
+			case Win32::ScrollBar::LineUp:        pos -= scrollLine; break;
+			case Win32::ScrollBar::LineDown:      pos += scrollLine; break;
 			case Win32::ScrollBar::PageUp:        pos -= static_cast<int>(si.nPage); break;
 			case Win32::ScrollBar::PageDown:      pos += static_cast<int>(si.nPage); break;
 			case Win32::ScrollBar::ThumbTrack:    pos = si.nTrackPos; break;
@@ -1109,7 +1122,7 @@ namespace Designer
 			if (!state) break;
 			int delta = Win32::GetWheelDelta(wParam);
 			int lines = delta / 120;
-			ScrollPropertyPanel(*state, state->propertyScrollY - lines * SCROLL_LINE);
+			ScrollPropertyPanel(*state, state->propertyScrollY - lines * PropScrollLine(state->dpiInfo));
 			return 0;
 		}
 
