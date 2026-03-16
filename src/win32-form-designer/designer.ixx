@@ -22,6 +22,8 @@ auto CreateMenuBar() -> Win32::HMENU
     Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_SAVE,    L"&Save\tCtrl+S");
     Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_SAVE_AS, L"Save &As...\tCtrl+Shift+S");
     Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_PREVIEW, L"&Preview\tF5");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
     Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXIT,    L"E&xit\tAlt+F4");
 
     Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
@@ -72,6 +74,7 @@ auto CreateAcceleratorTable() -> Win32::HACCEL
         { Win32::Accel::Control | Win32::Accel::VirtKey, 'V', static_cast<Win32::WORD>(IDM_EDIT_PASTE) },
         { Win32::Accel::Control | Win32::Accel::VirtKey, 'D', static_cast<Win32::WORD>(IDM_EDIT_DUPLICATE) },
         { Win32::Accel::VirtKey, static_cast<Win32::WORD>(Win32::Keys::Escape), static_cast<Win32::WORD>(IDM_CANCEL_PLACE) },
+        { Win32::Accel::VirtKey, static_cast<Win32::WORD>(Win32::Keys::F5), static_cast<Win32::WORD>(IDM_FILE_PREVIEW) },
     };
     return Win32::CreateAcceleratorTableW(accels, static_cast<int>(std::size(accels)));
 }
@@ -274,6 +277,7 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
         case IDM_FILE_SAVE:    DoSave(*state);   return 0;
         case IDM_FILE_SAVE_AS: DoSaveAs(*state); return 0;
         case IDM_FILE_EXIT:    Win32::SendMessageW(hwnd, Win32::Messages::Close, 0, 0); return 0;
+        case IDM_FILE_PREVIEW: PreviewForm(*state); return 0;
         case IDM_EDIT_UNDO:      Undo(*state);             return 0;
         case IDM_EDIT_REDO:      Redo(*state);             return 0;
         case IDM_EDIT_CUT:       CutSelected(*state);      return 0;
@@ -314,6 +318,8 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
     case Win32::Messages::NcDestroy:
         if (state && state->zorderHwnd)
             Win32::DestroyWindow(state->zorderHwnd);
+        if (state && state->previewHwnd)
+            Win32::DestroyWindow(state->previewHwnd);
         delete state;
         return 0;
 

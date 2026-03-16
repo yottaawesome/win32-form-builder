@@ -79,6 +79,93 @@ export void RebuildControls(DesignState& state)
     RefreshZOrderPanel(state);
 }
 
+// Preview window procedure — mirrors FormWndProc but does NOT call PostQuitMessage.
+auto __stdcall PreviewWndProc(Win32::HWND hwnd, Win32::UINT msg,
+    Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
+{
+    auto* state = reinterpret_cast<DesignState*>(
+        Win32::GetWindowLongPtrW(hwnd, Win32::Gwlp_UserData));
+
+    switch (msg)
+    {
+    case Win32::Messages::EraseBkgnd:
+    {
+        if (state && state->form.backgroundColor != -1)
+        {
+            auto hdc = reinterpret_cast<Win32::HDC>(wParam);
+            auto rc = Win32::RECT{};
+            Win32::GetClientRect(hwnd, &rc);
+            auto brush = Win32::CreateSolidBrush(
+                static_cast<Win32::DWORD>(state->form.backgroundColor));
+            Win32::FillRect(hdc, &rc, brush);
+            Win32::DeleteObject(brush);
+            return 1;
+        }
+        return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
+    case Win32::Messages::Close:
+        Win32::DestroyWindow(hwnd);
+        return 0;
+
+    case Win32::Messages::NcDestroy:
+        if (state)
+            state->previewHwnd = nullptr;
+        return 0;
+    }
+
+    return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+export void PreviewForm(DesignState& state)
+{
+    // Close existing preview if open.
+    if (state.previewHwnd && Win32::IsWindow(state.previewHwnd))
+        Win32::DestroyWindow(state.previewHwnd);
+    state.previewHwnd = nullptr;
+
+    static bool registered = false;
+    if (!registered)
+    {
+        Win32::WNDCLASSEXW wc = {
+            .cbSize = sizeof(Win32::WNDCLASSEXW),
+            .style = Win32::Cs_HRedraw | Win32::Cs_VRedraw,
+            .lpfnWndProc = PreviewWndProc,
+            .hInstance = state.hInstance,
+            .hCursor = Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow),
+            .hbrBackground = reinterpret_cast<Win32::HBRUSH>(Win32::ColorWindow + 1),
+            .lpszClassName = L"DesignerPreview",
+        };
+        Win32::RegisterClassExW(&wc);
+        registered = true;
+    }
+
+    auto& form = state.form;
+    auto style = form.style != 0 ? form.style : Win32::Styles::OverlappedWindow;
+
+    auto rc = Win32::RECT{ 0, 0, form.width, form.height };
+    Win32::AdjustWindowRectEx(&rc, style, 0, form.exStyle);
+
+    auto title = std::wstring{L"Preview: "} + form.title;
+    state.previewHwnd = Win32::CreateWindowExW(
+        form.exStyle,
+        L"DesignerPreview",
+        title.c_str(),
+        style,
+        Win32::Cw_UseDefault, Win32::Cw_UseDefault,
+        rc.right - rc.left, rc.bottom - rc.top,
+        nullptr, nullptr, state.hInstance, nullptr);
+
+    if (!state.previewHwnd) return;
+
+    Win32::SetWindowLongPtrW(state.previewHwnd, Win32::Gwlp_UserData,
+        reinterpret_cast<Win32::LONG_PTR>(&state));
+
+    FormDesigner::CreateChildren(state.previewHwnd, state.hInstance, form.controls);
+
+    Win32::ShowWindow(state.previewHwnd, Win32::Sw_ShowDefault);
+    Win32::UpdateWindow(state.previewHwnd);
+}
+
 void PlaceControl(DesignState& state, int x, int y)
 {
     PushUndo(state);

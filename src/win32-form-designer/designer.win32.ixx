@@ -73,7 +73,8 @@ using
     ::ClientToScreen,
     ::DestroyMenu,
     ::CheckMenuItem,
-    ::GetMenu
+    ::GetMenu,
+    ::IsWindow
     ;
 
 const auto HwndBottom = HWND_BOTTOM;
@@ -154,6 +155,7 @@ namespace Keys
     constexpr auto Right   = VK_RIGHT;
     constexpr auto Up      = VK_UP;
     constexpr auto Down    = VK_DOWN;
+    constexpr auto F5      = VK_F5;
 }
 
 // === Show window commands ===

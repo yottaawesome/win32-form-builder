@@ -31,6 +31,9 @@ constexpr Win32::UINT IDM_CTX_TOBACK    = 40102;
 constexpr Win32::UINT IDM_VIEW_SHOWGRID = 40016;
 constexpr Win32::UINT IDM_VIEW_SNAPTOGRID = 40017;
 
+// File menu IDs (continued).
+constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
+
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
 constexpr int PROPERTY_WIDTH = 220;
@@ -153,6 +156,7 @@ struct DesignState
     std::filesystem::path currentFile;
     bool dirty = false;
     Win32::HWND zorderHwnd = nullptr;
+    Win32::HWND previewHwnd = nullptr;
 
     int gridSize = DEFAULT_GRID_SIZE;
     bool showGrid = true;
