@@ -1055,7 +1055,17 @@ namespace Designer
 			int formH = state ? state->form.height : rc.bottom;
 
 			auto workspaceBrush = Win32::CreateSolidBrush(state->theme.canvasBackground);
-			Win32::FillRect(hdc, &rc, workspaceBrush);
+			if (state && state->showRulers)
+			{
+				// Skip ruler strips — they are fully painted by DrawRulers().
+				// Erasing them here causes visible flicker during control dragging.
+				Win32::RECT workspace = { offset, offset, rc.right, rc.bottom };
+				Win32::FillRect(hdc, &workspace, workspaceBrush);
+			}
+			else
+			{
+				Win32::FillRect(hdc, &rc, workspaceBrush);
+			}
 			Win32::DeleteObject(workspaceBrush);
 
 			Win32::RECT formArea = { offset, offset, formW + offset, formH + offset };
