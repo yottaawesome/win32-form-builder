@@ -42,6 +42,9 @@ export namespace Designer
 	constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
 	constexpr Win32::UINT IDM_FILE_EXPORT_CPP = 40021;
 
+	constexpr Win32::UINT IDM_FILE_RECENT_BASE = 40200;
+	constexpr int MAX_RECENT_FILES = 10;
+
 	// Toolbox and layout constants.
 	constexpr int TOOLBOX_WIDTH  = 140;
 	constexpr int PROPERTY_WIDTH = 240;
@@ -267,6 +270,7 @@ export namespace Designer
 		bool tabOrderMode = false;
 		int tabOrderNext = 1;
 		int nextGroupId = 1;
+		std::vector<std::filesystem::path> recentFiles;
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

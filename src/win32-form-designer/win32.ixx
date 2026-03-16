@@ -80,6 +80,11 @@ export namespace Win32
 		::DestroyMenu,
 		::CheckMenuItem,
 		::GetMenu,
+		::GetSubMenu,
+		::DeleteMenu,
+		::GetMenuItemCount,
+		::GetMenuItemID,
+		::InsertMenuW,
 		::IsWindow,
 		::TextOutW,
 		::SetTextColor,
@@ -246,6 +251,8 @@ export namespace Win32
 		constexpr auto Checked   = MF_CHECKED;
 		constexpr auto Unchecked = MF_UNCHECKED;
 		constexpr auto Popup     = MF_POPUP;
+		constexpr auto ByPosition = MF_BYPOSITION;
+		constexpr auto ByCommand  = MF_BYCOMMAND;
 	}
 
 	// === MessageBox flags ===

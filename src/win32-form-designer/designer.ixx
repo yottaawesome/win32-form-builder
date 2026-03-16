@@ -326,6 +326,23 @@ namespace Designer
 			case IDM_FILE_EXIT:    Win32::SendMessageW(hwnd, Win32::Messages::Close, 0, 0); return 0;
 			case IDM_FILE_PREVIEW: PreviewForm(*state); return 0;
 			case IDM_FILE_EXPORT_CPP: DoExportCpp(*state); return 0;
+			default:
+			{
+				auto id = Win32::GetLowWord(wParam);
+				if (id >= IDM_FILE_RECENT_BASE &&
+					id < IDM_FILE_RECENT_BASE + MAX_RECENT_FILES)
+				{
+					auto idx = id - IDM_FILE_RECENT_BASE;
+					if (idx < static_cast<int>(state->recentFiles.size()))
+					{
+						if (!PromptSaveIfDirty(*state))
+							return 0;
+						DoOpenFile(*state, state->recentFiles[idx]);
+					}
+					return 0;
+				}
+				break;
+			}
 			case IDM_EDIT_UNDO:      Undo(*state);             return 0;
 			case IDM_EDIT_REDO:      Redo(*state);             return 0;
 			case IDM_EDIT_CUT:       CutSelected(*state);      return 0;
@@ -659,6 +676,15 @@ namespace Designer
 			Win32::CheckMenuItem(menu, IDM_VIEW_DARKMODE, Win32::Menu::Checked);
 			ApplyTheme(*state);
 		}
+
+		// Load recent files list.
+		state->recentFiles = LoadRecentFiles();
+		if (!state->currentFile.empty())
+		{
+			AddRecentFile(state->recentFiles, state->currentFile);
+			SaveRecentFiles(state->recentFiles);
+		}
+		RebuildRecentFilesMenu(hwnd, state->recentFiles);
 
 		UpdateTitle(*state);
 		PopulateControls(*state);

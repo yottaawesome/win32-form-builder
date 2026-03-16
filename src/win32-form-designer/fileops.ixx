@@ -96,6 +96,9 @@ namespace Designer
 		SyncGuidesToForm(state);
 		FormDesigner::SaveFormToFile(state.form, state.currentFile);
 		state.dirty = false;
+		AddRecentFile(state.recentFiles, state.currentFile);
+		SaveRecentFiles(state.recentFiles);
+		RebuildRecentFilesMenu(state.surfaceHwnd, state.recentFiles);
 		UpdateTitle(state);
 		UpdateStatusBar(state);
 	}
@@ -109,8 +112,37 @@ namespace Designer
 		SyncGuidesToForm(state);
 		FormDesigner::SaveFormToFile(state.form, state.currentFile);
 		state.dirty = false;
+		AddRecentFile(state.recentFiles, state.currentFile);
+		SaveRecentFiles(state.recentFiles);
+		RebuildRecentFilesMenu(state.surfaceHwnd, state.recentFiles);
 		UpdateTitle(state);
 		UpdateStatusBar(state);
+	}
+
+	// Core open logic — loads a form from an already-known path (no dialog).
+	export void DoOpenFile(DesignState& state, const std::filesystem::path& path)
+	{
+		try
+		{
+			PushUndo(state);
+			state.form = FormDesigner::LoadFormFromFile(path);
+			state.currentFile = path;
+			state.dirty = false;
+			RebuildControls(state);
+			SyncNextGroupId(state);
+			AddRecentFile(state.recentFiles, path);
+			SaveRecentFiles(state.recentFiles);
+			RebuildRecentFilesMenu(state.surfaceHwnd, state.recentFiles);
+			UpdateTitle(state);
+			UpdateStatusBar(state);
+		}
+		catch (const std::exception& ex)
+		{
+			auto msg = std::string{ "Failed to open file:\n" } + ex.what();
+			auto wide = std::wstring(msg.begin(), msg.end());
+			Win32::MessageBoxW(state.surfaceHwnd, wide.c_str(), L"Error",
+				Win32::Mb_Ok | Win32::Mb_IconError);
+		}
 	}
 
 	export void DoOpen(DesignState& state)
@@ -122,24 +154,7 @@ namespace Designer
 		if (!ShowOpenDialog(state.surfaceHwnd, path))
 			return;
 
-		try
-		{
-			PushUndo(state);
-			state.form = FormDesigner::LoadFormFromFile(path);
-			state.currentFile = path;
-			state.dirty = false;
-			RebuildControls(state);
-			SyncNextGroupId(state);
-			UpdateTitle(state);
-			UpdateStatusBar(state);
-		}
-		catch (const std::exception& ex)
-		{
-			auto msg = std::string{ "Failed to open file:\n" } + ex.what();
-			auto wide = std::wstring(msg.begin(), msg.end());
-			Win32::MessageBoxW(state.surfaceHwnd, wide.c_str(), L"Error",
-				Win32::Mb_Ok | Win32::Mb_IconError);
-		}
+		DoOpenFile(state, path);
 	}
 
 	export void DoNew(DesignState& state)

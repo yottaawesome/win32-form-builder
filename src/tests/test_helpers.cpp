@@ -519,3 +519,38 @@ TEST_CASE("Successive GroupSelected calls produce unique group IDs", "[helpers]"
     REQUIRE(firstGroupId != 0);
     REQUIRE(secondGroupId != 0);
 }
+
+// === AddRecentFile ===
+
+TEST_CASE("AddRecentFile prepends to empty list", "[helpers]")
+{
+    auto files = std::vector<std::filesystem::path>{};
+    AddRecentFile(files, "C:\\test\\form1.json");
+
+    REQUIRE(files.size() == 1);
+    REQUIRE(files[0] == std::filesystem::weakly_canonical("C:\\test\\form1.json"));
+}
+
+TEST_CASE("AddRecentFile prepends and deduplicates", "[helpers]")
+{
+    auto files = std::vector<std::filesystem::path>{
+        "C:\\test\\form1.json",
+        "C:\\test\\form2.json",
+    };
+    AddRecentFile(files, "C:\\test\\form2.json");
+
+    REQUIRE(files.size() == 2);
+    REQUIRE(files[0] == std::filesystem::weakly_canonical("C:\\test\\form2.json"));
+    REQUIRE(files[1] == std::filesystem::weakly_canonical("C:\\test\\form1.json"));
+}
+
+TEST_CASE("AddRecentFile caps at MAX_RECENT_FILES", "[helpers]")
+{
+    auto files = std::vector<std::filesystem::path>{};
+    for (int i = 0; i < 12; ++i)
+        AddRecentFile(files, "C:\\test\\form" + std::to_string(i) + ".json");
+
+    REQUIRE(static_cast<int>(files.size()) == MAX_RECENT_FILES);
+    // Most recent is first.
+    REQUIRE(files[0] == std::filesystem::weakly_canonical("C:\\test\\form11.json"));
+}
