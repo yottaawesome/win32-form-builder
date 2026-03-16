@@ -695,6 +695,7 @@ namespace Designer
 				// Move all selected unlocked controls by the same delta.
 				for (int idx : state->selection)
 				{
+					if (idx < 0 || idx >= static_cast<int>(state->entries.size())) continue;
 					if (state->entries[idx].control->locked) continue;
 					auto it = state->dragOrigins.find(idx);
 					if (it == state->dragOrigins.end()) continue;
@@ -735,6 +736,7 @@ namespace Designer
 					{
 						for (int idx : state->selection)
 						{
+							if (idx < 0 || idx >= static_cast<int>(state->entries.size())) continue;
 							if (idx == state->dragAnchor) continue;
 							state->entries[idx].control->rect.x += snapDx;
 							state->entries[idx].control->rect.y += snapDy;
@@ -744,6 +746,7 @@ namespace Designer
 
 				for (int idx : state->selection)
 				{
+					if (idx < 0 || idx >= static_cast<int>(state->entries.size())) continue;
 					auto& entry = state->entries[idx];
 					Win32::MoveWindow(entry.hwnd,
 						entry.control->rect.x + offset,

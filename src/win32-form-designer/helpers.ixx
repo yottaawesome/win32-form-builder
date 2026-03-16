@@ -9,6 +9,17 @@ namespace Designer
 
 	auto ControlTypeDisplayName(FormDesigner::ControlType type) -> const wchar_t*;
 
+	// Safely narrows a wide string to a std::string.
+	// Assumes ASCII content (valid for C++ identifiers like event handler names).
+	export auto NarrowString(const wchar_t* wstr, std::size_t len) -> std::string
+	{
+		auto result = std::string{};
+		result.reserve(len);
+		for (std::size_t i = 0; i < len; ++i)
+			result += static_cast<char>(wstr[i] & 0x7F);
+		return result;
+	}
+
 	// Returns the pixel offset for rulers (0 when rulers are hidden).
 	export auto RulerOffset(const DesignState& state) -> int
 	{

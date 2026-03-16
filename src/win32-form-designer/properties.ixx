@@ -215,49 +215,49 @@ namespace Designer
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONCLICK, buf, 256);
-			ctrl.onClick = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onClick = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_ONCHANGE:
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONCHANGE, buf, 256);
-			ctrl.onChange = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onChange = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_ONDBLCLICK:
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONDBLCLICK, buf, 256);
-			ctrl.onDoubleClick = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onDoubleClick = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_ONSELCHANGE:
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONSELCHANGE, buf, 256);
-			ctrl.onSelectionChange = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onSelectionChange = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_ONFOCUS:
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONFOCUS, buf, 256);
-			ctrl.onFocus = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onFocus = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_ONBLUR:
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONBLUR, buf, 256);
-			ctrl.onBlur = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onBlur = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_ONCHECK:
 		{
 			wchar_t buf[256] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_ONCHECK, buf, 256);
-			ctrl.onCheck = std::string(buf, buf + std::wcslen(buf));
+			ctrl.onCheck = NarrowString(buf, std::wcslen(buf));
 			break;
 		}
 		case IDC_PROP_TABINDEX:
