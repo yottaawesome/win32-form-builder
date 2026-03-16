@@ -37,6 +37,16 @@ export namespace FormDesigner
 	// Text alignment options for controls that support it.
 	enum class TextAlign { Left, Center, Right };
 
+	// Anchor flags — bitmask controlling how controls respond to parent resize.
+	namespace Anchor
+	{
+		constexpr int Top    = 1;
+		constexpr int Bottom = 2;
+		constexpr int Left   = 4;
+		constexpr int Right  = 8;
+		constexpr int Default = Top | Left;
+	}
+
 	struct Control
 	{
 		ControlType type = ControlType::Window;
@@ -56,6 +66,7 @@ export namespace FormDesigner
 		TextAlign textAlign = TextAlign::Left;
 		bool locked = false;
 		int groupId = 0;
+		int anchor = Anchor::Default;
 		std::vector<Control> children;
 	};
 

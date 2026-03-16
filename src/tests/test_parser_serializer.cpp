@@ -547,3 +547,54 @@ TEST_CASE("Guides survive parse-serialize roundtrip", "[parser][serializer]")
     REQUIRE(parsed.guides[1].horizontal == false);
     REQUIRE(parsed.guides[1].position == 300);
 }
+
+// === Anchor round-trip ===
+
+TEST_CASE("Anchor default (Top|Left) is not serialized", "[serializer]")
+{
+    Control c;
+    c.type = ControlType::Button;
+    c.anchor = Anchor::Top | Anchor::Left;
+
+    Form form;
+    form.controls.push_back(c);
+    auto json = SerializeForm(form);
+
+    REQUIRE(json.find("anchor") == std::string::npos);
+}
+
+TEST_CASE("Anchor non-default round-trips through JSON", "[parser][serializer]")
+{
+    Control c;
+    c.type = ControlType::TextBox;
+    c.anchor = Anchor::Top | Anchor::Left | Anchor::Right;
+
+    Form form;
+    form.controls.push_back(c);
+    auto json = SerializeForm(form);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].anchor == (Anchor::Top | Anchor::Left | Anchor::Right));
+}
+
+TEST_CASE("Anchor All flags round-trip through JSON", "[parser][serializer]")
+{
+    Control c;
+    c.type = ControlType::ListView;
+    c.anchor = Anchor::Top | Anchor::Bottom | Anchor::Left | Anchor::Right;
+
+    Form form;
+    form.controls.push_back(c);
+    auto json = SerializeForm(form);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].anchor == (Anchor::Top | Anchor::Bottom | Anchor::Left | Anchor::Right));
+}
+
+TEST_CASE("Anchor missing from JSON defaults to Top|Left", "[parser]")
+{
+    auto json = R"({"title":"Test","width":400,"height":300,"controls":[{"type":"Button","rect":[0,0,80,25]}]})";
+    auto form = ParseForm(json);
+
+    REQUIRE(form.controls[0].anchor == (Anchor::Top | Anchor::Left));
+}

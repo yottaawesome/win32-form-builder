@@ -58,10 +58,21 @@ export namespace FormDesigner
 		}
 	}
 
+	// Stores original position and anchor flags for a control, keyed by control ID.
+	struct AnchorInfo
+	{
+		int id = 0;
+		Rect originalRect;
+		int anchor = Anchor::Default;
+	};
+
 	struct FormWindowData
 	{
 		const EventMap* events = nullptr;
 		Win32::HBRUSH bgBrush = nullptr;
+		int originalWidth = 0;
+		int originalHeight = 0;
+		std::vector<AnchorInfo> anchors;
 	};
 
 	// Window procedure for designer-created forms.
@@ -200,6 +211,47 @@ export namespace FormDesigner
 
 			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
+		case Win32::Messages::Size:
+		{
+			if (!data || data->anchors.empty())
+				return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+
+			auto rc = Win32::RECT{};
+			Win32::GetClientRect(hwnd, &rc);
+			int newW = rc.right;
+			int newH = rc.bottom;
+			int deltaW = newW - data->originalWidth;
+			int deltaH = newH - data->originalHeight;
+
+			for (auto& ai : data->anchors)
+			{
+				auto childHwnd = Win32::GetDlgItem(hwnd, ai.id);
+				if (!childHwnd) continue;
+
+				int x = ai.originalRect.x;
+				int y = ai.originalRect.y;
+				int w = ai.originalRect.width;
+				int h = ai.originalRect.height;
+
+				bool anchorL = (ai.anchor & Anchor::Left)   != 0;
+				bool anchorR = (ai.anchor & Anchor::Right)  != 0;
+				bool anchorT = (ai.anchor & Anchor::Top)    != 0;
+				bool anchorB = (ai.anchor & Anchor::Bottom) != 0;
+
+				if (anchorL && anchorR)
+					w += deltaW;
+				else if (anchorR && !anchorL)
+					x += deltaW;
+
+				if (anchorT && anchorB)
+					h += deltaH;
+				else if (anchorB && !anchorT)
+					y += deltaH;
+
+				Win32::MoveWindow(childHwnd, x, y, w, h, true);
+			}
+			return 0;
+		}
 		case Win32::Messages::Destroy:
 		{
 			if (data)
@@ -275,7 +327,14 @@ export namespace FormDesigner
 			.bgBrush = form.backgroundColor != -1
 				? Win32::CreateSolidBrush(static_cast<Win32::DWORD>(form.backgroundColor))
 				: nullptr,
+			.originalWidth = form.width,
+			.originalHeight = form.height,
 		};
+		for (auto& c : form.controls)
+		{
+			if (c.id != 0)
+				windowData->anchors.push_back({ c.id, c.rect, c.anchor });
+		}
 		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 
 		Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);

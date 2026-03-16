@@ -91,6 +91,16 @@ export namespace FormDesigner
 		if (control.groupId != 0)
 			j["groupId"] = control.groupId;
 
+		if (control.anchor != Anchor::Default)
+		{
+			auto arr = nlohmann::json::array();
+			if (control.anchor & Anchor::Top)    arr.push_back("top");
+			if (control.anchor & Anchor::Bottom) arr.push_back("bottom");
+			if (control.anchor & Anchor::Left)   arr.push_back("left");
+			if (control.anchor & Anchor::Right)  arr.push_back("right");
+			j["anchor"] = arr;
+		}
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

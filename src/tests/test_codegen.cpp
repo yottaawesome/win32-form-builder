@@ -352,3 +352,54 @@ TEST_CASE("GenerateCode produces complete output for a multi-control form", "[co
 	REQUIRE(contains(code, "400"));
 	REQUIRE(contains(code, "300"));
 }
+
+TEST_CASE("Codegen generates WM_SIZE handler for anchored controls", "[codegen]")
+{
+	auto contains = [](const std::string& src, const std::string& sub)
+	{
+		return src.find(sub) != std::string::npos;
+	};
+
+	Form form;
+	form.title = L"Anchor Test";
+	form.width = 640;
+	form.height = 480;
+
+	Control c;
+	c.type = ControlType::TextBox;
+	c.id = 100;
+	c.rect = { 10, 10, 300, 200 };
+	c.anchor = Anchor::Top | Anchor::Left | Anchor::Right;
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "WM_SIZE"));
+	REQUIRE(contains(code, "deltaW"));
+	REQUIRE(contains(code, "MoveWindow"));
+	REQUIRE(contains(code, "IDC_TEXTBOX_100"));
+}
+
+TEST_CASE("Codegen omits WM_SIZE when all controls use default anchor", "[codegen]")
+{
+	auto contains = [](const std::string& src, const std::string& sub)
+	{
+		return src.find(sub) != std::string::npos;
+	};
+
+	Form form;
+	form.title = L"No Anchor Test";
+	form.width = 400;
+	form.height = 300;
+
+	Control c;
+	c.type = ControlType::Button;
+	c.id = 200;
+	c.rect = { 10, 10, 80, 25 };
+	// default anchor (Top|Left) — no WM_SIZE needed
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE_FALSE(contains(code, "WM_SIZE"));
+}

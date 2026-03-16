@@ -103,6 +103,19 @@ export namespace FormDesigner
 		if (j.contains("groupId"))
 			control.groupId = j["groupId"].get<int>();
 
+		if (j.contains("anchor"))
+		{
+			control.anchor = 0;
+			for (auto& flag : j["anchor"])
+			{
+				auto s = flag.get<std::string>();
+				if (s == "top")         control.anchor |= Anchor::Top;
+				else if (s == "bottom") control.anchor |= Anchor::Bottom;
+				else if (s == "left")   control.anchor |= Anchor::Left;
+				else if (s == "right")  control.anchor |= Anchor::Right;
+			}
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

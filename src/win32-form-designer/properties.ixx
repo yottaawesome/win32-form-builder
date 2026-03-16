@@ -38,7 +38,7 @@ namespace Designer
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED
+			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_ANCHOR
 		};
 		constexpr Win32::UINT formIds[] = {
 			IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
@@ -47,7 +47,7 @@ namespace Designer
 			IDC_PROP_FORM_RESIZABLE, IDC_PROP_FORM_MINIMIZE, IDC_PROP_FORM_MAXIMIZE
 		};
 
-		SetPropertyGroupVisibility(panel, ctrlIds, 17, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+		SetPropertyGroupVisibility(panel, ctrlIds, 18, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
 		SetPropertyGroupVisibility(panel, formIds, 9, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -101,6 +101,27 @@ namespace Designer
 			Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_LOCKED),
 				Win32::Button::SetCheck,
 				ctrl.locked ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
+			// Set anchor dropdown.
+			{
+				using namespace FormDesigner::Anchor;
+				constexpr int anchorValues[] = {
+					Top | Left,             // 0: Top, Left
+					Top | Right,            // 1: Top, Right
+					Bottom | Left,          // 2: Bottom, Left
+					Bottom | Right,         // 3: Bottom, Right
+					Top | Left | Right,     // 4: Top, Left, Right
+					Bottom | Left | Right,  // 5: Bottom, Left, Right
+					Top | Bottom | Left,    // 6: Top, Bottom, Left
+					Top | Bottom | Right,   // 7: Top, Bottom, Right
+					Top | Bottom | Left | Right, // 8: All
+				};
+				int anchorIdx = 0;
+				for (int i = 0; i < 9; ++i)
+					if (anchorValues[i] == ctrl.anchor) { anchorIdx = i; break; }
+				Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_ANCHOR),
+					Win32::ComboBox::SetCurSel, anchorIdx, 0);
+			}
 
 			Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 				IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
@@ -278,6 +299,26 @@ namespace Designer
 				// Recreate the control HWND since style bits are set at creation.
 				RebuildSingleControl(state, entry);
 			}
+			break;
+		}
+		case IDC_PROP_ANCHOR:
+		{
+			using namespace FormDesigner::Anchor;
+			constexpr int anchorValues[] = {
+				Top | Left,                  // 0: Top, Left
+				Top | Right,                 // 1: Top, Right
+				Bottom | Left,               // 2: Bottom, Left
+				Bottom | Right,              // 3: Bottom, Right
+				Top | Left | Right,          // 4: Top, Left, Right
+				Bottom | Left | Right,       // 5: Bottom, Left, Right
+				Top | Bottom | Left,         // 6: Top, Bottom, Left
+				Top | Bottom | Right,        // 7: Top, Bottom, Right
+				Top | Bottom | Left | Right, // 8: All
+			};
+			auto combo = Win32::GetDlgItem(panel, IDC_PROP_ANCHOR);
+			auto sel = static_cast<int>(Win32::SendMessageW(combo, Win32::ComboBox::GetCurSel, 0, 0));
+			if (sel >= 0 && sel < 9)
+				ctrl.anchor = anchorValues[sel];
 			break;
 		}
 		default:
@@ -495,6 +536,39 @@ namespace Designer
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_LOCKED)),
 				hInst, nullptr);
 			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+		}
+
+		// Anchor dropdown.
+		y += 24;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Anchor:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				5, y + 2, 55, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ANCHOR + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto combo = Win32::CreateWindowExW(0, Win32::Controls::ComboBox, nullptr,
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::ComboBoxDropDownList,
+				65, y, 150, 200, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ANCHOR)),
+				hInst, nullptr);
+			Win32::SendMessageW(combo, Win32::Messages::SetFont, font, true);
+			const wchar_t* anchorItems[] = {
+				L"Top, Left",
+				L"Top, Right",
+				L"Bottom, Left",
+				L"Bottom, Right",
+				L"Top, Left, Right",
+				L"Bottom, Left, Right",
+				L"Top, Bottom, Left",
+				L"Top, Bottom, Right",
+				L"All",
+			};
+			for (auto* item : anchorItems)
+				Win32::SendMessageW(combo, Win32::ComboBox::AddString, 0,
+					reinterpret_cast<Win32::LPARAM>(item));
+			Win32::SendMessageW(combo, Win32::ComboBox::SetCurSel, 0, 0);
 		}
 
 		// Form property rows (visible when no control is selected).
@@ -792,6 +866,13 @@ namespace Designer
 			if (id == IDC_PROP_TEXTALIGN && code == Win32::Notifications::ComboBoxSelEndOk)
 			{
 				ApplyPropertyChange(*state, IDC_PROP_TEXTALIGN);
+				return 0;
+			}
+
+			// Anchor dropdown change.
+			if (id == IDC_PROP_ANCHOR && code == Win32::Notifications::ComboBoxSelEndOk)
+			{
+				ApplyPropertyChange(*state, IDC_PROP_ANCHOR);
 				return 0;
 			}
 			break;

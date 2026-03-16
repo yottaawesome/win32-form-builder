@@ -60,7 +60,11 @@ export namespace Win32
 		::CreateSolidBrush,
 		::DeleteObject,
 		::FillRect,
-		::GetClientRect
+		::GetClientRect,
+		::EnumChildWindows,
+		::MoveWindow,
+		::GetDlgCtrlID,
+		::GetDlgItem
 		;
 
 	// === HIWORD/LOWORD wrappers ===
@@ -117,6 +121,7 @@ export namespace Win32
 		constexpr auto Destroy = WM_DESTROY;
 		constexpr auto SetFont = WM_SETFONT;
 		constexpr auto EraseBkgnd = WM_ERASEBKGND;
+		constexpr auto Size = WM_SIZE;
 	}
 
 	// === Notifications (WM_COMMAND) ===

@@ -83,6 +83,7 @@ TEST_CASE("Control has sensible default values", "[schema]")
     REQUIRE(c.groupId == 0);
     REQUIRE(c.onCheck.empty());
     REQUIRE(c.textAlign == TextAlign::Left);
+    REQUIRE(c.anchor == (Anchor::Top | Anchor::Left));
     REQUIRE(c.children.empty());
 }
 

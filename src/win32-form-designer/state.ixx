@@ -71,6 +71,9 @@ export namespace Designer
 	// Locked checkbox for control properties.
 	constexpr Win32::UINT IDC_PROP_LOCKED = 51017;
 
+	// Anchor combo for control properties.
+	constexpr Win32::UINT IDC_PROP_ANCHOR = 51018;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;

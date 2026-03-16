@@ -653,6 +653,64 @@ export namespace FormDesigner
 			out << "    }\n\n";
 		}
 
+		// WM_SIZE (anchor-based control repositioning)
+		{
+			// Collect controls with non-default anchoring.
+			struct AnchorEntry { std::string idcName; Rect rect; int anchor; };
+			auto anchorEntries = std::vector<AnchorEntry>{};
+			auto collectAnchors = [&](auto& self, std::span<const Control> controls) -> void
+			{
+				for (auto& ctrl : controls)
+				{
+					if (ctrl.id != 0 && ctrl.anchor != Anchor::Default)
+						anchorEntries.push_back({ IdcConstantName(ctrl), ctrl.rect, ctrl.anchor });
+					if (!ctrl.children.empty())
+						self(self, ctrl.children);
+				}
+			};
+			collectAnchors(collectAnchors, form.controls);
+
+			if (!anchorEntries.empty())
+			{
+				out << "    case WM_SIZE:\n";
+				out << "    {\n";
+				out << "        int newW = LOWORD(lParam);\n";
+				out << "        int newH = HIWORD(lParam);\n";
+				out << "        int deltaW = newW - " << form.width << ";\n";
+				out << "        int deltaH = newH - " << form.height << ";\n";
+				out << "\n";
+
+				for (auto& ae : anchorEntries)
+				{
+					bool anchorL = (ae.anchor & Anchor::Left) != 0;
+					bool anchorR = (ae.anchor & Anchor::Right) != 0;
+					bool anchorT = (ae.anchor & Anchor::Top) != 0;
+					bool anchorB = (ae.anchor & Anchor::Bottom) != 0;
+
+					auto x = std::to_string(ae.rect.x);
+					auto y = std::to_string(ae.rect.y);
+					auto w = std::to_string(ae.rect.width);
+					auto h = std::to_string(ae.rect.height);
+
+					if (anchorL && anchorR)
+						w += " + deltaW";
+					else if (anchorR && !anchorL)
+						x += " + deltaW";
+
+					if (anchorT && anchorB)
+						h += " + deltaH";
+					else if (anchorB && !anchorT)
+						y += " + deltaH";
+
+					out << "        MoveWindow(GetDlgItem(hwnd, " << ae.idcName << "), "
+						<< x << ", " << y << ", " << w << ", " << h << ", TRUE);\n";
+				}
+
+				out << "        return 0;\n";
+				out << "    }\n\n";
+			}
+		}
+
 		// WM_DESTROY
 		out << "    case WM_DESTROY:\n";
 		out << "        PostQuitMessage(0);\n";
