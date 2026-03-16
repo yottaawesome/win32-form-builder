@@ -485,21 +485,33 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         auto hdc = reinterpret_cast<Win32::HDC>(wParam);
         Win32::RECT rc;
         Win32::GetClientRect(hwnd, &rc);
+        int offset = state ? RulerOffset(*state) : 0;
+        int formW = state ? state->form.width : rc.right;
+        int formH = state ? state->form.height : rc.bottom;
 
-        // Fill entire client area with system window color.
-        auto sysBrush = Win32::CreateSolidBrush(Win32::GetSysColor(Win32::ColorWindow));
-        Win32::FillRect(hdc, &rc, sysBrush);
-        Win32::DeleteObject(sysBrush);
+        // Fill entire canvas with workspace color (dark gray MDI background).
+        auto workspaceBrush = Win32::CreateSolidBrush(
+            Win32::GetSysColor(Win32::ColorAppWorkspace));
+        Win32::FillRect(hdc, &rc, workspaceBrush);
+        Win32::DeleteObject(workspaceBrush);
 
+        // Fill form area with form background color (or system window color).
+        Win32::RECT formArea = { offset, offset, formW + offset, formH + offset };
         if (state && state->form.backgroundColor != -1)
         {
-            int offset = RulerOffset(*state);
-            Win32::RECT formArea = { offset, offset, rc.right, rc.bottom };
             auto brush = Win32::CreateSolidBrush(
                 static_cast<Win32::COLORREF>(state->form.backgroundColor));
             Win32::FillRect(hdc, &formArea, brush);
             Win32::DeleteObject(brush);
         }
+        else
+        {
+            auto sysBrush = Win32::CreateSolidBrush(
+                Win32::GetSysColor(Win32::ColorWindow));
+            Win32::FillRect(hdc, &formArea, sysBrush);
+            Win32::DeleteObject(sysBrush);
+        }
+
         return 1;
     }
 
@@ -513,14 +525,25 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         {
             auto hdc = Win32::GetDC(hwnd);
             int offset = RulerOffset(*state);
+            int formW = state->form.width;
+            int formH = state->form.height;
+
+            // Draw form boundary border.
+            auto borderPen = Win32::CreatePen(Win32::PenStyles::Solid, 1,
+                Win32::MakeRgb(128, 128, 128));
+            auto oldPen = Win32::SelectObject(hdc, borderPen);
+            auto nullBrush = static_cast<Win32::HBRUSH>(Win32::GetStockObject(Win32::NullBrush));
+            auto oldBrush = Win32::SelectObject(hdc, nullBrush);
+            Win32::Rectangle(hdc, offset, offset, formW + offset + 1, formH + offset + 1);
+            Win32::SelectObject(hdc, oldBrush);
+            Win32::SelectObject(hdc, oldPen);
+            Win32::DeleteObject(borderPen);
 
             if (state->showGrid)
             {
-                Win32::RECT rc;
-                Win32::GetClientRect(hwnd, &rc);
                 auto dotColor = static_cast<Win32::COLORREF>(Win32::MakeRgb(192, 192, 192));
-                for (int gx = 0; gx < rc.right - offset; gx += state->gridSize)
-                    for (int gy = 0; gy < rc.bottom - offset; gy += state->gridSize)
+                for (int gx = 0; gx < formW; gx += state->gridSize)
+                    for (int gy = 0; gy < formH; gy += state->gridSize)
                         Win32::SetPixel(hdc, gx + offset, gy + offset, dotColor);
             }
 

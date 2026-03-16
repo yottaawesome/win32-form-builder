@@ -79,7 +79,8 @@ using
     ::TextOutW,
     ::SetTextColor,
     ::SetBkColor,
-    ::CreateFontW
+    ::CreateFontW,
+    ::Rectangle
     ;
 
 const auto HwndBottom = HWND_BOTTOM;
@@ -98,6 +99,7 @@ using ::SCROLLINFO;
 // === Pen styles ===
 namespace PenStyles
 {
+    constexpr auto Solid = PS_SOLID;
     constexpr auto Dot  = PS_DOT;
     constexpr auto Dash = PS_DASH;
 }
@@ -105,10 +107,16 @@ namespace PenStyles
 // === Background modes ===
 constexpr auto Bk_Transparent = TRANSPARENT;
 
+// === Stock objects ===
+constexpr auto NullBrush = NULL_BRUSH;
+
 // === Macro wrappers ===
 auto GetXParam(LPARAM lp) noexcept -> int { return GET_X_LPARAM(lp); }
 auto GetYParam(LPARAM lp) noexcept -> int { return GET_Y_LPARAM(lp); }
 auto MakeRgb(int r, int g, int b) noexcept -> COLORREF { return RGB(r, g, b); }
+
+// === System colors (designer-specific) ===
+constexpr auto ColorAppWorkspace = COLOR_APPWORKSPACE;
 
 // === Additional messages ===
 namespace Messages
