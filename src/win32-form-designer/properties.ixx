@@ -27,6 +27,7 @@ namespace Designer
 	{
 		if (!state.propertyHwnd) return;
 		state.updatingProperties = true;
+		state.invalidFields.clear();
 
 		auto panel = state.propertyHwnd;
 		int sel = SingleSelection(state);
@@ -304,14 +305,14 @@ namespace Designer
 		{
 			Win32::BOOL ok = false;
 			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_FORM_WIDTH, &ok, false));
-			if (ok && val > 0) state.form.width = val;
+			if (ok && val >= 50) state.form.width = val;
 			break;
 		}
 		case IDC_PROP_FORM_HEIGHT:
 		{
 			Win32::BOOL ok = false;
 			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_FORM_HEIGHT, &ok, false));
-			if (ok && val > 0) state.form.height = val;
+			if (ok && val >= 50) state.form.height = val;
 			break;
 		}
 		case IDC_PROP_FORM_BGCOLOR:
@@ -328,6 +329,83 @@ namespace Designer
 		}
 
 		MarkDirty(state);
+	}
+
+	// Validates a property field and returns an error message (empty = valid).
+	auto ValidateField(DesignState& state, Win32::UINT id) -> std::wstring
+	{
+		auto panel = state.propertyHwnd;
+
+		switch (id)
+		{
+		case IDC_PROP_W:
+		case IDC_PROP_H:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, id, &ok, false));
+			if (!ok) return L"Must be a number";
+			if (val < MIN_CONTROL_SIZE)
+				return std::format(L"Must be >= {}", MIN_CONTROL_SIZE);
+			break;
+		}
+		case IDC_PROP_X:
+		case IDC_PROP_Y:
+		{
+			Win32::BOOL ok = false;
+			Win32::GetDlgItemInt(panel, id, &ok, true);
+			if (!ok) return L"Must be a number";
+			break;
+		}
+		case IDC_PROP_ID:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, id, &ok, false));
+			if (!ok) return L"Must be a number";
+			int sel = SingleSelection(state);
+			if (sel >= 0 && IsDuplicateId(state, val, sel))
+				return L"Duplicate control ID";
+			break;
+		}
+		case IDC_PROP_TABINDEX:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, id, &ok, true));
+			if (!ok) return L"Must be a number";
+			if (val < 0) return L"Must be >= 0";
+			break;
+		}
+		case IDC_PROP_ONCLICK:
+		case IDC_PROP_ONCHANGE:
+		case IDC_PROP_ONDBLCLICK:
+		case IDC_PROP_ONSELCHANGE:
+		case IDC_PROP_ONFOCUS:
+		case IDC_PROP_ONBLUR:
+		case IDC_PROP_ONCHECK:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, id, buf, 256);
+			if (!IsValidIdentifier(buf))
+				return L"Must be a valid C++ identifier";
+			break;
+		}
+		case IDC_PROP_FORM_WIDTH:
+		case IDC_PROP_FORM_HEIGHT:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, id, &ok, false));
+			if (!ok) return L"Must be a number";
+			if (val < 50) return L"Must be >= 50";
+			break;
+		}
+		}
+		return {};
+	}
+
+	void ShowValidationError(DesignState& state, const std::wstring& msg)
+	{
+		if (state.statusbarHwnd)
+			Win32::SendMessageW(state.statusbarHwnd, Win32::StatusBar::SetTextW, 0,
+				reinterpret_cast<Win32::LPARAM>(msg.c_str()));
 	}
 
 	export void CreatePropertyControls(DesignState& state)
@@ -666,13 +744,47 @@ namespace Designer
 				return 0;
 			}
 
-			// Property edits (apply on focus loss).
+			// Property edits (validate then apply on focus loss).
 			if (code == Win32::Notifications::EditKillFocus)
 			{
 				if (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
-					ApplyPropertyChange(*state, id);
+				{
+					auto err = ValidateField(*state, id);
+					if (!err.empty())
+					{
+						state->invalidFields.insert(id);
+						ShowValidationError(*state, err);
+						Win32::InvalidateRect(
+							Win32::GetDlgItem(hwnd, id), nullptr, true);
+					}
+					else
+					{
+						state->invalidFields.erase(id);
+						ShowValidationError(*state, L"");
+						Win32::InvalidateRect(
+							Win32::GetDlgItem(hwnd, id), nullptr, true);
+						ApplyPropertyChange(*state, id);
+					}
+				}
 				else if (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
-					ApplyFormPropertyChange(*state, id);
+				{
+					auto err = ValidateField(*state, id);
+					if (!err.empty())
+					{
+						state->invalidFields.insert(id);
+						ShowValidationError(*state, err);
+						Win32::InvalidateRect(
+							Win32::GetDlgItem(hwnd, id), nullptr, true);
+					}
+					else
+					{
+						state->invalidFields.erase(id);
+						ShowValidationError(*state, L"");
+						Win32::InvalidateRect(
+							Win32::GetDlgItem(hwnd, id), nullptr, true);
+						ApplyFormPropertyChange(*state, id);
+					}
+				}
 				return 0;
 			}
 
@@ -681,6 +793,22 @@ namespace Designer
 			{
 				ApplyPropertyChange(*state, IDC_PROP_TEXTALIGN);
 				return 0;
+			}
+			break;
+		}
+		case Win32::Messages::CtlColorEdit:
+		{
+			if (!state) break;
+			auto editHwnd = reinterpret_cast<Win32::HWND>(lParam);
+			auto editId = static_cast<Win32::UINT>(Win32::GetDlgCtrlID(editHwnd));
+			if (state->invalidFields.contains(editId))
+			{
+				auto hdc = reinterpret_cast<Win32::HDC>(wParam);
+				Win32::SetTextColor(hdc, Win32::MakeRgb(128, 0, 0));
+				Win32::SetBkColor(hdc, Win32::MakeRgb(255, 220, 220));
+				static auto errorBrush = Win32::CreateSolidBrush(
+					Win32::MakeRgb(255, 220, 220));
+				return reinterpret_cast<Win32::LRESULT>(errorBrush);
 			}
 			break;
 		}

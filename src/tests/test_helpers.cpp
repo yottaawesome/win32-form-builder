@@ -350,3 +350,65 @@ TEST_CASE("FindAlignGuides skips selected controls", "[helpers]")
     // Should NOT snap to c1 since it's selected.
     REQUIRE(moving.x == 102);
 }
+
+// === IsValidIdentifier ===
+
+TEST_CASE("IsValidIdentifier accepts empty string", "[helpers]")
+{
+    REQUIRE(IsValidIdentifier(L"") == true);
+    REQUIRE(IsValidIdentifier(nullptr) == true);
+}
+
+TEST_CASE("IsValidIdentifier accepts valid identifiers", "[helpers]")
+{
+    REQUIRE(IsValidIdentifier(L"onClick") == true);
+    REQUIRE(IsValidIdentifier(L"_handler") == true);
+    REQUIRE(IsValidIdentifier(L"OnButton1Click") == true);
+    REQUIRE(IsValidIdentifier(L"a") == true);
+    REQUIRE(IsValidIdentifier(L"_") == true);
+    REQUIRE(IsValidIdentifier(L"foo_bar_123") == true);
+}
+
+TEST_CASE("IsValidIdentifier rejects invalid identifiers", "[helpers]")
+{
+    REQUIRE(IsValidIdentifier(L"1abc") == false);
+    REQUIRE(IsValidIdentifier(L"hello world") == false);
+    REQUIRE(IsValidIdentifier(L"foo-bar") == false);
+    REQUIRE(IsValidIdentifier(L"fn()") == false);
+    REQUIRE(IsValidIdentifier(L"a.b") == false);
+}
+
+// === IsDuplicateId ===
+
+TEST_CASE("IsDuplicateId returns false when no duplicates", "[helpers]")
+{
+    Control c1, c2;
+    c1.id = 100;
+    c2.id = 200;
+    auto state = MakeTestState({ c1, c2 });
+
+    REQUIRE(IsDuplicateId(state, 100, 0) == false);
+    REQUIRE(IsDuplicateId(state, 200, 1) == false);
+}
+
+TEST_CASE("IsDuplicateId returns true when duplicate exists", "[helpers]")
+{
+    Control c1, c2;
+    c1.id = 100;
+    c2.id = 100;
+    auto state = MakeTestState({ c1, c2 });
+
+    REQUIRE(IsDuplicateId(state, 100, 0) == true);
+    REQUIRE(IsDuplicateId(state, 100, 1) == true);
+}
+
+TEST_CASE("IsDuplicateId allows duplicate zeros", "[helpers]")
+{
+    Control c1, c2;
+    c1.id = 0;
+    c2.id = 0;
+    auto state = MakeTestState({ c1, c2 });
+
+    REQUIRE(IsDuplicateId(state, 0, 0) == false);
+    REQUIRE(IsDuplicateId(state, 0, 1) == false);
+}

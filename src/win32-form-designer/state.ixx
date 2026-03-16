@@ -260,6 +260,7 @@ export namespace Designer
 		int draggingGuidePos = -1;
 		Win32::POINT lastCursorPos = { -1, -1 }; // form coordinates for ruler indicator
 		Theme theme = LightTheme();
+		std::set<Win32::UINT> invalidFields;
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

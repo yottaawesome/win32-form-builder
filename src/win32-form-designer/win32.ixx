@@ -84,6 +84,7 @@ export namespace Win32
 		::TextOutW,
 		::SetTextColor,
 		::SetBkColor,
+		::CreateSolidBrush,
 		::CreateFontW,
 		::Rectangle,
 		::CreateCompatibleDC,
@@ -146,6 +147,7 @@ export namespace Win32
 		constexpr auto NcDestroy    = WM_NCDESTROY;
 		constexpr auto RButtonUp    = WM_RBUTTONUP;
 		constexpr auto Notify       = WM_NOTIFY;
+		constexpr auto CtlColorEdit = WM_CTLCOLOREDIT;
 	}
 
 	namespace TrackPopup
@@ -380,6 +382,7 @@ export namespace Win32
 
 	using ::EnumChildWindows;
 	using ::GetModuleFileNameW;
+	using ::GetDlgCtrlID;
 
 	constexpr auto GclpHbrBackground = GCLP_HBRBACKGROUND;
 

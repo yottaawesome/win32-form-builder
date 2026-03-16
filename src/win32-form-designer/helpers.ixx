@@ -20,6 +20,36 @@ namespace Designer
 		return result;
 	}
 
+	// Checks whether a wide string is a valid C++ identifier (or empty).
+	export auto IsValidIdentifier(const wchar_t* str) -> bool
+	{
+		if (!str || str[0] == L'\0') return true; // empty is valid (optional field)
+		if (!(str[0] == L'_' || (str[0] >= L'A' && str[0] <= L'Z') ||
+			(str[0] >= L'a' && str[0] <= L'z')))
+			return false;
+		for (int i = 1; str[i] != L'\0'; ++i)
+		{
+			auto ch = str[i];
+			if (!(ch == L'_' || (ch >= L'A' && ch <= L'Z') ||
+				(ch >= L'a' && ch <= L'z') || (ch >= L'0' && ch <= L'9')))
+				return false;
+		}
+		return true;
+	}
+
+	// Checks whether a control ID is used by another control.
+	export auto IsDuplicateId(const DesignState& state, int id, int excludeIndex) -> bool
+	{
+		if (id == 0) return false; // 0 is a common default, allow duplicates
+		for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+		{
+			if (i == excludeIndex) continue;
+			if (state.entries[i].control->id == id)
+				return true;
+		}
+		return false;
+	}
+
 	// Returns the pixel offset for rulers (0 when rulers are hidden).
 	export auto RulerOffset(const DesignState& state) -> int
 	{
