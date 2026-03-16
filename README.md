@@ -1,8 +1,14 @@
-# win32-form-builder
+# Win32 Form Builder
 
-A visual form designer and runtime for Win32 applications, built with C++20 modules.
+## Introduction
 
-Design forms by dragging and dropping controls onto a canvas, configure properties and events, then save as JSON or export as standalone C++ source code. Load and run the forms with the included runtime.
+An experimental visual form designer and runtime for Win32 applications, built with C++20 modules, that uses JSON as its layout format. Design forms by dragging and dropping controls onto a canvas, configure properties and events, then save as JSON or export as standalone C++ source code. Load and run the forms with the included runtime. This project has been almost exclusively vibe coded as an experiment in AI-first development workflows.
+
+## Why a form builder?
+
+Native Win32 form builders are sorely lacking, and the idea has been in the back of my head for some time to experiment with building my own. Currently, robust form designers really only exist for the dotnet ecosystem (e.g. WPF), with the native C++ Win32 space largely dependent on designers provided by frameworks like Qt or wxWidgets. While these frameworks are powerful, they're built for cross-platform development and are often simply overengineered for building simple Win32 forms. Many of these frameworks are also quite old, having their use rooted in the design choices of '90s and 2000s-style object-oriented programming, whereas I was wanting to experiment with newer features of C++. 
+
+On the Microsoft front for UI frameworks, things are even worse. Despite being billed as the premier UI framework for Windows, WinUI3 still lacks a visual designer years after its release. Moreover, Microsoft seems to be living up to its track record of creating UI frameworks only to slowly abandon them years later, with WinUI3 seeing significantly less investment from Microsoft as time has gone on. This is not even mentioning that building WinUI3 UIs with C++ is a hot mess of IDL and COM, with the end result being a UI that consumes Electron-like amounts of system resources for even the most basic examples.
 
 ## Projects
 
