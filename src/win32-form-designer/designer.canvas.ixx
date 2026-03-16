@@ -13,6 +13,26 @@ void RefreshZOrderPanel(DesignState& state);
 
 export void PopulateControls(DesignState& state)
 {
+    // Flatten nested children into top-level controls so all controls
+    // appear on the designer canvas (designer uses a flat model).
+    auto flatControls = std::vector<FormDesigner::Control>{};
+    for (auto& control : state.form.controls)
+    {
+        flatControls.push_back(control);
+        if (!control.children.empty())
+        {
+            for (auto child : control.children)
+            {
+                child.rect.x += control.rect.x;
+                child.rect.y += control.rect.y;
+                flatControls.push_back(std::move(child));
+            }
+            // Clear children on the GroupBox — designer treats everything flat.
+            flatControls[flatControls.size() - 1 - control.children.size()].children.clear();
+        }
+    }
+    state.form.controls = std::move(flatControls);
+
     for (auto& control : state.form.controls)
     {
         auto* className = FormDesigner::ClassNameFor(control.type);
