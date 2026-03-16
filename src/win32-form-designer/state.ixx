@@ -93,7 +93,10 @@ export namespace Designer
 		Win32::HWND hwnd;
 	};
 
-	enum class DragMode { None, Move, Resize, CreateGuide };
+	enum class DragMode { None, Move, Resize, CreateGuide, ResizeForm };
+
+	// Which edge(s) of the form boundary are being dragged.
+	enum class FormEdge { None, Right, Bottom, BottomRight };
 
 	constexpr int HANDLE_SIZE = 6;
 	constexpr int HANDLE_HALF = HANDLE_SIZE / 2;
@@ -220,6 +223,7 @@ export namespace Designer
 		std::set<int> selection;
 
 		DragMode dragMode = DragMode::None;
+		FormEdge formEdge = FormEdge::None;
 		int activeHandle = -1;
 		int dragAnchor = -1;
 		Win32::POINT dragStart = {};

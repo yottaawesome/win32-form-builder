@@ -139,6 +139,34 @@ namespace Designer
 		}
 	}
 
+	constexpr int FORM_EDGE_THRESHOLD = 5;
+
+	// Hit-test the form boundary edges (right, bottom, corner).
+	// x, y are in form coordinates.
+	export auto HitTestFormBoundary(const DesignState& state, int x, int y) -> FormEdge
+	{
+		int fw = state.form.width;
+		int fh = state.form.height;
+		bool nearRight  = std::abs(x - fw) <= FORM_EDGE_THRESHOLD && y >= -FORM_EDGE_THRESHOLD && y <= fh + FORM_EDGE_THRESHOLD;
+		bool nearBottom = std::abs(y - fh) <= FORM_EDGE_THRESHOLD && x >= -FORM_EDGE_THRESHOLD && x <= fw + FORM_EDGE_THRESHOLD;
+
+		if (nearRight && nearBottom) return FormEdge::BottomRight;
+		if (nearRight)              return FormEdge::Right;
+		if (nearBottom)             return FormEdge::Bottom;
+		return FormEdge::None;
+	}
+
+	export auto CursorForFormEdge(FormEdge edge) -> Win32::LPCWSTR
+	{
+		switch (edge)
+		{
+		case FormEdge::Right:       return Win32::Cursors::SizeWE;
+		case FormEdge::Bottom:      return Win32::Cursors::SizeNS;
+		case FormEdge::BottomRight: return Win32::Cursors::SizeNWSE;
+		default:                    return Win32::Cursors::Arrow;
+		}
+	}
+
 	export void ApplyResize(FormDesigner::Rect& r, int handle, int dx, int dy,
 		const Win32::POINT& startPos, const Win32::SIZE& startSize)
 	{

@@ -596,6 +596,19 @@ namespace Designer
 				return 0;
 			}
 
+			// Check if click is near the form boundary edges for form resize.
+			auto edge = HitTestFormBoundary(*state, x, y);
+			if (edge != FormEdge::None && !state->placementMode)
+			{
+				PushUndo(*state);
+				state->dragMode = DragMode::ResizeForm;
+				state->formEdge = edge;
+				state->dragStart = { x, y };
+				state->controlStartSize = { state->form.width, state->form.height };
+				Win32::SetCapture(hwnd);
+				return 0;
+			}
+
 			bool ctrlHeld = (Win32::GetKeyState(Win32::Keys::Control) & 0x8000) != 0;
 
 			// Resize handles: only when exactly one unlocked control is selected.
@@ -683,6 +696,35 @@ namespace Designer
 			{
 				state->draggingGuidePos = state->draggingGuideHorizontal ? y : x;
 				Win32::InvalidateRect(hwnd, nullptr, true);
+				return 0;
+			}
+
+			if (state->dragMode == DragMode::ResizeForm)
+			{
+				int dx = x - state->dragStart.x;
+				int dy = y - state->dragStart.y;
+				constexpr int MIN_FORM_SIZE = 50;
+
+				if (state->formEdge == FormEdge::Right || state->formEdge == FormEdge::BottomRight)
+				{
+					int newW = state->controlStartSize.cx + dx;
+					state->form.width = std::max(newW, MIN_FORM_SIZE);
+				}
+				if (state->formEdge == FormEdge::Bottom || state->formEdge == FormEdge::BottomRight)
+				{
+					int newH = state->controlStartSize.cy + dy;
+					state->form.height = std::max(newH, MIN_FORM_SIZE);
+				}
+
+				if (state->snapToGrid)
+				{
+					state->form.width = SnapValue(state->form.width, state->gridSize);
+					state->form.height = SnapValue(state->form.height, state->gridSize);
+				}
+
+				Win32::InvalidateRect(hwnd, nullptr, true);
+				MarkDirty(*state);
+				UpdatePropertyPanel(*state);
 				return 0;
 			}
 
@@ -795,7 +837,13 @@ namespace Designer
 				if (handle >= 0)
 					Win32::SetCursor(Win32::LoadCursorW(nullptr, CursorForHandle(handle)));
 				else
-					Win32::SetCursor(Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow));
+				{
+					auto edge = HitTestFormBoundary(*state, x, y);
+					if (edge != FormEdge::None)
+						Win32::SetCursor(Win32::LoadCursorW(nullptr, CursorForFormEdge(edge)));
+					else
+						Win32::SetCursor(Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow));
+				}
 			}
 
 			// Update cursor position in status bar.
@@ -839,6 +887,7 @@ namespace Designer
 			}
 
 			state->dragMode = DragMode::None;
+			state->formEdge = FormEdge::None;
 			state->activeHandle = -1;
 			state->guides.clear();
 			Win32::ReleaseCapture();
