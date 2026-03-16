@@ -47,6 +47,8 @@ export namespace Win32
 		::GetDlgItemTextW,
 		::GetDlgItemInt,
 		::EnableWindow,
+		::GetWindowTextLengthW,
+		::GetWindowTextW,
 		::SetCapture,
 		::ReleaseCapture,
 		::SetFocus,
@@ -100,7 +102,9 @@ export namespace Win32
 		::CreateCompatibleDC,
 		::CreateCompatibleBitmap,
 		::BitBlt,
-		::DeleteDC
+		::DeleteDC,
+		::SetForegroundWindow,
+		::UnregisterClassW
 		;
 
 	constexpr auto SrcCopy = SRCCOPY;
@@ -189,6 +193,7 @@ export namespace Win32
 		constexpr auto AddString = CB_ADDSTRING;
 		constexpr auto SetCurSel = CB_SETCURSEL;
 		constexpr auto GetCurSel = CB_GETCURSEL;
+		constexpr auto ResetContent = CB_RESETCONTENT;
 	}
 
 	// === Hit test values ===
@@ -229,6 +234,9 @@ export namespace Win32
 		constexpr auto ListBoxNoIntegralHeight  = LBS_NOINTEGRALHEIGHT;
 		constexpr auto ThickFrame               = WS_THICKFRAME;
 		constexpr auto MaximizeBox              = WS_MAXIMIZEBOX;
+		constexpr auto Overlapped               = WS_OVERLAPPED;
+		constexpr auto Caption                  = WS_CAPTION;
+		constexpr auto SysMenu                  = WS_SYSMENU;
 	}
 
 	// === Extended styles ===

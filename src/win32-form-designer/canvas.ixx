@@ -84,6 +84,24 @@ namespace Designer
 
 			ApplyControlFont(state, hwnd, control);
 
+			// Populate ComboBox/ListBox items for design-time display.
+			if (!control.items.empty() &&
+				(control.type == FormDesigner::ControlType::ComboBox ||
+				 control.type == FormDesigner::ControlType::ListBox))
+			{
+				auto addMsg = (control.type == FormDesigner::ControlType::ComboBox)
+					? Win32::ComboBox::AddString : Win32::ListBox::AddString;
+				for (auto& item : control.items)
+					Win32::SendMessageW(hwnd, addMsg, 0,
+						reinterpret_cast<Win32::LPARAM>(item.c_str()));
+				if (control.selectedIndex >= 0)
+				{
+					auto selMsg = (control.type == FormDesigner::ControlType::ComboBox)
+						? Win32::ComboBox::SetCurSel : Win32::ListBox::SetCurSel;
+					Win32::SendMessageW(hwnd, selMsg, control.selectedIndex, 0);
+				}
+			}
+
 			Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
 			state.entries.push_back({ &control, hwnd });
 		}

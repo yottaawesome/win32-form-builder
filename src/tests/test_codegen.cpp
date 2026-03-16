@@ -563,3 +563,85 @@ TEST_CASE("GenerateCode emits tooltip only for controls that have one", "[codege
 	auto second = code.find("TTM_ADDTOOL", pos + 1);
 	REQUIRE(second == std::string::npos);
 }
+
+// === Items code generation tests ===
+
+TEST_CASE("GenerateCode emits CB_ADDSTRING for ComboBox items", "[codegen][items]")
+{
+	Form form;
+	form.title = L"Items Test";
+
+	Control c;
+	c.type = ControlType::ComboBox;
+	c.text = L"";
+	c.id = 101;
+	c.items = { L"Apple", L"Banana", L"Cherry" };
+	c.selectedIndex = 1;
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "CB_ADDSTRING"));
+	REQUIRE(contains(code, "Apple"));
+	REQUIRE(contains(code, "Banana"));
+	REQUIRE(contains(code, "Cherry"));
+	REQUIRE(contains(code, "CB_SETCURSEL"));
+}
+
+TEST_CASE("GenerateCode emits LB_ADDSTRING for ListBox items", "[codegen][items]")
+{
+	Form form;
+	form.title = L"ListBox Items";
+
+	Control c;
+	c.type = ControlType::ListBox;
+	c.text = L"";
+	c.id = 201;
+	c.items = { L"Red", L"Green", L"Blue" };
+	c.selectedIndex = 0;
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "LB_ADDSTRING"));
+	REQUIRE(contains(code, "Red"));
+	REQUIRE(contains(code, "Green"));
+	REQUIRE(contains(code, "Blue"));
+	REQUIRE(contains(code, "LB_SETCURSEL"));
+}
+
+TEST_CASE("GenerateCode omits ADDSTRING when no items", "[codegen][items]")
+{
+	Form form;
+	form.title = L"No Items";
+
+	Control c;
+	c.type = ControlType::ComboBox;
+	c.text = L"";
+	c.id = 101;
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE_FALSE(contains(code, "CB_ADDSTRING"));
+	REQUIRE_FALSE(contains(code, "CB_SETCURSEL"));
+}
+
+TEST_CASE("GenerateCode omits SETCURSEL when selectedIndex is -1", "[codegen][items]")
+{
+	Form form;
+	form.title = L"No Selection";
+
+	Control c;
+	c.type = ControlType::ComboBox;
+	c.text = L"";
+	c.id = 101;
+	c.items = { L"X", L"Y" };
+	c.selectedIndex = -1;
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "CB_ADDSTRING"));
+	REQUIRE_FALSE(contains(code, "CB_SETCURSEL"));
+}

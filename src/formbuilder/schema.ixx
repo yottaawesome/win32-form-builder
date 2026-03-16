@@ -113,6 +113,8 @@ export namespace FormDesigner
 		int anchor = Anchor::Default;
 		FontInfo font;
 		std::wstring tooltip;
+		std::vector<std::wstring> items;
+		int selectedIndex = -1;
 		std::vector<Control> children;
 	};
 

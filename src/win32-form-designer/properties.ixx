@@ -100,6 +100,25 @@ namespace Designer
 		if (fontLblHdr) Win32::ShowWindow(fontLblHdr, ctrlShow);
 		auto formFontLblHdr = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_LABEL + IDL_OFFSET);
 		if (formFontLblHdr) Win32::ShowWindow(formFontLblHdr, formShow);
+
+		// Items controls — visible only for ComboBox/ListBox.
+		int sel = SingleSelection(state);
+		bool isListType = false;
+		if (hasSel && sel >= 0 && sel < static_cast<int>(state.entries.size()))
+		{
+			auto t = state.entries[sel].control->type;
+			isListType = (t == FormDesigner::ControlType::ComboBox ||
+						  t == FormDesigner::ControlType::ListBox);
+		}
+		int itemsShow = isListType ? Win32::Sw_Show : Win32::Sw_Hide;
+		Win32::UINT itemsIds[] = { IDC_PROP_ITEMS_LABEL, IDC_PROP_ITEMS_BTN, IDC_PROP_SELINDEX };
+		for (auto id : itemsIds)
+		{
+			auto h = Win32::GetDlgItem(panel, id);
+			if (h) Win32::ShowWindow(h, itemsShow);
+			auto lbl = Win32::GetDlgItem(panel, id + IDL_OFFSET);
+			if (lbl) Win32::ShowWindow(lbl, itemsShow);
+		}
 	}
 
 	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
@@ -163,11 +182,18 @@ namespace Designer
 
 		Win32::SetDlgItemTextW(panel, IDC_PROP_TOOLTIP, ctrl.tooltip.c_str());
 
+		// Items summary label and selectedIndex.
+		auto itemsLabel = std::format(L"{} item{}", ctrl.items.size(),
+			ctrl.items.size() == 1 ? L"" : L"s");
+		Win32::SetDlgItemTextW(panel, IDC_PROP_ITEMS_LABEL, itemsLabel.c_str());
+		Win32::SetDlgItemInt(panel, IDC_PROP_SELINDEX,
+			static_cast<Win32::UINT>(ctrl.selectedIndex < 0 ? -1 : ctrl.selectedIndex), true);
+
 		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TOOLTIP };
+			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
 	}
@@ -198,6 +224,157 @@ namespace Designer
 
 		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_FONT_LABEL,
 			FormFontDisplayString(state.form.font).c_str());
+	}
+
+	// Refreshes the items displayed in a design-time ComboBox/ListBox HWND.
+	void RefreshDesignTimeItems(DesignState& state, ControlEntry& entry)
+	{
+		auto& ctrl = *entry.control;
+		if (ctrl.type != FormDesigner::ControlType::ComboBox &&
+			ctrl.type != FormDesigner::ControlType::ListBox)
+			return;
+
+		bool isCb = (ctrl.type == FormDesigner::ControlType::ComboBox);
+		auto resetMsg = isCb ? Win32::ComboBox::ResetContent : Win32::ListBox::ResetContent;
+		auto addMsg   = isCb ? Win32::ComboBox::AddString : Win32::ListBox::AddString;
+		auto selMsg   = isCb ? Win32::ComboBox::SetCurSel : Win32::ListBox::SetCurSel;
+
+		Win32::SendMessageW(entry.hwnd, resetMsg, 0, 0);
+		for (auto& item : ctrl.items)
+			Win32::SendMessageW(entry.hwnd, addMsg, 0,
+				reinterpret_cast<Win32::LPARAM>(item.c_str()));
+		if (ctrl.selectedIndex >= 0)
+			Win32::SendMessageW(entry.hwnd, selMsg, ctrl.selectedIndex, 0);
+	}
+
+	// Shows a modal dialog to edit items (one per line). Returns true if user confirmed.
+	bool ShowEditItemsDialog(DesignState& state, std::vector<std::wstring>& items)
+	{
+		constexpr int DLG_W = 300, DLG_H = 350;
+		constexpr int IDC_EDIT = 100, IDC_OK = 101, IDC_CANCEL = 102;
+
+		struct DlgData
+		{
+			std::vector<std::wstring>* items;
+			bool confirmed = false;
+		};
+		DlgData data{ &items };
+
+		// Register a temporary window class for the dialog.
+		auto hInst = state.hInstance;
+		Win32::WNDCLASSEXW wc = {
+			.cbSize = sizeof(Win32::WNDCLASSEXW),
+			.lpfnWndProc = Win32::DefWindowProcW,
+			.hInstance = hInst,
+			.hCursor = Win32::LoadCursorW(nullptr, Win32::Cursors::Arrow),
+			.hbrBackground = reinterpret_cast<Win32::HBRUSH>(Win32::ColorBtnFace + 1),
+			.lpszClassName = L"EditItemsDlg",
+		};
+		Win32::RegisterClassExW(&wc);
+
+		// Center on parent.
+		Win32::RECT parentRc;
+		Win32::GetWindowRect(state.surfaceHwnd, &parentRc);
+		int cx = (parentRc.left + parentRc.right - DLG_W) / 2;
+		int cy = (parentRc.top + parentRc.bottom - DLG_H) / 2;
+
+		auto dlg = Win32::CreateWindowExW(
+			Win32::ExStyles::ClientEdge, L"EditItemsDlg", L"Edit Items",
+			Win32::Styles::Overlapped | Win32::Styles::Caption | Win32::Styles::SysMenu,
+			cx, cy, DLG_W, DLG_H,
+			state.surfaceHwnd, nullptr, hInst, nullptr);
+
+		auto font = reinterpret_cast<Win32::WPARAM>(
+			Win32::GetStockObject(Win32::DefaultGuiFont));
+
+		// Build initial text: one item per line.
+		std::wstring initText;
+		for (size_t i = 0; i < items.size(); ++i)
+		{
+			initText += items[i];
+			if (i + 1 < items.size())
+				initText += L"\r\n";
+		}
+
+		auto edit = Win32::CreateWindowExW(
+			Win32::ExStyles::ClientEdge, L"EDIT", initText.c_str(),
+			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::TabStop |
+			Win32::Styles::EditMultiLine | Win32::Styles::EditAutoVScroll |
+			Win32::Styles::EditWantReturn | Win32::Styles::VScroll,
+			10, 10, DLG_W - 35, DLG_H - 90,
+			dlg, reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(IDC_EDIT)),
+			hInst, nullptr);
+		Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+
+		auto okBtn = Win32::CreateWindowExW(0, L"BUTTON", L"OK",
+			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
+			DLG_W - 180, DLG_H - 70, 75, 28,
+			dlg, reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(IDC_OK)),
+			hInst, nullptr);
+		Win32::SendMessageW(okBtn, Win32::Messages::SetFont, font, true);
+
+		auto cancelBtn = Win32::CreateWindowExW(0, L"BUTTON", L"Cancel",
+			Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
+			DLG_W - 95, DLG_H - 70, 75, 28,
+			dlg, reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(IDC_CANCEL)),
+			hInst, nullptr);
+		Win32::SendMessageW(cancelBtn, Win32::Messages::SetFont, font, true);
+
+		Win32::ShowWindow(dlg, Win32::Sw_Show);
+		Win32::EnableWindow(state.surfaceHwnd, false);
+
+		// Modal message loop.
+		Win32::MSG msg;
+		bool running = true;
+		while (running && Win32::GetMessageW(&msg, nullptr, 0, 0) > 0)
+		{
+			if (msg.message == Win32::Messages::Command)
+			{
+				auto cmdId = Win32::GetLowWord(msg.wParam);
+				if (cmdId == IDC_OK && msg.hwnd == dlg)
+				{
+					// Read the edit text and split by lines.
+					int len = Win32::GetWindowTextLengthW(edit);
+					auto buf = std::wstring(len + 1, L'\0');
+					Win32::GetWindowTextW(edit, buf.data(), len + 1);
+					buf.resize(len);
+
+					items.clear();
+					std::wistringstream stream(buf);
+					std::wstring line;
+					while (std::getline(stream, line))
+					{
+						// Remove trailing \r from \r\n pairs.
+						if (!line.empty() && line.back() == L'\r')
+							line.pop_back();
+						if (!line.empty())
+							items.push_back(std::move(line));
+					}
+					data.confirmed = true;
+					running = false;
+				}
+				else if (cmdId == IDC_CANCEL && msg.hwnd == dlg)
+				{
+					running = false;
+				}
+			}
+			else if (msg.message == Win32::Messages::Close && msg.hwnd == dlg)
+			{
+				running = false;
+			}
+			else
+			{
+				Win32::TranslateMessage(&msg);
+				Win32::DispatchMessageW(&msg);
+			}
+		}
+
+		Win32::EnableWindow(state.surfaceHwnd, true);
+		Win32::SetForegroundWindow(state.surfaceHwnd);
+		Win32::DestroyWindow(dlg);
+		Win32::UnregisterClassW(L"EditItemsDlg", hInst);
+
+		return data.confirmed;
 	}
 
 	export void UpdatePropertyPanel(DesignState& state)
@@ -330,6 +507,18 @@ namespace Designer
 			ctrl.tooltip = buf;
 			break;
 		}
+		case IDC_PROP_SELINDEX:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_SELINDEX, &ok, true));
+			if (ok)
+			{
+				int maxIdx = static_cast<int>(ctrl.items.size()) - 1;
+				ctrl.selectedIndex = (val < 0) ? -1 : std::min(val, maxIdx);
+				RefreshDesignTimeItems(state, entry);
+			}
+			break;
+		}
 		default:
 			return;
 		}
@@ -422,6 +611,13 @@ namespace Designer
 			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, id, &ok, true));
 			if (!ok) return L"Must be a number";
 			if (val < 0) return L"Must be >= 0";
+			break;
+		}
+		case IDC_PROP_SELINDEX:
+		{
+			Win32::BOOL ok = false;
+			Win32::GetDlgItemInt(panel, id, &ok, true);
+			if (!ok) return L"Must be a number";
 			break;
 		}
 		case IDC_PROP_ONCLICK:
@@ -613,6 +809,50 @@ namespace Designer
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
 
+		// Items row: read-only label + "Edit..." button (ComboBox/ListBox only).
+		y += 26;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Items:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				5, y + 2, 55, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ITEMS_LABEL + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto itemsLabel = Win32::CreateWindowExW(0, L"STATIC", L"0 items",
+				Win32::Styles::Child | Win32::Styles::StaticLeft,
+				65, y + 2, 85, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ITEMS_LABEL)),
+				hInst, nullptr);
+			Win32::SendMessageW(itemsLabel, Win32::Messages::SetFont, font, true);
+
+			auto itemsBtn = Win32::CreateWindowExW(0, L"BUTTON", L"Edit...",
+				Win32::Styles::Child | Win32::Styles::ButtonPush,
+				155, y, 60, 22, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ITEMS_BTN)),
+				hInst, nullptr);
+			Win32::SendMessageW(itemsBtn, Win32::Messages::SetFont, font, true);
+		}
+
+		// SelectedIndex row (ComboBox/ListBox only).
+		y += 26;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"SelIdx:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				5, y + 2, 55, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_SELINDEX + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"-1",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				65, y, 150, 22, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_SELINDEX)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			Win32::EnableWindow(edit, false);
+		}
+
 		// Form property rows (visible when no control is selected).
 		PropRow formRows[] = {
 			{ L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -713,7 +953,7 @@ namespace Designer
 		}
 	}
 
-	constexpr int PROP_CONTENT_CTRL = 30 + 19 * 26 + 10;  // control properties + tooltip + font row: 534px
+	constexpr int PROP_CONTENT_CTRL = 30 + 21 * 26 + 10;  // control props + items/selIndex rows: 586px
 	constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 8 + 26 + 10;  // form properties + style checkboxes + font row: 298px
 	constexpr int SCROLL_LINE = 26;                         // one row height
 
@@ -1017,10 +1257,36 @@ namespace Designer
 				return 0;
 			}
 
+			// Items "Edit..." button.
+			if (id == IDC_PROP_ITEMS_BTN && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+
+				auto& ctrl = *state->entries[sel].control;
+				auto items = ctrl.items;
+				if (ShowEditItemsDialog(*state, items))
+				{
+					PushUndo(*state);
+					ctrl.items = std::move(items);
+					// Clamp selectedIndex to valid range.
+					if (!ctrl.items.empty())
+						ctrl.selectedIndex = std::clamp(ctrl.selectedIndex, -1,
+							static_cast<int>(ctrl.items.size()) - 1);
+					else
+						ctrl.selectedIndex = -1;
+					RefreshDesignTimeItems(*state, state->entries[sel]);
+					UpdatePropertyPanel(*state);
+					MarkDirty(*state);
+				}
+				return 0;
+			}
+
 			// Property edits (validate then apply on focus loss).
 			if (code == Win32::Notifications::EditKillFocus)
 			{
-				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX) || id == IDC_PROP_TOOLTIP;
+				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
+					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX;
 				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR);
 				if (isCtrlProp || isFormProp)
 					ValidateAndApply(*state, hwnd, id, isFormProp);

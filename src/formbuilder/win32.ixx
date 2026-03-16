@@ -100,6 +100,8 @@ export namespace Win32
 		constexpr auto TreeViewLinesAtRoot = TVS_LINESATROOT;
 		constexpr auto EditMultiLine = ES_MULTILINE;
 		constexpr auto EditAutoVScroll = ES_AUTOVSCROLL;
+		constexpr auto EditWantReturn = ES_WANTRETURN;
+		constexpr auto VertScroll = WS_VSCROLL;
 
 		// Window style flags for form-level properties.
 		constexpr auto Caption     = WS_CAPTION;
@@ -159,6 +161,22 @@ export namespace Win32
 		constexpr auto SetCheck = BM_SETCHECK;
 		constexpr auto Checked = BST_CHECKED;
 		constexpr auto Unchecked = BST_UNCHECKED;
+	}
+
+	// === ComboBox messages (for loader) ===
+	namespace CbMessages
+	{
+		constexpr auto AddString = CB_ADDSTRING;
+		constexpr auto SetCurSel = CB_SETCURSEL;
+		constexpr auto ResetContent = CB_RESETCONTENT;
+	}
+
+	// === ListBox messages (for loader) ===
+	namespace LbMessages
+	{
+		constexpr auto AddString = LB_ADDSTRING;
+		constexpr auto SetCurSel = LB_SETCURSEL;
+		constexpr auto ResetContent = LB_RESETCONTENT;
 	}
 
 	// === Control class names ===

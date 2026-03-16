@@ -813,3 +813,165 @@ TEST_CASE("Multiple controls with different tooltips round-trip", "[parser][seri
     REQUIRE(parsed.controls[1].tooltip.empty());
     REQUIRE(parsed.controls[2].tooltip == L"Type here");
 }
+
+// === Items parse and serialize tests ===
+
+TEST_CASE("ParseForm parses items array for ComboBox", "[parser][items]")
+{
+    auto json = R"({
+        "title":"T","width":400,"height":300,
+        "controls":[{
+            "type":"ComboBox","text":"","rect":[10,10,120,24],
+            "items":["Apple","Banana","Cherry"]
+        }]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].items.size() == 3);
+    REQUIRE(form.controls[0].items[0] == L"Apple");
+    REQUIRE(form.controls[0].items[1] == L"Banana");
+    REQUIRE(form.controls[0].items[2] == L"Cherry");
+}
+
+TEST_CASE("ParseForm parses items array for ListBox", "[parser][items]")
+{
+    auto json = R"({
+        "title":"T","width":400,"height":300,
+        "controls":[{
+            "type":"ListBox","text":"","rect":[10,10,120,80],
+            "items":["Red","Green","Blue"]
+        }]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].items.size() == 3);
+    REQUIRE(form.controls[0].items[0] == L"Red");
+    REQUIRE(form.controls[0].items[1] == L"Green");
+    REQUIRE(form.controls[0].items[2] == L"Blue");
+}
+
+TEST_CASE("ParseForm parses selectedIndex", "[parser][items]")
+{
+    auto json = R"({
+        "title":"T","width":400,"height":300,
+        "controls":[{
+            "type":"ComboBox","text":"","rect":[10,10,120,24],
+            "items":["A","B","C"],
+            "selectedIndex":1
+        }]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].selectedIndex == 1);
+}
+
+TEST_CASE("ParseForm defaults to empty items and selectedIndex -1", "[parser][items]")
+{
+    auto json = R"({"title":"T","width":400,"height":300,"controls":[{"type":"ComboBox","text":"","rect":[10,10,120,24]}]})";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].items.empty());
+    REQUIRE(form.controls[0].selectedIndex == -1);
+}
+
+TEST_CASE("SerializeForm includes items when present", "[serializer][items]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::ComboBox;
+    form.controls[0].items = { L"One", L"Two", L"Three" };
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"items\"") != std::string::npos);
+    REQUIRE(json.find("One") != std::string::npos);
+    REQUIRE(json.find("Two") != std::string::npos);
+    REQUIRE(json.find("Three") != std::string::npos);
+}
+
+TEST_CASE("SerializeForm omits items when empty", "[serializer][items]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::ComboBox;
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"items\"") == std::string::npos);
+}
+
+TEST_CASE("SerializeForm includes selectedIndex when >= 0", "[serializer][items]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::ComboBox;
+    form.controls[0].items = { L"A", L"B" };
+    form.controls[0].selectedIndex = 1;
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"selectedIndex\"") != std::string::npos);
+    REQUIRE(json.find("\"selectedIndex\": 1") != std::string::npos);
+}
+
+TEST_CASE("SerializeForm omits selectedIndex when -1", "[serializer][items]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::ComboBox;
+    form.controls[0].items = { L"A", L"B" };
+    form.controls[0].selectedIndex = -1;
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"selectedIndex\"") == std::string::npos);
+}
+
+TEST_CASE("Items round-trip through serialize/parse", "[parser][serializer][items]")
+{
+    Form original;
+    original.controls.emplace_back();
+    original.controls[0].type = ControlType::ListBox;
+    original.controls[0].items = { L"First", L"Second", L"Third" };
+    original.controls[0].selectedIndex = 2;
+
+    auto json = SerializeForm(original);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].items.size() == 3);
+    REQUIRE(parsed.controls[0].items[0] == L"First");
+    REQUIRE(parsed.controls[0].items[1] == L"Second");
+    REQUIRE(parsed.controls[0].items[2] == L"Third");
+    REQUIRE(parsed.controls[0].selectedIndex == 2);
+}
+
+TEST_CASE("Multiple controls with and without items round-trip", "[parser][serializer][items]")
+{
+    Form original;
+
+    Control c1;
+    c1.type = ControlType::ComboBox;
+    c1.text = L"";
+    c1.id = 1;
+    c1.items = { L"Yes", L"No" };
+    c1.selectedIndex = 0;
+
+    Control c2;
+    c2.type = ControlType::Button;
+    c2.text = L"OK";
+    c2.id = 2;
+    // No items on a button
+
+    Control c3;
+    c3.type = ControlType::ListBox;
+    c3.text = L"";
+    c3.id = 3;
+    c3.items = { L"Cat", L"Dog", L"Bird" };
+    c3.selectedIndex = -1;
+
+    original.controls.push_back(c1);
+    original.controls.push_back(c2);
+    original.controls.push_back(c3);
+
+    auto json = SerializeForm(original);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].items.size() == 2);
+    REQUIRE(parsed.controls[0].selectedIndex == 0);
+    REQUIRE(parsed.controls[1].items.empty());
+    REQUIRE(parsed.controls[1].selectedIndex == -1);
+    REQUIRE(parsed.controls[2].items.size() == 3);
+    REQUIRE(parsed.controls[2].selectedIndex == -1);
+}

@@ -500,6 +500,25 @@ namespace FormDesigner
 				out << indent << "  SendMessageW(hTooltip, TTM_ADDTOOL, 0, (LPARAM)&ti); }\n";
 			}
 
+			// Emit ComboBox/ListBox item population.
+			if (!ctrl.items.empty() &&
+				(ctrl.type == ControlType::ComboBox || ctrl.type == ControlType::ListBox))
+			{
+				auto addMsgName = (ctrl.type == ControlType::ComboBox) ? "CB_ADDSTRING" : "LB_ADDSTRING";
+				for (auto& item : ctrl.items)
+				{
+					auto itemLiteral = std::format("L\"{}\"", EscapeWString(item));
+					out << indent << "SendMessageW(" << varName << ", " << addMsgName
+						<< ", 0, (LPARAM)" << itemLiteral << ");\n";
+				}
+				if (ctrl.selectedIndex >= 0)
+				{
+					auto selMsgName = (ctrl.type == ControlType::ComboBox) ? "CB_SETCURSEL" : "LB_SETCURSEL";
+					out << indent << "SendMessageW(" << varName << ", " << selMsgName
+						<< ", " << ctrl.selectedIndex << ", 0);\n";
+				}
+			}
+
 			if (!ctrl.children.empty())
 			{
 				out << "\n";

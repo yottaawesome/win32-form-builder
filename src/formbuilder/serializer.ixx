@@ -104,6 +104,17 @@ export namespace FormDesigner
 		if (not control.tooltip.empty())
 			j["tooltip"] = std::string(control.tooltip.begin(), control.tooltip.end());
 
+		if (!control.items.empty())
+		{
+			auto arr = nlohmann::json::array();
+			for (auto& item : control.items)
+				arr.push_back(std::string(item.begin(), item.end()));
+			j["items"] = arr;
+		}
+
+		if (control.selectedIndex >= 0)
+			j["selectedIndex"] = control.selectedIndex;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

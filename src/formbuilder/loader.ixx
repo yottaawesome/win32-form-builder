@@ -81,6 +81,23 @@ export namespace FormDesigner
 					reinterpret_cast<Win32::LPARAM>(&ti));
 			}
 
+			// Populate ComboBox/ListBox items.
+			if (!control.items.empty() &&
+				(control.type == ControlType::ComboBox || control.type == ControlType::ListBox))
+			{
+				auto addMsg = (control.type == ControlType::ComboBox)
+					? Win32::CbMessages::AddString : Win32::LbMessages::AddString;
+				for (auto& item : control.items)
+					Win32::SendMessageW(hwnd, addMsg, 0,
+						reinterpret_cast<Win32::LPARAM>(item.c_str()));
+				if (control.selectedIndex >= 0)
+				{
+					auto selMsg = (control.type == ControlType::ComboBox)
+						? Win32::CbMessages::SetCurSel : Win32::LbMessages::SetCurSel;
+					Win32::SendMessageW(hwnd, selMsg, control.selectedIndex, 0);
+				}
+			}
+
 			if (not control.children.empty())
 				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, hTooltips);
 		}

@@ -138,6 +138,16 @@ export namespace FormDesigner
 			control.tooltip = std::wstring(narrow.begin(), narrow.end());
 		}
 
+		if (j.contains("items"))
+			for (auto& item : j["items"])
+			{
+				auto narrow = item.get<std::string>();
+				control.items.emplace_back(narrow.begin(), narrow.end());
+			}
+
+		if (j.contains("selectedIndex"))
+			control.selectedIndex = j["selectedIndex"].get<int>();
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

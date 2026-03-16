@@ -80,6 +80,11 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_FONT_CLEAR = 51021;
 	constexpr Win32::UINT IDC_PROP_TOOLTIP    = 51022;
 
+	// Items property controls (ComboBox/ListBox).
+	constexpr Win32::UINT IDC_PROP_ITEMS_LABEL = 51023;
+	constexpr Win32::UINT IDC_PROP_ITEMS_BTN   = 51024;
+	constexpr Win32::UINT IDC_PROP_SELINDEX    = 51025;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;
