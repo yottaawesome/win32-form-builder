@@ -34,6 +34,9 @@ export namespace FormDesigner
 		RichEdit,
 	};
 
+	// Text alignment options for controls that support it.
+	enum class TextAlign { Left, Center, Right };
+
 	struct Control
 	{
 		ControlType type = ControlType::Window;
@@ -50,6 +53,7 @@ export namespace FormDesigner
 		std::string onBlur;
 		std::string onCheck;
 		int tabIndex = 0;
+		TextAlign textAlign = TextAlign::Left;
 		std::vector<Control> children;
 	};
 
@@ -99,7 +103,7 @@ export namespace FormDesigner
 		case ControlType::RadioButton: return Win32::Styles::AutoRadioButton;
 		case ControlType::GroupBox:    return Win32::Styles::GroupBox;
 		case ControlType::TextBox:     return Win32::Styles::Border | Win32::Styles::EditAutoHScroll;
-		case ControlType::Label:       return Win32::Styles::StaticLeft;
+		case ControlType::Label:       return 0; // Alignment applied via AlignmentStyleFor
 		case ControlType::ListBox:     return Win32::Styles::ListBoxStandard;
 		case ControlType::ComboBox:    return Win32::Styles::ComboBoxDropDownList;
 		case ControlType::ListView:    return Win32::Styles::ListViewReport | Win32::Styles::ListViewShowSelAlways;
@@ -107,5 +111,43 @@ export namespace FormDesigner
 		case ControlType::RichEdit:    return Win32::Styles::Border | Win32::Styles::EditMultiLine | Win32::Styles::EditAutoVScroll;
 		default:                    return 0;
 		}
+	}
+
+	// Returns the Win32 style bits for text alignment on a given control type.
+	export constexpr auto AlignmentStyleFor(ControlType type, TextAlign align) noexcept -> Win32::DWORD
+	{
+		switch (type)
+		{
+		case ControlType::Label:
+			switch (align)
+			{
+			case TextAlign::Left:   return Win32::Styles::StaticLeft;
+			case TextAlign::Center: return Win32::Styles::StaticCenter;
+			case TextAlign::Right:  return Win32::Styles::StaticRight;
+			}
+			break;
+		case ControlType::TextBox:
+		case ControlType::RichEdit:
+			switch (align)
+			{
+			case TextAlign::Left:   return 0; // ES_LEFT is 0
+			case TextAlign::Center: return Win32::Styles::EditCenter;
+			case TextAlign::Right:  return Win32::Styles::EditRight;
+			}
+			break;
+		case ControlType::Button:
+		case ControlType::CheckBox:
+		case ControlType::RadioButton:
+			switch (align)
+			{
+			case TextAlign::Left:   return Win32::Styles::ButtonLeft;
+			case TextAlign::Center: return Win32::Styles::ButtonCenter;
+			case TextAlign::Right:  return Win32::Styles::ButtonRight;
+			}
+			break;
+		default:
+			break;
+		}
+		return 0;
 	}
 }

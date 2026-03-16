@@ -80,6 +80,13 @@ export namespace Win32
 		constexpr auto GroupBox = BS_GROUPBOX;
 		constexpr auto EditAutoHScroll = ES_AUTOHSCROLL;
 		constexpr auto StaticLeft = SS_LEFT;
+		constexpr auto StaticCenter = SS_CENTER;
+		constexpr auto StaticRight = SS_RIGHT;
+		constexpr auto EditCenter = ES_CENTER;
+		constexpr auto EditRight = ES_RIGHT;
+		constexpr auto ButtonLeft = BS_LEFT;
+		constexpr auto ButtonCenter = BS_CENTER;
+		constexpr auto ButtonRight = BS_RIGHT;
 		constexpr auto ListBoxStandard = LBS_STANDARD;
 		constexpr auto ComboBoxDropDownList = CBS_DROPDOWNLIST;
 		constexpr auto ListViewReport = LVS_REPORT;

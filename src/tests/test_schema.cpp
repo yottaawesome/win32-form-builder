@@ -81,6 +81,7 @@ TEST_CASE("Control has sensible default values", "[schema]")
     REQUIRE(c.onFocus.empty());
     REQUIRE(c.onBlur.empty());
     REQUIRE(c.onCheck.empty());
+    REQUIRE(c.textAlign == TextAlign::Left);
     REQUIRE(c.children.empty());
 }
 
@@ -92,4 +93,34 @@ TEST_CASE("Form has sensible default values", "[schema]")
     REQUIRE(f.height == 480);
     REQUIRE(f.backgroundColor == -1);
     REQUIRE(f.controls.empty());
+}
+
+TEST_CASE("AlignmentStyleFor returns correct style bits for Labels", "[schema]")
+{
+    REQUIRE(AlignmentStyleFor(ControlType::Label, TextAlign::Left) == 0); // SS_LEFT is 0
+    REQUIRE(AlignmentStyleFor(ControlType::Label, TextAlign::Center) != 0);
+    REQUIRE(AlignmentStyleFor(ControlType::Label, TextAlign::Right) != 0);
+    REQUIRE(AlignmentStyleFor(ControlType::Label, TextAlign::Center) !=
+            AlignmentStyleFor(ControlType::Label, TextAlign::Right));
+}
+
+TEST_CASE("AlignmentStyleFor returns correct style bits for TextBox", "[schema]")
+{
+    REQUIRE(AlignmentStyleFor(ControlType::TextBox, TextAlign::Left) == 0);
+    REQUIRE(AlignmentStyleFor(ControlType::TextBox, TextAlign::Center) != 0);
+    REQUIRE(AlignmentStyleFor(ControlType::TextBox, TextAlign::Right) != 0);
+}
+
+TEST_CASE("AlignmentStyleFor returns correct style bits for Button types", "[schema]")
+{
+    REQUIRE(AlignmentStyleFor(ControlType::Button, TextAlign::Center) != 0);
+    REQUIRE(AlignmentStyleFor(ControlType::CheckBox, TextAlign::Right) != 0);
+    REQUIRE(AlignmentStyleFor(ControlType::RadioButton, TextAlign::Left) != 0);
+}
+
+TEST_CASE("AlignmentStyleFor returns 0 for unsupported control types", "[schema]")
+{
+    REQUIRE(AlignmentStyleFor(ControlType::GroupBox, TextAlign::Center) == 0);
+    REQUIRE(AlignmentStyleFor(ControlType::ListBox, TextAlign::Right) == 0);
+    REQUIRE(AlignmentStyleFor(ControlType::ProgressBar, TextAlign::Center) == 0);
 }

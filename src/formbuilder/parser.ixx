@@ -90,6 +90,13 @@ export namespace FormDesigner
 		if (j.contains("tabIndex"))
 			control.tabIndex = j["tabIndex"].get<int>();
 
+		if (j.contains("textAlign"))
+		{
+			auto align = j["textAlign"].get<std::string>();
+			if (align == "center")     control.textAlign = TextAlign::Center;
+			else if (align == "right") control.textAlign = TextAlign::Right;
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

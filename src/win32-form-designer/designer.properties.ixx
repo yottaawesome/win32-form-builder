@@ -36,14 +36,15 @@ export void UpdatePropertyPanel(DesignState& state)
         IDC_PROP_TYPE, IDC_PROP_TEXT, IDC_PROP_ID,
         IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
         IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
-        IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX
+        IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
+        IDC_PROP_TEXTALIGN
     };
     constexpr Win32::UINT formIds[] = {
         IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
         IDC_PROP_FORM_HEIGHT, IDC_PROP_FORM_BGCOLOR
     };
 
-    SetPropertyGroupVisibility(panel, ctrlIds, 15, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+    SetPropertyGroupVisibility(panel, ctrlIds, 16, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
     SetPropertyGroupVisibility(panel, formIds, 4, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
     auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -86,6 +87,12 @@ export void UpdatePropertyPanel(DesignState& state)
         Win32::SetDlgItemTextW(panel, IDC_PROP_ONCHECK, onCheck.c_str());
 
         Win32::SetDlgItemInt(panel, IDC_PROP_TABINDEX, static_cast<Win32::UINT>(ctrl.tabIndex), true);
+
+        // Set text alignment dropdown.
+        auto alignCombo = Win32::GetDlgItem(panel, IDC_PROP_TEXTALIGN);
+        if (alignCombo)
+            Win32::SendMessageW(alignCombo, Win32::ComboBox::SetCurSel,
+                static_cast<Win32::WPARAM>(ctrl.textAlign), 0);
 
         Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
             IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
@@ -231,6 +238,18 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         if (ok) ctrl.tabIndex = val;
         break;
     }
+    case IDC_PROP_TEXTALIGN:
+    {
+        auto combo = Win32::GetDlgItem(panel, IDC_PROP_TEXTALIGN);
+        auto sel = static_cast<int>(Win32::SendMessageW(combo, Win32::ComboBox::GetCurSel, 0, 0));
+        if (sel >= 0 && sel <= 2)
+        {
+            ctrl.textAlign = static_cast<FormDesigner::TextAlign>(sel);
+            // Recreate the control HWND since style bits are set at creation.
+            RebuildSingleControl(state, entry);
+        }
+        break;
+    }
     default:
         return;
     }
@@ -336,6 +355,30 @@ export void CreatePropertyControls(DesignState& state)
         y += 26;
     }
 
+    // Text alignment dropdown (ComboBox instead of EDIT).
+    {
+        auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Align:",
+            Win32::Styles::Child | Win32::Styles::StaticRight,
+            5, y + 2, 55, 18, parent,
+            reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_TEXTALIGN + IDL_OFFSET)),
+            hInst, nullptr);
+        Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+        auto combo = Win32::CreateWindowExW(0, Win32::Controls::ComboBox, nullptr,
+            Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::ComboBoxDropDownList,
+            65, y, 150, 120, parent,
+            reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_TEXTALIGN)),
+            hInst, nullptr);
+        Win32::SendMessageW(combo, Win32::Messages::SetFont, font, true);
+        Win32::SendMessageW(combo, Win32::ComboBox::AddString, 0,
+            reinterpret_cast<Win32::LPARAM>(L"Left"));
+        Win32::SendMessageW(combo, Win32::ComboBox::AddString, 0,
+            reinterpret_cast<Win32::LPARAM>(L"Center"));
+        Win32::SendMessageW(combo, Win32::ComboBox::AddString, 0,
+            reinterpret_cast<Win32::LPARAM>(L"Right"));
+        Win32::SendMessageW(combo, Win32::ComboBox::SetCurSel, 0, 0);
+    }
+
     // Form property rows (visible when no control is selected).
     PropRow formRows[] = {
         { L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -374,7 +417,7 @@ export void CreatePropertyControls(DesignState& state)
     Win32::SendMessageW(bgBtn, Win32::Messages::SetFont, font, true);
 }
 
-constexpr int PROP_CONTENT_CTRL = 30 + 15 * 26 + 10;  // control properties: 430px
+constexpr int PROP_CONTENT_CTRL = 30 + 16 * 26 + 10;  // control properties: 456px
 constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10;   // form properties: 144px
 constexpr int SCROLL_LINE = 26;                         // one row height
 
@@ -515,6 +558,13 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
                 ApplyPropertyChange(*state, id);
             else if (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
                 ApplyFormPropertyChange(*state, id);
+            return 0;
+        }
+
+        // Alignment dropdown change.
+        if (id == IDC_PROP_TEXTALIGN && code == Win32::Notifications::ComboBoxSelEndOk)
+        {
+            ApplyPropertyChange(*state, IDC_PROP_TEXTALIGN);
             return 0;
         }
         break;

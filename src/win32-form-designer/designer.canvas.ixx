@@ -42,6 +42,7 @@ export void PopulateControls(DesignState& state)
         auto style = Win32::DWORD{
             Win32::Styles::Child | Win32::Styles::Visible |
             FormDesigner::ImpliedStyleFor(control.type) |
+            FormDesigner::AlignmentStyleFor(control.type, control.textAlign) |
             control.style};
 
         auto hwnd = Win32::CreateWindowExW(
@@ -207,6 +208,7 @@ void PlaceControl(DesignState& state, int x, int y)
     auto style = Win32::DWORD{
         Win32::Styles::Child | Win32::Styles::Visible |
         FormDesigner::ImpliedStyleFor(ctrl.type) |
+        FormDesigner::AlignmentStyleFor(ctrl.type, ctrl.textAlign) |
         ctrl.style};
 
     auto hwnd = Win32::CreateWindowExW(
@@ -388,6 +390,7 @@ export void PasteControl(DesignState& state)
         auto style = Win32::DWORD{
             Win32::Styles::Child | Win32::Styles::Visible |
             FormDesigner::ImpliedStyleFor(placed.type) |
+            FormDesigner::AlignmentStyleFor(placed.type, placed.textAlign) |
             placed.style};
 
         auto hwnd = Win32::CreateWindowExW(

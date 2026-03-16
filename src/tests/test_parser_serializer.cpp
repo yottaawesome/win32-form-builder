@@ -363,3 +363,61 @@ TEST_CASE("LoadFormFromFile throws for non-existent file", "[parser]")
         LoadFormFromFile("nonexistent_file_that_does_not_exist.json"),
         std::runtime_error);
 }
+
+// === textAlign ===
+
+TEST_CASE("ParseControl parses textAlign", "[parser]")
+{
+    auto json = R"({
+        "title": "Align",
+        "width": 400,
+        "height": 300,
+        "controls": [
+            { "type": "Label", "rect": [0,0,100,20], "textAlign": "center" },
+            { "type": "TextBox", "rect": [0,0,100,20], "textAlign": "right" },
+            { "type": "Button", "rect": [0,0,100,25] }
+        ]
+    })";
+
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].textAlign == TextAlign::Center);
+    REQUIRE(form.controls[1].textAlign == TextAlign::Right);
+    REQUIRE(form.controls[2].textAlign == TextAlign::Left); // default
+}
+
+TEST_CASE("SerializeForm omits textAlign when left (default)", "[serializer]")
+{
+    Form form;
+    Control c;
+    c.type = ControlType::Label;
+    c.text = L"Test";
+    c.rect = { 0, 0, 100, 20 };
+    form.controls.push_back(c);
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("textAlign") == std::string::npos);
+}
+
+TEST_CASE("textAlign roundtrips through serialize/parse", "[parser][serializer]")
+{
+    Form form;
+
+    Control lbl;
+    lbl.type = ControlType::Label;
+    lbl.text = L"Centered";
+    lbl.rect = { 0, 0, 100, 20 };
+    lbl.textAlign = TextAlign::Center;
+    form.controls.push_back(lbl);
+
+    Control txt;
+    txt.type = ControlType::TextBox;
+    txt.rect = { 0, 30, 100, 25 };
+    txt.textAlign = TextAlign::Right;
+    form.controls.push_back(txt);
+
+    auto json = SerializeForm(form);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].textAlign == TextAlign::Center);
+    REQUIRE(parsed.controls[1].textAlign == TextAlign::Right);
+}

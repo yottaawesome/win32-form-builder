@@ -135,6 +135,15 @@ namespace Notifications
 {
     constexpr auto EditKillFocus    = EN_KILLFOCUS;
     constexpr auto ListBoxSelChange = LBN_SELCHANGE;
+    constexpr auto ComboBoxSelEndOk = CBN_SELENDOK;
+}
+
+// === ComboBox messages ===
+namespace ComboBox
+{
+    constexpr auto AddString = CB_ADDSTRING;
+    constexpr auto SetCurSel = CB_SETCURSEL;
+    constexpr auto GetCurSel = CB_GETCURSEL;
 }
 
 // === Hit test values ===

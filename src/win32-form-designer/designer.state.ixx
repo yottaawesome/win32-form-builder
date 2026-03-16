@@ -55,6 +55,7 @@ constexpr Win32::UINT IDC_PROP_ONFOCUS = 51012;
 constexpr Win32::UINT IDC_PROP_ONBLUR = 51013;
 constexpr Win32::UINT IDC_PROP_ONCHECK = 51014;
 constexpr Win32::UINT IDC_PROP_TABINDEX = 51015;
+constexpr Win32::UINT IDC_PROP_TEXTALIGN = 51016;
 
 // Form property edit IDs.
 constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;

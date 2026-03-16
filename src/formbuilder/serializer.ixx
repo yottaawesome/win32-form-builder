@@ -75,6 +75,16 @@ export namespace FormDesigner
 		if (control.tabIndex != 0)
 			j["tabIndex"] = control.tabIndex;
 
+		if (control.textAlign != TextAlign::Left)
+		{
+			switch (control.textAlign)
+			{
+			case TextAlign::Center: j["textAlign"] = "center"; break;
+			case TextAlign::Right:  j["textAlign"] = "right";  break;
+			default: break;
+			}
+		}
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

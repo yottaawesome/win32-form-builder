@@ -16,6 +16,37 @@ export auto ControlSubclassProc(
     return Win32::DefSubclassProc(hwnd, msg, wParam, lParam);
 }
 
+// Destroys and recreates a single control's HWND (e.g. after style change).
+export void RebuildSingleControl(DesignState& state, ControlEntry& entry)
+{
+    Win32::DestroyWindow(entry.hwnd);
+
+    auto& ctrl = *entry.control;
+    auto* className = FormDesigner::ClassNameFor(ctrl.type);
+    if (!className) return;
+
+    auto style = Win32::DWORD{
+        Win32::Styles::Child | Win32::Styles::Visible |
+        FormDesigner::ImpliedStyleFor(ctrl.type) |
+        FormDesigner::AlignmentStyleFor(ctrl.type, ctrl.textAlign) |
+        ctrl.style};
+
+    entry.hwnd = Win32::CreateWindowExW(
+        ctrl.exStyle, className, ctrl.text.c_str(), style,
+        ctrl.rect.x, ctrl.rect.y, ctrl.rect.width, ctrl.rect.height,
+        state.canvasHwnd,
+        reinterpret_cast<Win32::HMENU>(static_cast<Win32::INT_PTR>(ctrl.id)),
+        state.hInstance, nullptr);
+
+    if (entry.hwnd)
+    {
+        Win32::SendMessageW(entry.hwnd, Win32::Messages::SetFont,
+            reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+        Win32::SetWindowSubclass(entry.hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
+    }
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+}
+
 export auto IsSelected(const DesignState& state, int index) -> bool
 {
     return state.selection.contains(index);
