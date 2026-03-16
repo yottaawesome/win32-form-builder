@@ -63,6 +63,7 @@ using
     ::LineTo,
     ::SetBkMode,
     ::GetKeyState,
+    ::SetPixel,
     ::SetScrollInfo,
     ::GetScrollInfo,
     ::ScrollWindowEx,
@@ -70,7 +71,9 @@ using
     ::GetWindowRect,
     ::TrackPopupMenu,
     ::ClientToScreen,
-    ::DestroyMenu
+    ::DestroyMenu,
+    ::CheckMenuItem,
+    ::GetMenu
     ;
 
 const auto HwndBottom = HWND_BOTTOM;
@@ -146,6 +149,11 @@ namespace Keys
     constexpr auto Delete  = VK_DELETE;
     constexpr auto Escape  = VK_ESCAPE;
     constexpr auto Control = VK_CONTROL;
+    constexpr auto Shift   = VK_SHIFT;
+    constexpr auto Left    = VK_LEFT;
+    constexpr auto Right   = VK_RIGHT;
+    constexpr auto Up      = VK_UP;
+    constexpr auto Down    = VK_DOWN;
 }
 
 // === Show window commands ===
@@ -187,6 +195,8 @@ namespace Menu
     constexpr auto String    = MF_STRING;
     constexpr auto Separator = MF_SEPARATOR;
     constexpr auto Grayed    = MF_GRAYED;
+    constexpr auto Checked   = MF_CHECKED;
+    constexpr auto Unchecked = MF_UNCHECKED;
     constexpr auto Popup     = MF_POPUP;
 }
 

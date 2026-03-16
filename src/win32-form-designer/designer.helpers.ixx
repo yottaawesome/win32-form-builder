@@ -247,6 +247,17 @@ export void PushUndo(DesignState& state)
     state.redoStack.clear();
 }
 
+export int SnapValue(int value, int gridSize)
+{
+    return ((value + gridSize / 2) / gridSize) * gridSize;
+}
+
+export void SnapRectToGrid(FormDesigner::Rect& rect, int gridSize)
+{
+    rect.x = SnapValue(rect.x, gridSize);
+    rect.y = SnapValue(rect.y, gridSize);
+}
+
 // Compares edges of the moving control against all other controls.
 // Snaps the rect in-place when within threshold and populates state.guides.
 export void FindAlignGuides(DesignState& state, FormDesigner::Rect& rect)

@@ -72,6 +72,9 @@ void PlaceControl(DesignState& state, int x, int y)
     ctrl.id = newId;
     ctrl.rect = { x, y, 100, 25 };
 
+    if (state.snapToGrid)
+        SnapRectToGrid(ctrl.rect, state.gridSize);
+
     switch (ctrl.type)
     {
     case FormDesigner::ControlType::Button:      ctrl.text = L"Button"; break;
@@ -371,6 +374,17 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         if (state)
         {
             auto hdc = Win32::GetDC(hwnd);
+
+            if (state->showGrid)
+            {
+                Win32::RECT rc;
+                Win32::GetClientRect(hwnd, &rc);
+                auto dotColor = static_cast<Win32::COLORREF>(Win32::MakeRgb(192, 192, 192));
+                for (int gx = 0; gx < rc.right; gx += state->gridSize)
+                    for (int gy = 0; gy < rc.bottom; gy += state->gridSize)
+                        Win32::SetPixel(hdc, gx, gy, dotColor);
+            }
+
             DrawSelection(*state, hdc);
             DrawAlignGuides(*state, hdc);
             Win32::ReleaseDC(hwnd, hdc);
@@ -488,6 +502,24 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
                 FindAlignGuides(*state, anchorRect);
                 int snapDx = anchorRect.x - prevX;
                 int snapDy = anchorRect.y - prevY;
+
+                // Grid snap if no align guide fired on that axis.
+                if (state->snapToGrid)
+                {
+                    if (snapDx == 0)
+                    {
+                        int gridX = SnapValue(anchorRect.x, state->gridSize);
+                        snapDx = gridX - anchorRect.x;
+                        anchorRect.x = gridX;
+                    }
+                    if (snapDy == 0)
+                    {
+                        int gridY = SnapValue(anchorRect.y, state->gridSize);
+                        snapDy = gridY - anchorRect.y;
+                        anchorRect.y = gridY;
+                    }
+                }
+
                 // Apply snap adjustment to all other selected controls.
                 if (snapDx != 0 || snapDy != 0)
                 {
@@ -525,6 +557,9 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
 
             ApplyResize(entry.control->rect, state->activeHandle, dx, dy,
                 state->controlStart, state->controlStartSize);
+
+            if (state->snapToGrid)
+                SnapRectToGrid(entry.control->rect, state->gridSize);
 
             Win32::MoveWindow(entry.hwnd,
                 entry.control->rect.x, entry.control->rect.y,
@@ -670,6 +705,38 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         if (wParam == 'A' && (Win32::GetKeyState(Win32::Keys::Control) & 0x8000))
         {
             SelectAll(*state);
+            return 0;
+        }
+
+        // Arrow key nudge.
+        if (wParam == Win32::Keys::Left || wParam == Win32::Keys::Right ||
+            wParam == Win32::Keys::Up || wParam == Win32::Keys::Down)
+        {
+            if (state->selection.empty()) break;
+
+            bool shift = (Win32::GetKeyState(Win32::Keys::Shift) & 0x8000) != 0;
+            int step = shift ? 10 : (state->snapToGrid ? state->gridSize : 1);
+            int dx = 0, dy = 0;
+
+            if (wParam == Win32::Keys::Left)  dx = -step;
+            if (wParam == Win32::Keys::Right) dx =  step;
+            if (wParam == Win32::Keys::Up)    dy = -step;
+            if (wParam == Win32::Keys::Down)  dy =  step;
+
+            PushUndo(*state);
+            for (int idx : state->selection)
+            {
+                auto& r = state->entries[idx].control->rect;
+                r.x += dx;
+                r.y += dy;
+                if (state->snapToGrid && !shift)
+                    SnapRectToGrid(r, state->gridSize);
+                Win32::MoveWindow(state->entries[idx].hwnd,
+                    r.x, r.y, r.width, r.height, true);
+            }
+            Win32::InvalidateRect(hwnd, nullptr, true);
+            MarkDirty(*state);
+            UpdatePropertyPanel(*state);
             return 0;
         }
         break;

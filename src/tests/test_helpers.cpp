@@ -272,6 +272,37 @@ TEST_CASE("PushUndo clears redo stack", "[helpers]")
     REQUIRE(state.redoStack.empty());
 }
 
+// === SnapValue / SnapRectToGrid ===
+
+TEST_CASE("SnapValue rounds to nearest grid point", "[helpers]")
+{
+    REQUIRE(SnapValue(0, 10) == 0);
+    REQUIRE(SnapValue(3, 10) == 0);
+    REQUIRE(SnapValue(5, 10) == 10);
+    REQUIRE(SnapValue(7, 10) == 10);
+    REQUIRE(SnapValue(14, 10) == 10);
+    REQUIRE(SnapValue(15, 10) == 20);
+    REQUIRE(SnapValue(100, 10) == 100);
+}
+
+TEST_CASE("SnapValue works with different grid sizes", "[helpers]")
+{
+    REQUIRE(SnapValue(7, 5) == 5);
+    REQUIRE(SnapValue(13, 5) == 15);
+    REQUIRE(SnapValue(8, 8) == 8);
+    REQUIRE(SnapValue(12, 8) == 16);
+}
+
+TEST_CASE("SnapRectToGrid snaps x and y", "[helpers]")
+{
+    Rect r = { 13, 27, 100, 50 };
+    SnapRectToGrid(r, 10);
+    REQUIRE(r.x == 10);
+    REQUIRE(r.y == 30);
+    REQUIRE(r.width == 100);   // Width unchanged.
+    REQUIRE(r.height == 50);   // Height unchanged.
+}
+
 // === FindAlignGuides ===
 
 TEST_CASE("FindAlignGuides snaps when within threshold", "[helpers]")

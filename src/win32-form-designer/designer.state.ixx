@@ -27,6 +27,10 @@ constexpr Win32::UINT IDM_VIEW_ZORDER   = 40015;
 constexpr Win32::UINT IDM_CTX_TOFRONT   = 40101;
 constexpr Win32::UINT IDM_CTX_TOBACK    = 40102;
 
+// View menu IDs.
+constexpr Win32::UINT IDM_VIEW_SHOWGRID = 40016;
+constexpr Win32::UINT IDM_VIEW_SNAPTOGRID = 40017;
+
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
 constexpr int PROPERTY_WIDTH = 220;
@@ -86,6 +90,7 @@ struct AlignGuide
 };
 
 constexpr int SNAP_THRESHOLD = 5;
+constexpr int DEFAULT_GRID_SIZE = 10;
 
 // Control types available in the toolbox.
 struct ToolboxItem
@@ -148,6 +153,10 @@ struct DesignState
     std::filesystem::path currentFile;
     bool dirty = false;
     Win32::HWND zorderHwnd = nullptr;
+
+    int gridSize = DEFAULT_GRID_SIZE;
+    bool showGrid = true;
+    bool snapToGrid = true;
 };
 
 constexpr Win32::UINT SUBCLASS_ID = 1;

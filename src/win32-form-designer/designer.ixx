@@ -45,6 +45,11 @@ auto CreateMenuBar() -> Win32::HMENU
         reinterpret_cast<Win32::UINT_PTR>(editMenu), L"&Edit");
 
     auto viewMenu = Win32::CreatePopupMenu();
+    Win32::AppendMenuW(viewMenu, Win32::Menu::String | Win32::Menu::Checked,
+        IDM_VIEW_SHOWGRID, L"Show &Grid");
+    Win32::AppendMenuW(viewMenu, Win32::Menu::String | Win32::Menu::Checked,
+        IDM_VIEW_SNAPTOGRID, L"&Snap to Grid");
+    Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
     Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_ZORDER, L"Tab && &Z-Order...");
 
     Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
@@ -279,6 +284,23 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
         case IDM_EDIT_SELECTALL: SelectAll(*state);        return 0;
         case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
         case IDM_VIEW_ZORDER:  ShowZOrderPanel(*state); return 0;
+        case IDM_VIEW_SHOWGRID:
+        {
+            state->showGrid = !state->showGrid;
+            auto menu = Win32::GetMenu(hwnd);
+            Win32::CheckMenuItem(menu, IDM_VIEW_SHOWGRID,
+                state->showGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+            Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+            return 0;
+        }
+        case IDM_VIEW_SNAPTOGRID:
+        {
+            state->snapToGrid = !state->snapToGrid;
+            auto menu = Win32::GetMenu(hwnd);
+            Win32::CheckMenuItem(menu, IDM_VIEW_SNAPTOGRID,
+                state->snapToGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+            return 0;
+        }
         }
         break;
     }
