@@ -11,6 +11,8 @@ export import :fileops;
 namespace Designer
 {
 
+	void ApplyTheme(DesignState& state);
+
 	auto CreateMenuBar() -> Win32::HMENU
 	{
 		auto menuBar = Win32::CreateMenu();
@@ -57,6 +59,8 @@ namespace Designer
 			IDM_VIEW_SHOWRULERS, L"Show &Rulers");
 		Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_CLEARGUIDES, L"&Clear All Guides");
+		Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
+		Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_DARKMODE, L"&Dark Mode");
 		Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_ZORDER, L"Tab && &Z-Order...");
 
@@ -358,6 +362,16 @@ namespace Designer
 				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
 				return 0;
 			}
+			case IDM_VIEW_DARKMODE:
+			{
+				state->theme = state->theme.isDark ? LightTheme() : DarkTheme();
+				auto menu = Win32::GetMenu(hwnd);
+				Win32::CheckMenuItem(menu, IDM_VIEW_DARKMODE,
+					state->theme.isDark ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+				ApplyTheme(*state);
+				SaveThemePreference(state->theme.isDark);
+				return 0;
+			}
 			}
 			break;
 		}
@@ -384,7 +398,38 @@ namespace Designer
 		return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
+	void ApplyTheme(DesignState& state)
+	{
+		auto bgBrush = Win32::CreateSolidBrush(state.theme.panelBackground);
+
+		// Update window class backgrounds for all panel types.
+		Win32::SetClassBackground(state.surfaceHwnd, bgBrush);
+		Win32::SetClassBackground(state.propertyHwnd, bgBrush);
+		if (state.zorderHwnd)
+			Win32::SetClassBackground(state.zorderHwnd, bgBrush);
+
+		auto canvasBrush = Win32::CreateSolidBrush(state.theme.canvasBackground);
+		Win32::SetClassBackground(state.canvasHwnd, canvasBrush);
+
+		// Dark title bar (Windows 10 1809+).
+		Win32::SetDarkTitleBar(state.surfaceHwnd, state.theme.isDark);
+
+		// Dark scrollbars on scrollable panels.
+		Win32::SetDarkScrollBars(state.propertyHwnd, state.theme.isDark);
+		Win32::SetDarkScrollBars(state.toolboxHwnd, state.theme.isDark);
+
+		// Repaint everything.
+		Win32::InvalidateRect(state.surfaceHwnd, nullptr, true);
+		Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+		Win32::InvalidateRect(state.toolboxHwnd, nullptr, true);
+		Win32::InvalidateRect(state.propertyHwnd, nullptr, true);
+		Win32::InvalidateRect(state.toolbarHwnd, nullptr, true);
+		Win32::InvalidateRect(state.statusbarHwnd, nullptr, true);
+		if (state.zorderHwnd)
+			Win32::InvalidateRect(state.zorderHwnd, nullptr, true);
 	}
+
+}
 
 	export namespace Designer
 	{
@@ -578,6 +623,15 @@ namespace Designer
 			reinterpret_cast<Win32::LONG_PTR>(state));
 
 		CreatePropertyControls(*state);
+
+		// Load saved theme preference.
+		if (LoadThemePreference())
+		{
+			state->theme = DarkTheme();
+			auto menu = Win32::GetMenu(hwnd);
+			Win32::CheckMenuItem(menu, IDM_VIEW_DARKMODE, Win32::Menu::Checked);
+			ApplyTheme(*state);
+		}
 
 		UpdateTitle(*state);
 		PopulateControls(*state);

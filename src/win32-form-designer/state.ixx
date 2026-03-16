@@ -33,6 +33,7 @@ export namespace Designer
 	constexpr Win32::UINT IDM_VIEW_SNAPTOGRID = 40017;
 	constexpr Win32::UINT IDM_VIEW_SHOWRULERS = 40019;
 	constexpr Win32::UINT IDM_VIEW_CLEARGUIDES = 40020;
+	constexpr Win32::UINT IDM_VIEW_DARKMODE = 40022;
 
 	// File menu IDs (continued).
 	constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
@@ -116,6 +117,71 @@ export namespace Designer
 	constexpr int DEFAULT_GRID_SIZE = 10;
 	constexpr int RULER_SIZE = 20;
 
+	// Designer color theme.
+	struct Theme
+	{
+		const wchar_t* name;
+		bool isDark;
+		Win32::COLORREF canvasBackground;
+		Win32::COLORREF panelBackground;
+		Win32::COLORREF formBorder;
+		Win32::COLORREF gridDot;
+		Win32::COLORREF selectionHighlight;
+		Win32::COLORREF lockedHighlight;
+		Win32::COLORREF handleFill;
+		Win32::COLORREF rulerBackground;
+		Win32::COLORREF rulerText;
+		Win32::COLORREF rulerBorder;
+		Win32::COLORREF rulerTick;
+		Win32::COLORREF alignGuide;
+		Win32::COLORREF userGuide;
+		Win32::COLORREF formBoundary;
+	};
+
+	inline auto LightTheme() -> Theme
+	{
+		return {
+			.name = L"Light",
+			.isDark = false,
+			.canvasBackground = Win32::GetSysColor(Win32::ColorAppWorkspace),
+			.panelBackground = Win32::GetSysColor(Win32::ColorBtnFace),
+			.formBorder = Win32::MakeRgb(128, 128, 128),
+			.gridDot = Win32::MakeRgb(192, 192, 192),
+			.selectionHighlight = Win32::MakeRgb(0, 120, 215),
+			.lockedHighlight = Win32::MakeRgb(128, 128, 128),
+			.handleFill = Win32::MakeRgb(255, 255, 255),
+			.rulerBackground = Win32::MakeRgb(240, 240, 240),
+			.rulerText = Win32::MakeRgb(80, 80, 80),
+			.rulerBorder = Win32::MakeRgb(200, 200, 200),
+			.rulerTick = Win32::MakeRgb(160, 160, 160),
+			.alignGuide = Win32::MakeRgb(255, 0, 128),
+			.userGuide = Win32::MakeRgb(0, 120, 215),
+			.formBoundary = Win32::MakeRgb(255, 0, 0),
+		};
+	}
+
+	inline auto DarkTheme() -> Theme
+	{
+		return {
+			.name = L"Dark",
+			.isDark = true,
+			.canvasBackground = Win32::MakeRgb(30, 30, 30),
+			.panelBackground = Win32::MakeRgb(45, 45, 45),
+			.formBorder = Win32::MakeRgb(100, 100, 100),
+			.gridDot = Win32::MakeRgb(70, 70, 70),
+			.selectionHighlight = Win32::MakeRgb(0, 140, 255),
+			.lockedHighlight = Win32::MakeRgb(100, 100, 100),
+			.handleFill = Win32::MakeRgb(200, 200, 200),
+			.rulerBackground = Win32::MakeRgb(50, 50, 50),
+			.rulerText = Win32::MakeRgb(180, 180, 180),
+			.rulerBorder = Win32::MakeRgb(70, 70, 70),
+			.rulerTick = Win32::MakeRgb(90, 90, 90),
+			.alignGuide = Win32::MakeRgb(255, 80, 160),
+			.userGuide = Win32::MakeRgb(0, 160, 255),
+			.formBoundary = Win32::MakeRgb(255, 80, 80),
+		};
+	}
+
 	// Control types available in the toolbox.
 	struct ToolboxItem
 	{
@@ -189,6 +255,7 @@ export namespace Designer
 		bool draggingGuideHorizontal = false;
 		int draggingGuidePos = -1;
 		Win32::POINT lastCursorPos = { -1, -1 }; // form coordinates for ruler indicator
+		Theme theme = LightTheme();
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

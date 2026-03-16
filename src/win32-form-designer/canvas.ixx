@@ -489,9 +489,8 @@ namespace Designer
 			int formW = state ? state->form.width : rc.right;
 			int formH = state ? state->form.height : rc.bottom;
 
-			// Fill entire canvas with workspace color (dark gray MDI background).
-			auto workspaceBrush = Win32::CreateSolidBrush(
-				Win32::GetSysColor(Win32::ColorAppWorkspace));
+			// Fill entire canvas with workspace color.
+			auto workspaceBrush = Win32::CreateSolidBrush(state->theme.canvasBackground);
 			Win32::FillRect(hdc, &rc, workspaceBrush);
 			Win32::DeleteObject(workspaceBrush);
 
@@ -530,7 +529,7 @@ namespace Designer
 
 				// Draw form boundary border.
 				auto borderPen = Win32::CreatePen(Win32::PenStyles::Solid, 1,
-					Win32::MakeRgb(128, 128, 128));
+					state->theme.formBorder);
 				auto oldPen = Win32::SelectObject(hdc, borderPen);
 				auto nullBrush = static_cast<Win32::HBRUSH>(Win32::GetStockObject(Win32::NullBrush));
 				auto oldBrush = Win32::SelectObject(hdc, nullBrush);
@@ -541,7 +540,7 @@ namespace Designer
 
 				if (state->showGrid)
 				{
-					auto dotColor = static_cast<Win32::COLORREF>(Win32::MakeRgb(192, 192, 192));
+					auto dotColor = static_cast<Win32::COLORREF>(state->theme.gridDot);
 					for (int gx = 0; gx < formW; gx += state->gridSize)
 						for (int gy = 0; gy < formH; gy += state->gridSize)
 							Win32::SetPixel(hdc, gx + offset, gy + offset, dotColor);

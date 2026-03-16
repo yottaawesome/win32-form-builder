@@ -5,6 +5,11 @@ module;
 #include <CommCtrl.h>
 #include <Commdlg.h>
 #include <windowsx.h>
+#include <dwmapi.h>
+#include <uxtheme.h>
+
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "uxtheme.lib")
 
 export module designer:win32;
 
@@ -355,5 +360,34 @@ export namespace Win32
 
 	// === Miscellaneous ===
 	constexpr auto MaxPath = MAX_PATH;
+
+	// === Dark mode support ===
+	constexpr auto ColorBtnFace = COLOR_BTNFACE;
+	constexpr auto ColorWindow  = COLOR_WINDOW;
+
+	// DWMWA_USE_IMMERSIVE_DARK_MODE (attribute 20, Windows 10 1809+).
+	auto SetDarkTitleBar(HWND hwnd, bool dark) -> bool
+	{
+		BOOL value = dark ? TRUE : FALSE;
+		return SUCCEEDED(DwmSetWindowAttribute(
+			hwnd, 20, &value, sizeof(value)));
+	}
+
+	auto SetDarkScrollBars(HWND hwnd, bool dark) -> void
+	{
+		SetWindowTheme(hwnd, dark ? L"DarkMode_Explorer" : nullptr, nullptr);
+	}
+
+	using ::EnumChildWindows;
+	using ::GetModuleFileNameW;
+
+	constexpr auto GclpHbrBackground = GCLP_HBRBACKGROUND;
+
+	auto SetClassBackground(HWND hwnd, HBRUSH brush) -> void
+	{
+		SetClassLongPtrW(hwnd, GCLP_HBRBACKGROUND, reinterpret_cast<LONG_PTR>(brush));
+	}
+
+	using ::FillRect;
 
 }

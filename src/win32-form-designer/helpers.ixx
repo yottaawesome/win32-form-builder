@@ -179,8 +179,8 @@ namespace Designer
 		if (state.selection.empty()) return;
 
 		int offset = RulerOffset(state);
-		auto accent = Win32::CreateSolidBrush(Win32::MakeRgb(0, 120, 215));
-		auto locked = Win32::CreateSolidBrush(Win32::MakeRgb(128, 128, 128));
+		auto accent = Win32::CreateSolidBrush(state.theme.selectionHighlight);
+		auto locked = Win32::CreateSolidBrush(state.theme.lockedHighlight);
 
 		for (int idx : state.selection)
 		{
@@ -212,7 +212,7 @@ namespace Designer
 			Win32::POINT anchors[8];
 			GetHandleAnchors(r, anchors);
 
-			auto white = Win32::CreateSolidBrush(Win32::MakeRgb(255, 255, 255));
+			auto handleBrush = Win32::CreateSolidBrush(state.theme.handleFill);
 			for (auto& a : anchors)
 			{
 				Win32::RECT outer = { a.x + offset, a.y + offset,
@@ -220,9 +220,9 @@ namespace Designer
 				Win32::RECT inner = { a.x + 1 + offset, a.y + 1 + offset,
 									a.x + HANDLE_SIZE - 1 + offset, a.y + HANDLE_SIZE - 1 + offset };
 				Win32::FillRect(hdc, &outer, accent);
-				Win32::FillRect(hdc, &inner, white);
+				Win32::FillRect(hdc, &inner, handleBrush);
 			}
-			Win32::DeleteObject(white);
+			Win32::DeleteObject(handleBrush);
 		}
 
 		Win32::DeleteObject(locked);
@@ -293,10 +293,10 @@ namespace Designer
 		auto font = Win32::CreateFontW(
 			11, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, L"Segoe UI");
 		auto oldFont = Win32::SelectObject(memDC, font);
-		auto oldTextColor = Win32::SetTextColor(memDC, Win32::MakeRgb(80, 80, 80));
+		auto oldTextColor = Win32::SetTextColor(memDC, state.theme.rulerText);
 		auto oldBkMode = Win32::SetBkMode(memDC, Win32::Bk_Transparent);
 
-		auto rulerBrush = Win32::CreateSolidBrush(Win32::MakeRgb(240, 240, 240));
+		auto rulerBrush = Win32::CreateSolidBrush(state.theme.rulerBackground);
 		Win32::RECT topRuler = { RULER_SIZE, 0, canvasW, RULER_SIZE };
 		Win32::RECT leftRuler = { 0, RULER_SIZE, RULER_SIZE, canvasH };
 		Win32::RECT corner = { 0, 0, RULER_SIZE, RULER_SIZE };
@@ -305,7 +305,7 @@ namespace Designer
 		Win32::FillRect(memDC, &corner, rulerBrush);
 		Win32::DeleteObject(rulerBrush);
 
-		auto borderPen = Win32::CreatePen(0, 1, Win32::MakeRgb(200, 200, 200));
+		auto borderPen = Win32::CreatePen(0, 1, state.theme.rulerBorder);
 		auto oldPen = Win32::SelectObject(memDC, borderPen);
 		Win32::MoveToEx(memDC, RULER_SIZE, 0, nullptr);
 		Win32::LineTo(memDC, RULER_SIZE, canvasH);
@@ -314,7 +314,7 @@ namespace Designer
 		Win32::SelectObject(memDC, oldPen);
 		Win32::DeleteObject(borderPen);
 
-		auto tickPen = Win32::CreatePen(0, 1, Win32::MakeRgb(160, 160, 160));
+		auto tickPen = Win32::CreatePen(0, 1, state.theme.rulerTick);
 		oldPen = Win32::SelectObject(memDC, tickPen);
 
 		for (int px = 0; px < canvasW - RULER_SIZE; px += 10)
@@ -360,10 +360,10 @@ namespace Designer
 	}
 
 	// Paints cursor indicator lines into a memory DC.
-	void PaintCursorIndicatorToBuffer(Win32::HDC memDC, int formX, int formY)
+	void PaintCursorIndicatorToBuffer(const DesignState& state, Win32::HDC memDC, int formX, int formY)
 	{
 		int offset = RULER_SIZE;
-		auto pen = Win32::CreatePen(0, 1, Win32::MakeRgb(255, 0, 0));
+		auto pen = Win32::CreatePen(0, 1, state.theme.formBoundary);
 		auto oldPen = Win32::SelectObject(memDC, pen);
 
 		int sx = formX + offset;
@@ -395,7 +395,7 @@ namespace Designer
 		PaintRulersToBuffer(state, memDC, w, h);
 
 		if (state.lastCursorPos.x >= 0)
-			PaintCursorIndicatorToBuffer(memDC, state.lastCursorPos.x, state.lastCursorPos.y);
+			PaintCursorIndicatorToBuffer(state, memDC, state.lastCursorPos.x, state.lastCursorPos.y);
 
 		// Blit top ruler strip.
 		Win32::BitBlt(hdc, 0, 0, w, RULER_SIZE, memDC, 0, 0, Win32::SrcCopy);
@@ -421,7 +421,7 @@ namespace Designer
 		Win32::RECT rc;
 		Win32::GetClientRect(state.canvasHwnd, &rc);
 
-		auto pen = Win32::CreatePen(Win32::PenStyles::Dash, 0, Win32::MakeRgb(0, 120, 215));
+		auto pen = Win32::CreatePen(Win32::PenStyles::Dash, 0, state.theme.userGuide);
 		auto oldPen = Win32::SelectObject(hdc, pen);
 		auto oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
 
@@ -663,7 +663,7 @@ namespace Designer
 		Win32::RECT rc;
 		Win32::GetClientRect(state.canvasHwnd, &rc);
 
-		auto pen = Win32::CreatePen(Win32::PenStyles::Dot, 0, Win32::MakeRgb(255, 0, 128));
+		auto pen = Win32::CreatePen(Win32::PenStyles::Dot, 0, state.theme.alignGuide);
 		auto oldPen = Win32::SelectObject(hdc, pen);
 		auto oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
 
@@ -684,6 +684,35 @@ namespace Designer
 		Win32::SetBkMode(hdc, oldMode);
 		Win32::SelectObject(hdc, oldPen);
 		Win32::DeleteObject(pen);
+	}
+
+	export auto GetSettingsPath() -> std::filesystem::path
+	{
+		wchar_t exePath[Win32::MaxPath] = {};
+		Win32::GetModuleFileNameW(nullptr, exePath, Win32::MaxPath);
+		auto p = std::filesystem::path(exePath).parent_path() / L"designer.ini";
+		return p;
+	}
+
+	export void SaveThemePreference(bool isDark)
+	{
+		auto path = GetSettingsPath();
+		auto out = std::ofstream(path);
+		if (out)
+			out << (isDark ? "dark" : "light") << std::endl;
+	}
+
+	export auto LoadThemePreference() -> bool
+	{
+		auto path = GetSettingsPath();
+		auto in = std::ifstream(path);
+		if (in)
+		{
+			auto line = std::string{};
+			std::getline(in, line);
+			return line == "dark";
+		}
+		return false;
 	}
 
 }
