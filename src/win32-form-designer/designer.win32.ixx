@@ -223,6 +223,7 @@ constexpr auto Mb_YesNoCancel  = MB_YESNOCANCEL;
 constexpr auto Mb_IconQuestion = MB_ICONQUESTION;
 constexpr auto Id_Cancel       = IDCANCEL;
 constexpr auto Id_Yes          = IDYES;
+constexpr auto Id_No           = IDNO;
 
 // === File dialog flags ===
 namespace FileDialog

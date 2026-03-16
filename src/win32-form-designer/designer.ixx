@@ -24,6 +24,8 @@ auto CreateMenuBar() -> Win32::HMENU
     Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
     Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_PREVIEW, L"&Preview\tF5");
     Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXPORT_CPP, L"E&xport to C++...");
+    Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
     Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXIT,    L"E&xit\tAlt+F4");
 
     Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
@@ -313,6 +315,7 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
         case IDM_FILE_SAVE_AS: DoSaveAs(*state); return 0;
         case IDM_FILE_EXIT:    Win32::SendMessageW(hwnd, Win32::Messages::Close, 0, 0); return 0;
         case IDM_FILE_PREVIEW: PreviewForm(*state); return 0;
+        case IDM_FILE_EXPORT_CPP: DoExportCpp(*state); return 0;
         case IDM_EDIT_UNDO:      Undo(*state);             return 0;
         case IDM_EDIT_REDO:      Redo(*state);             return 0;
         case IDM_EDIT_CUT:       CutSelected(*state);      return 0;

@@ -36,6 +36,7 @@ constexpr Win32::UINT IDM_VIEW_CLEARGUIDES = 40020;
 
 // File menu IDs (continued).
 constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
+constexpr Win32::UINT IDM_FILE_EXPORT_CPP = 40021;
 
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;

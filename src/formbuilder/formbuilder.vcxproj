@@ -138,6 +138,7 @@
     <ClCompile Include="win32.ixx" />
     <ClCompile Include="json.ixx" />
     <ClCompile Include="serializer.ixx" />
+    <ClCompile Include="codegen.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
