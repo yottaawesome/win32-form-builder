@@ -188,6 +188,13 @@ namespace Designer
 		case FormDesigner::ControlType::TreeView:        return L"TreeView";
 		case FormDesigner::ControlType::UpDown:          return L"UpDown";
 		case FormDesigner::ControlType::RichEdit:        return L"RichEdit";
+		case FormDesigner::ControlType::MonthCalendar:   return L"Month Calendar";
+		case FormDesigner::ControlType::Link:            return L"Link";
+		case FormDesigner::ControlType::IPAddress:       return L"IP Address";
+		case FormDesigner::ControlType::HotKey:          return L"Hot Key";
+		case FormDesigner::ControlType::Picture:         return L"Picture";
+		case FormDesigner::ControlType::Separator:       return L"Separator";
+		case FormDesigner::ControlType::Animation:       return L"Animation";
 		default:                                  return L"Window";
 		}
 	}

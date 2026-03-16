@@ -233,6 +233,13 @@ export namespace Designer
 		{ FormDesigner::ControlType::TreeView,       L"TreeView" },
 		{ FormDesigner::ControlType::UpDown,         L"UpDown" },
 		{ FormDesigner::ControlType::RichEdit,       L"RichEdit" },
+		{ FormDesigner::ControlType::MonthCalendar,  L"MonthCalendar" },
+		{ FormDesigner::ControlType::Link,           L"Link" },
+		{ FormDesigner::ControlType::IPAddress,      L"IPAddress" },
+		{ FormDesigner::ControlType::HotKey,         L"HotKey" },
+		{ FormDesigner::ControlType::Picture,        L"Picture" },
+		{ FormDesigner::ControlType::Separator,      L"Separator" },
+		{ FormDesigner::ControlType::Animation,      L"Animation" },
 	};
 
 	struct DesignState

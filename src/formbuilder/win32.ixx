@@ -242,9 +242,11 @@ export namespace Win32
 		constexpr auto EditReadOnly     = ES_READONLY;
 
 		// Static styles.
-		constexpr auto StaticLeft       = SS_LEFT;
-		constexpr auto StaticCenter     = SS_CENTER;
-		constexpr auto StaticRight      = SS_RIGHT;
+		constexpr auto StaticLeft        = SS_LEFT;
+		constexpr auto StaticCenter      = SS_CENTER;
+		constexpr auto StaticRight       = SS_RIGHT;
+		constexpr auto StaticEtchedFrame = SS_ETCHEDFRAME;
+		constexpr auto StaticEtchedHorz  = SS_ETCHEDHORZ;
 
 		// ListBox / ComboBox styles.
 		constexpr auto ListBoxStandard          = LBS_STANDARD;
@@ -321,8 +323,11 @@ export namespace Win32
 	// WM_NOTIFY codes.
 	namespace NotifyCodes
 	{
+		constexpr auto Click               = NM_CLICK;
 		constexpr auto DoubleClick         = NM_DBLCLK;
 		constexpr auto DateTimeChange      = DTN_DATETIMECHANGE;
+		constexpr auto MonthCalSelChange   = MCN_SELCHANGE;
+		constexpr auto IPAddressFieldChange = IPN_FIELDCHANGED;
 		constexpr auto TreeViewSelChanged  = TVN_SELCHANGEDW;
 		constexpr auto ListViewItemChanged = LVN_ITEMCHANGED;
 		constexpr auto TabSelChange        = TCN_SELCHANGE;
@@ -362,22 +367,27 @@ export namespace Win32
 
 	namespace Controls
 	{
-		constexpr auto Button       = WC_BUTTON;
-		constexpr auto Static       = WC_STATIC;
-		constexpr auto Edit         = WC_EDIT;
-		constexpr auto ListBox      = WC_LISTBOX;
-		constexpr auto ComboBox     = WC_COMBOBOX;
-		constexpr auto Progress     = PROGRESS_CLASS;
-		constexpr auto TrackBar     = TRACKBAR_CLASS;
-		constexpr auto DateTimePick = DATETIMEPICK_CLASS;
-		constexpr auto Tab          = WC_TABCONTROL;
-		constexpr auto ListView     = WC_LISTVIEW;
-		constexpr auto TreeView     = WC_TREEVIEW;
-		constexpr auto UpDown       = UPDOWN_CLASS;
-		constexpr auto RichEdit     = MSFTEDIT_CLASS;
-		constexpr auto Tooltips     = TOOLTIPS_CLASS;
-		constexpr auto Toolbar      = TOOLBARCLASSNAMEW;
-		constexpr auto StatusBar    = STATUSCLASSNAMEW;
+		constexpr auto Button        = WC_BUTTON;
+		constexpr auto Static        = WC_STATIC;
+		constexpr auto Edit          = WC_EDIT;
+		constexpr auto ListBox       = WC_LISTBOX;
+		constexpr auto ComboBox      = WC_COMBOBOX;
+		constexpr auto Progress      = PROGRESS_CLASS;
+		constexpr auto TrackBar      = TRACKBAR_CLASS;
+		constexpr auto DateTimePick  = DATETIMEPICK_CLASS;
+		constexpr auto Tab           = WC_TABCONTROL;
+		constexpr auto ListView      = WC_LISTVIEW;
+		constexpr auto TreeView      = WC_TREEVIEW;
+		constexpr auto UpDown        = UPDOWN_CLASS;
+		constexpr auto RichEdit      = MSFTEDIT_CLASS;
+		constexpr auto MonthCalendar = MONTHCAL_CLASS;
+		constexpr auto Link          = WC_LINK;
+		constexpr auto IPAddress     = WC_IPADDRESS;
+		constexpr auto HotKey        = HOTKEY_CLASS;
+		constexpr auto Animation     = ANIMATE_CLASS;
+		constexpr auto Tooltips      = TOOLTIPS_CLASS;
+		constexpr auto Toolbar       = TOOLBARCLASSNAMEW;
+		constexpr auto StatusBar     = STATUSCLASSNAMEW;
 	}
 
 	// ===================================================================

@@ -40,6 +40,13 @@ namespace FormDesigner
 		case ControlType::TreeView:          return "WC_TREEVIEW";
 		case ControlType::UpDown:            return "UPDOWN_CLASS";
 		case ControlType::RichEdit:          return "MSFTEDIT_CLASS";
+		case ControlType::MonthCalendar:     return "MONTHCAL_CLASS";
+		case ControlType::Link:              return "WC_LINK";
+		case ControlType::IPAddress:         return "WC_IPADDRESS";
+		case ControlType::HotKey:            return "HOTKEY_CLASS";
+		case ControlType::Picture:           return "WC_STATIC";
+		case ControlType::Separator:         return "WC_STATIC";
+		case ControlType::Animation:         return "ANIMATE_CLASS";
 		default:                             return "L\"Window\"";
 		}
 	}
@@ -65,6 +72,13 @@ namespace FormDesigner
 		case ControlType::TreeView:          return "TreeView";
 		case ControlType::UpDown:            return "UpDown";
 		case ControlType::RichEdit:          return "RichEdit";
+		case ControlType::MonthCalendar:     return "MonthCal";
+		case ControlType::Link:              return "Link";
+		case ControlType::IPAddress:         return "IPAddress";
+		case ControlType::HotKey:            return "HotKey";
+		case ControlType::Picture:           return "Picture";
+		case ControlType::Separator:         return "Separator";
+		case ControlType::Animation:         return "Animation";
 		default:                             return "Control";
 		}
 	}
@@ -90,6 +104,13 @@ namespace FormDesigner
 		case ControlType::TreeView:          return "TREEVIEW";
 		case ControlType::UpDown:            return "UPDOWN";
 		case ControlType::RichEdit:          return "RICHEDIT";
+		case ControlType::MonthCalendar:     return "MONTHCAL";
+		case ControlType::Link:              return "LINK";
+		case ControlType::IPAddress:         return "IPADDRESS";
+		case ControlType::HotKey:            return "HOTKEY";
+		case ControlType::Picture:           return "PICTURE";
+		case ControlType::Separator:         return "SEPARATOR";
+		case ControlType::Animation:         return "ANIMATION";
 		default:                             return "CONTROL";
 		}
 	}
@@ -110,6 +131,8 @@ namespace FormDesigner
 		case ControlType::ListView:    parts.push_back("LVS_REPORT"); parts.push_back("LVS_SHOWSELALWAYS"); break;
 		case ControlType::TreeView:    parts.push_back("TVS_HASBUTTONS"); parts.push_back("TVS_HASLINES"); parts.push_back("TVS_LINESATROOT"); break;
 		case ControlType::RichEdit:    parts.push_back("WS_BORDER"); parts.push_back("ES_MULTILINE"); parts.push_back("ES_AUTOVSCROLL"); break;
+		case ControlType::Picture:     parts.push_back("SS_ETCHEDFRAME"); break;
+		case ControlType::Separator:   parts.push_back("SS_ETCHEDHORZ"); break;
 		default: break;
 		}
 
@@ -282,9 +305,14 @@ namespace FormDesigner
 			dispatch.stubs.try_emplace(funcName, eventType);
 		};
 
-		// onClick → BN_CLICKED (Button, CheckBox, RadioButton)
+		// onClick → BN_CLICKED for buttons, NM_CLICK for Link (SysLink)
 		if (!ctrl.onClick.empty())
-			addCommand(ctrl.onClick, "BN_CLICKED", "click");
+		{
+			if (ctrl.type == ControlType::Link)
+				addNotify(ctrl.onClick, "NM_CLICK", "click");
+			else
+				addCommand(ctrl.onClick, "BN_CLICKED", "click");
+		}
 
 		// onCheck → BN_CLICKED then BM_GETCHECK (CheckBox, RadioButton)
 		if (!ctrl.onCheck.empty() && ctrl.id != 0)
@@ -311,6 +339,12 @@ namespace FormDesigner
 				break;
 			case ControlType::DateTimePicker:
 				addNotify(ctrl.onChange, "DTN_DATETIMECHANGE", "change");
+				break;
+			case ControlType::MonthCalendar:
+				addNotify(ctrl.onChange, "MCN_SELCHANGE", "change");
+				break;
+			case ControlType::IPAddress:
+				addNotify(ctrl.onChange, "IPN_FIELDCHANGED", "change");
 				break;
 			default:
 				addCommand(ctrl.onChange, "EN_CHANGE", "change");

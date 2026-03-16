@@ -6,7 +6,7 @@ using namespace FormDesigner;
 
 // === ParseControlType ===
 
-TEST_CASE("ParseControlType parses all 17 control types", "[parser]")
+TEST_CASE("ParseControlType parses all 24 control types", "[parser]")
 {
     REQUIRE(ParseControlType("Window")          == ControlType::Window);
     REQUIRE(ParseControlType("Button")          == ControlType::Button);
@@ -25,6 +25,13 @@ TEST_CASE("ParseControlType parses all 17 control types", "[parser]")
     REQUIRE(ParseControlType("TreeView")        == ControlType::TreeView);
     REQUIRE(ParseControlType("UpDown")          == ControlType::UpDown);
     REQUIRE(ParseControlType("RichEdit")        == ControlType::RichEdit);
+    REQUIRE(ParseControlType("MonthCalendar")   == ControlType::MonthCalendar);
+    REQUIRE(ParseControlType("Link")            == ControlType::Link);
+    REQUIRE(ParseControlType("IPAddress")       == ControlType::IPAddress);
+    REQUIRE(ParseControlType("HotKey")          == ControlType::HotKey);
+    REQUIRE(ParseControlType("Picture")         == ControlType::Picture);
+    REQUIRE(ParseControlType("Separator")       == ControlType::Separator);
+    REQUIRE(ParseControlType("Animation")       == ControlType::Animation);
 }
 
 TEST_CASE("ParseControlType throws for unknown type", "[parser]")
@@ -53,6 +60,13 @@ TEST_CASE("ControlTypeName returns correct names for all types", "[serializer]")
     REQUIRE(ControlTypeName(ControlType::TreeView)       == "TreeView");
     REQUIRE(ControlTypeName(ControlType::UpDown)         == "UpDown");
     REQUIRE(ControlTypeName(ControlType::RichEdit)       == "RichEdit");
+    REQUIRE(ControlTypeName(ControlType::MonthCalendar)  == "MonthCalendar");
+    REQUIRE(ControlTypeName(ControlType::Link)           == "Link");
+    REQUIRE(ControlTypeName(ControlType::IPAddress)      == "IPAddress");
+    REQUIRE(ControlTypeName(ControlType::HotKey)         == "HotKey");
+    REQUIRE(ControlTypeName(ControlType::Picture)        == "Picture");
+    REQUIRE(ControlTypeName(ControlType::Separator)      == "Separator");
+    REQUIRE(ControlTypeName(ControlType::Animation)      == "Animation");
 }
 
 // === ParseControlType / ControlTypeName roundtrip ===
@@ -66,6 +80,9 @@ TEST_CASE("ParseControlType and ControlTypeName are inverse operations", "[parse
         ControlType::ProgressBar, ControlType::TrackBar, ControlType::DateTimePicker,
         ControlType::TabControl, ControlType::ListView, ControlType::TreeView,
         ControlType::UpDown, ControlType::RichEdit,
+        ControlType::MonthCalendar, ControlType::Link, ControlType::IPAddress,
+        ControlType::HotKey, ControlType::Picture, ControlType::Separator,
+        ControlType::Animation,
     };
 
     for (auto type : types)

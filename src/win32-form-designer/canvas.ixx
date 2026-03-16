@@ -275,6 +275,13 @@ namespace Designer
 		case FormDesigner::ControlType::TreeView:        ctrl.rect = { x, y, 200, 150 }; break;
 		case FormDesigner::ControlType::UpDown:          ctrl.rect = { x, y, 20, 25 }; break;
 		case FormDesigner::ControlType::RichEdit:        ctrl.rect = { x, y, 200, 100 }; break;
+		case FormDesigner::ControlType::MonthCalendar:   ctrl.rect = { x, y, 230, 165 }; break;
+		case FormDesigner::ControlType::Link:            ctrl.text = L"<a>Link</a>"; break;
+		case FormDesigner::ControlType::IPAddress:       ctrl.rect = { x, y, 130, 22 }; break;
+		case FormDesigner::ControlType::HotKey:          ctrl.rect = { x, y, 130, 22 }; break;
+		case FormDesigner::ControlType::Picture:         ctrl.rect = { x, y, 100, 80 }; break;
+		case FormDesigner::ControlType::Separator:       ctrl.rect = { x, y, 200, 2 }; break;
+		case FormDesigner::ControlType::Animation:       ctrl.rect = { x, y, 100, 60 }; break;
 		default: ctrl.text = L"Control"; break;
 		}
 

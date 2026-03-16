@@ -26,6 +26,13 @@ export namespace FormDesigner
 			{"TreeView",        ControlType::TreeView},
 			{"UpDown",          ControlType::UpDown},
 			{"RichEdit",        ControlType::RichEdit},
+			{"MonthCalendar",   ControlType::MonthCalendar},
+			{"Link",            ControlType::Link},
+			{"IPAddress",       ControlType::IPAddress},
+			{"HotKey",          ControlType::HotKey},
+			{"Picture",         ControlType::Picture},
+			{"Separator",       ControlType::Separator},
+			{"Animation",       ControlType::Animation},
 		};
 
 		if (auto it = map.find(type); it != map.end())

@@ -27,6 +27,13 @@ export namespace FormDesigner
 		case ControlType::TreeView:        return "TreeView";
 		case ControlType::UpDown:          return "UpDown";
 		case ControlType::RichEdit:        return "RichEdit";
+		case ControlType::MonthCalendar:   return "MonthCalendar";
+		case ControlType::Link:            return "Link";
+		case ControlType::IPAddress:       return "IPAddress";
+		case ControlType::HotKey:          return "HotKey";
+		case ControlType::Picture:         return "Picture";
+		case ControlType::Separator:       return "Separator";
+		case ControlType::Animation:       return "Animation";
 		default:                    return "Window";
 		}
 	}

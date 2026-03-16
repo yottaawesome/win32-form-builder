@@ -32,6 +32,13 @@ export namespace FormDesigner
 		TreeView,
 		UpDown,
 		RichEdit,
+		MonthCalendar,
+		Link,       // SysLink control
+		IPAddress,
+		HotKey,
+		Picture,    // STATIC with SS_ETCHEDFRAME
+		Separator,  // STATIC with SS_ETCHEDHORZ
+		Animation,
 	};
 
 	// Text alignment options for controls that support it.
@@ -160,6 +167,13 @@ export namespace FormDesigner
 		case ControlType::TreeView:        return Win32::Controls::TreeView;
 		case ControlType::UpDown:          return Win32::Controls::UpDown;
 		case ControlType::RichEdit:        return Win32::Controls::RichEdit;
+		case ControlType::MonthCalendar:   return Win32::Controls::MonthCalendar;
+		case ControlType::Link:            return Win32::Controls::Link;
+		case ControlType::IPAddress:       return Win32::Controls::IPAddress;
+		case ControlType::HotKey:          return Win32::Controls::HotKey;
+		case ControlType::Picture:         return Win32::Controls::Static;
+		case ControlType::Separator:       return Win32::Controls::Static;
+		case ControlType::Animation:       return Win32::Controls::Animation;
 		default:                    return nullptr;
 		}
 	}
@@ -179,6 +193,8 @@ export namespace FormDesigner
 		case ControlType::ListView:    return Win32::Styles::ListViewReport | Win32::Styles::ListViewShowSelAlways;
 		case ControlType::TreeView:    return Win32::Styles::TreeViewHasButtons | Win32::Styles::TreeViewHasLines | Win32::Styles::TreeViewLinesAtRoot;
 		case ControlType::RichEdit:    return Win32::Styles::Border | Win32::Styles::EditMultiLine | Win32::Styles::EditAutoVScroll;
+		case ControlType::Picture:     return Win32::Styles::StaticEtchedFrame;
+		case ControlType::Separator:   return Win32::Styles::StaticEtchedHorz;
 		default:                    return 0;
 		}
 	}

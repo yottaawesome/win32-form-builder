@@ -249,10 +249,22 @@ export namespace FormDesigner
 				}
 			}
 
-			// onChange: DTN_DATETIMECHANGE
-			if (nmhdr->code == Win32::NotifyCodes::DateTimeChange)
+			// onChange: DTN_DATETIMECHANGE, MCN_SELCHANGE, IPN_FIELDCHANGED
+			if (nmhdr->code == Win32::NotifyCodes::DateTimeChange ||
+				nmhdr->code == Win32::NotifyCodes::MonthCalSelChange ||
+				nmhdr->code == Win32::NotifyCodes::IPAddressFieldChange)
 			{
 				if (auto* handler = data->events->findChangeHandler(controlId))
+				{
+					(*handler)({ controlId, controlHwnd, hwnd });
+					return 0;
+				}
+			}
+
+			// onClick: NM_CLICK (Link/SysLink)
+			if (nmhdr->code == Win32::NotifyCodes::Click)
+			{
+				if (auto* handler = data->events->findClickHandler(controlId))
 				{
 					(*handler)({ controlId, controlHwnd, hwnd });
 					return 0;
