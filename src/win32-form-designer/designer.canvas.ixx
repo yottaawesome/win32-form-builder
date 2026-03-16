@@ -809,8 +809,8 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         {
             Win32::RECT topRuler = { 0, 0, 32767, RULER_SIZE };
             Win32::RECT leftRuler = { 0, 0, RULER_SIZE, 32767 };
-            Win32::InvalidateRect(hwnd, &topRuler, true);
-            Win32::InvalidateRect(hwnd, &leftRuler, true);
+            Win32::InvalidateRect(hwnd, &topRuler, false);
+            Win32::InvalidateRect(hwnd, &leftRuler, false);
         }
         break;
     }
