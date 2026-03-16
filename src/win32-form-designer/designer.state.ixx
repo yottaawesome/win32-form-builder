@@ -21,6 +21,7 @@ constexpr Win32::UINT IDM_EDIT_PASTE     = 40011;
 constexpr Win32::UINT IDM_EDIT_DUPLICATE = 40012;
 constexpr Win32::UINT IDM_EDIT_DELETE    = 40013;
 constexpr Win32::UINT IDM_EDIT_SELECTALL = 40014;
+constexpr Win32::UINT IDM_VIEW_ZORDER   = 40015;
 
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
@@ -42,6 +43,7 @@ constexpr Win32::UINT IDC_PROP_ONSELCHANGE = 51011;
 constexpr Win32::UINT IDC_PROP_ONFOCUS = 51012;
 constexpr Win32::UINT IDC_PROP_ONBLUR = 51013;
 constexpr Win32::UINT IDC_PROP_ONCHECK = 51014;
+constexpr Win32::UINT IDC_PROP_TABINDEX = 51015;
 
 // Form property edit IDs.
 constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
@@ -52,6 +54,13 @@ constexpr Win32::UINT IDC_PROP_FORM_BGCOLOR_BTN = 52005;
 
 // Label IDs are offset from the corresponding edit IDs.
 constexpr Win32::UINT IDL_OFFSET = 10000;
+
+// Z-order panel control IDs.
+constexpr Win32::UINT IDC_ZORDER_LIST   = 53001;
+constexpr Win32::UINT IDC_ZORDER_UP     = 53002;
+constexpr Win32::UINT IDC_ZORDER_DOWN   = 53003;
+constexpr Win32::UINT IDC_ZORDER_TOP    = 53004;
+constexpr Win32::UINT IDC_ZORDER_BOTTOM = 53005;
 
 struct ControlEntry
 {
@@ -134,6 +143,7 @@ struct DesignState
 
     std::filesystem::path currentFile;
     bool dirty = false;
+    Win32::HWND zorderHwnd = nullptr;
 };
 
 constexpr Win32::UINT SUBCLASS_ID = 1;

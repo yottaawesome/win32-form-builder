@@ -65,8 +65,20 @@ using
     ::GetKeyState,
     ::SetScrollInfo,
     ::GetScrollInfo,
-    ::ScrollWindowEx
+    ::ScrollWindowEx,
+    ::SetWindowPos,
+    ::GetWindowRect
     ;
+
+const auto HwndBottom = HWND_BOTTOM;
+const auto HwndTop    = HWND_TOP;
+
+namespace Swp
+{
+    constexpr auto NoMove     = SWP_NOMOVE;
+    constexpr auto NoSize     = SWP_NOSIZE;
+    constexpr auto NoActivate = SWP_NOACTIVATE;
+}
 
 // === Scroll types ===
 using ::SCROLLINFO;
@@ -138,6 +150,8 @@ namespace Styles
     constexpr auto VScroll                  = WS_VSCROLL;
     constexpr auto ListBoxNotify            = LBS_NOTIFY;
     constexpr auto ListBoxNoIntegralHeight  = LBS_NOINTEGRALHEIGHT;
+    constexpr auto ThickFrame               = WS_THICKFRAME;
+    constexpr auto MaximizeBox              = WS_MAXIMIZEBOX;
 }
 
 // === Extended styles ===
@@ -152,6 +166,7 @@ namespace ListBox
     constexpr auto GetCurSel = LB_GETCURSEL;
     constexpr auto SetCurSel = LB_SETCURSEL;
     constexpr auto AddString = LB_ADDSTRING;
+    constexpr auto ResetContent = LB_RESETCONTENT;
 }
 
 // === Menu flags ===

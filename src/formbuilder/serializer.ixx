@@ -72,6 +72,9 @@ namespace FormDesigner
 		if (not control.onCheck.empty())
 			j["onCheck"] = control.onCheck;
 
+		if (control.tabIndex != 0)
+			j["tabIndex"] = control.tabIndex;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

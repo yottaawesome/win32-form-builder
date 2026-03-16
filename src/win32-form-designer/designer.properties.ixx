@@ -36,14 +36,14 @@ export void UpdatePropertyPanel(DesignState& state)
         IDC_PROP_TYPE, IDC_PROP_TEXT, IDC_PROP_ID,
         IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
         IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
-        IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK
+        IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX
     };
     constexpr Win32::UINT formIds[] = {
         IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
         IDC_PROP_FORM_HEIGHT, IDC_PROP_FORM_BGCOLOR
     };
 
-    SetPropertyGroupVisibility(panel, ctrlIds, 14, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+    SetPropertyGroupVisibility(panel, ctrlIds, 15, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
     SetPropertyGroupVisibility(panel, formIds, 4, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
     auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -85,10 +85,12 @@ export void UpdatePropertyPanel(DesignState& state)
         auto onCheck = std::wstring(ctrl.onCheck.begin(), ctrl.onCheck.end());
         Win32::SetDlgItemTextW(panel, IDC_PROP_ONCHECK, onCheck.c_str());
 
+        Win32::SetDlgItemInt(panel, IDC_PROP_TABINDEX, static_cast<Win32::UINT>(ctrl.tabIndex), true);
+
         Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
             IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
             IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
-            IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK };
+            IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX };
         for (auto id : editableIds)
             Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
     }
@@ -222,6 +224,13 @@ void ApplyPropertyChange(DesignState& state, Win32::UINT controlId)
         ctrl.onCheck = std::string(buf, buf + std::wcslen(buf));
         break;
     }
+    case IDC_PROP_TABINDEX:
+    {
+        Win32::BOOL ok = false;
+        auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_TABINDEX, &ok, true));
+        if (ok) ctrl.tabIndex = val;
+        break;
+    }
     default:
         return;
     }
@@ -303,6 +312,7 @@ export void CreatePropertyControls(DesignState& state)
         { L"onFocus:", IDC_PROP_ONFOCUS,     Win32::Styles::EditAutoHScroll },
         { L"onBlur:",  IDC_PROP_ONBLUR,      Win32::Styles::EditAutoHScroll },
         { L"onCheck:", IDC_PROP_ONCHECK,     Win32::Styles::EditAutoHScroll },
+        { L"TabIdx:", IDC_PROP_TABINDEX,    Win32::Styles::EditAutoHScroll },
     };
 
     int y = 30;
@@ -364,7 +374,7 @@ export void CreatePropertyControls(DesignState& state)
     Win32::SendMessageW(bgBtn, Win32::Messages::SetFont, font, true);
 }
 
-constexpr int PROP_CONTENT_CTRL = 30 + 14 * 26 + 10;  // control properties: 404px
+constexpr int PROP_CONTENT_CTRL = 30 + 15 * 26 + 10;  // control properties: 430px
 constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10;   // form properties: 144px
 constexpr int SCROLL_LINE = 26;                         // one row height
 
@@ -501,7 +511,7 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
         // Property edits (apply on focus loss).
         if (code == Win32::Notifications::EditKillFocus)
         {
-            if (id >= IDC_PROP_TYPE && id <= IDC_PROP_ONCHECK)
+            if (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
                 ApplyPropertyChange(*state, id);
             else if (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
                 ApplyFormPropertyChange(*state, id);

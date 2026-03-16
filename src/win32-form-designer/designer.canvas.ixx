@@ -9,6 +9,8 @@ import :properties;
 namespace Designer
 {
 
+void RefreshZOrderPanel(DesignState& state);
+
 export void PopulateControls(DesignState& state)
 {
     for (auto& control : state.form.controls)
@@ -54,6 +56,7 @@ export void RebuildControls(DesignState& state)
     PopulateControls(state);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
+    RefreshZOrderPanel(state);
 }
 
 void PlaceControl(DesignState& state, int x, int y)
@@ -123,6 +126,7 @@ void PlaceControl(DesignState& state, int x, int y)
     MarkDirty(state);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
+    RefreshZOrderPanel(state);
 }
 
 export void CancelPlacement(DesignState& state)
@@ -165,6 +169,68 @@ export void SelectAll(DesignState& state)
         state.selection.insert(i);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
+}
+
+export void MoveControlInZOrder(DesignState& state, int from, int to)
+{
+    if (from == to) return;
+    int count = static_cast<int>(state.form.controls.size());
+    if (from < 0 || from >= count || to < 0 || to >= count) return;
+
+    PushUndo(state);
+
+    // Swap adjacent entries to move from→to, preserving relative order of others.
+    int step = (to > from) ? 1 : -1;
+    for (int i = from; i != to; i += step)
+    {
+        int next = i + step;
+        std::swap(state.form.controls[i], state.form.controls[next]);
+        std::swap(state.entries[i], state.entries[next]);
+    }
+
+    // Fix up control pointers.
+    for (int i = 0; i < count; ++i)
+        state.entries[i].control = &state.form.controls[i];
+
+    // Update Win32 z-order to match vector order.
+    Win32::HWND prevHwnd = Win32::HwndBottom;
+    for (int i = 0; i < count; ++i)
+    {
+        Win32::SetWindowPos(state.entries[i].hwnd, prevHwnd, 0, 0, 0, 0,
+            Win32::Swp::NoMove | Win32::Swp::NoSize | Win32::Swp::NoActivate);
+        prevHwnd = state.entries[i].hwnd;
+    }
+
+    // Remap selection to follow the moved control.
+    if (state.selection.contains(from) && !state.selection.contains(to))
+    {
+        state.selection.erase(from);
+        state.selection.insert(to);
+    }
+
+    MarkDirty(state);
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+    UpdatePropertyPanel(state);
+    RefreshZOrderPanel(state);
+}
+
+void RefreshZOrderPanel(DesignState& state)
+{
+    if (!state.zorderHwnd) return;
+    auto list = Win32::GetDlgItem(state.zorderHwnd, IDC_ZORDER_LIST);
+    if (!list) return;
+
+    Win32::SendMessageW(list, Win32::ListBox::ResetContent, 0, 0);
+    for (int i = 0; i < static_cast<int>(state.form.controls.size()); ++i)
+    {
+        auto& ctrl = state.form.controls[i];
+        auto name = ControlTypeDisplayName(ctrl.type);
+        auto textNarrow = std::string(ctrl.text.begin(), ctrl.text.end());
+        auto label = std::format(L"{}: {} - {}", i, name,
+            ctrl.text.empty() ? L"(no text)" : ctrl.text);
+        Win32::SendMessageW(list, Win32::ListBox::AddString, 0,
+            reinterpret_cast<Win32::LPARAM>(label.c_str()));
+    }
 }
 
 export void CopySelected(DesignState& state)
@@ -269,6 +335,7 @@ void DeleteSelectedControls(DesignState& state)
     MarkDirty(state);
     Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
     UpdatePropertyPanel(state);
+    RefreshZOrderPanel(state);
 }
 
 export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,

@@ -49,6 +49,7 @@ export namespace FormDesigner
 		std::string onFocus;
 		std::string onBlur;
 		std::string onCheck;
+		int tabIndex = 0;
 		std::vector<Control> children;
 	};
 

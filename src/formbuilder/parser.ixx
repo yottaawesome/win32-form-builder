@@ -87,6 +87,9 @@ namespace FormDesigner
 		if (j.contains("onCheck"))
 			control.onCheck = j["onCheck"].get<std::string>();
 
+		if (j.contains("tabIndex"))
+			control.tabIndex = j["tabIndex"].get<int>();
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));
