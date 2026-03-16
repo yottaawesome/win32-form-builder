@@ -4,7 +4,7 @@ import :win32;
 import :json;
 import :schema;
 
-namespace FormDesigner
+export namespace FormDesigner
 {
 	auto ControlTypeName(ControlType type) -> std::string
 	{

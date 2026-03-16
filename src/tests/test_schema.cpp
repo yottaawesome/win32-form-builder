@@ -1,0 +1,95 @@
+#include <catch2/catch_test_macros.hpp>
+import std;
+import formbuilder;
+
+using namespace FormDesigner;
+
+TEST_CASE("ClassNameFor returns correct Win32 class names", "[schema]")
+{
+    REQUIRE(std::wstring(ClassNameFor(ControlType::Button))  == L"Button");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::CheckBox)) == L"Button");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::RadioButton)) == L"Button");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::Label))   == L"Static");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::TextBox)) == L"Edit");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::GroupBox)) == L"Button");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::ListBox)) == L"ListBox");
+    REQUIRE(std::wstring(ClassNameFor(ControlType::ComboBox)) == L"ComboBox");
+}
+
+TEST_CASE("ClassNameFor returns nullptr for Window type", "[schema]")
+{
+    REQUIRE(ClassNameFor(ControlType::Window) == nullptr);
+}
+
+TEST_CASE("ClassNameFor handles common control types", "[schema]")
+{
+    REQUIRE(ClassNameFor(ControlType::ProgressBar) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::TrackBar) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::DateTimePicker) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::TabControl) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::ListView) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::TreeView) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::UpDown) != nullptr);
+    REQUIRE(ClassNameFor(ControlType::RichEdit) != nullptr);
+}
+
+TEST_CASE("ImpliedStyleFor returns non-zero for types with implied styles", "[schema]")
+{
+    REQUIRE(ImpliedStyleFor(ControlType::CheckBox) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::RadioButton) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::GroupBox) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::TextBox) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::ListBox) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::ComboBox) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::ListView) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::TreeView) != 0);
+    REQUIRE(ImpliedStyleFor(ControlType::RichEdit) != 0);
+}
+
+TEST_CASE("ImpliedStyleFor returns 0 for types with no implied style", "[schema]")
+{
+    REQUIRE(ImpliedStyleFor(ControlType::Button) == 0);
+    REQUIRE(ImpliedStyleFor(ControlType::Window) == 0);
+    REQUIRE(ImpliedStyleFor(ControlType::Label) == 0);  // SS_LEFT is 0
+    REQUIRE(ImpliedStyleFor(ControlType::ProgressBar) == 0);
+    REQUIRE(ImpliedStyleFor(ControlType::TrackBar) == 0);
+    REQUIRE(ImpliedStyleFor(ControlType::UpDown) == 0);
+}
+
+TEST_CASE("Rect has sensible default values", "[schema]")
+{
+    Rect r;
+    REQUIRE(r.x == 0);
+    REQUIRE(r.y == 0);
+    REQUIRE(r.width == 100);
+    REQUIRE(r.height == 25);
+}
+
+TEST_CASE("Control has sensible default values", "[schema]")
+{
+    Control c;
+    REQUIRE(c.type == ControlType::Window);
+    REQUIRE(c.text.empty());
+    REQUIRE(c.id == 0);
+    REQUIRE(c.style == 0);
+    REQUIRE(c.exStyle == 0);
+    REQUIRE(c.tabIndex == 0);
+    REQUIRE(c.onClick.empty());
+    REQUIRE(c.onChange.empty());
+    REQUIRE(c.onDoubleClick.empty());
+    REQUIRE(c.onSelectionChange.empty());
+    REQUIRE(c.onFocus.empty());
+    REQUIRE(c.onBlur.empty());
+    REQUIRE(c.onCheck.empty());
+    REQUIRE(c.children.empty());
+}
+
+TEST_CASE("Form has sensible default values", "[schema]")
+{
+    Form f;
+    REQUIRE(f.title == L"Untitled");
+    REQUIRE(f.width == 640);
+    REQUIRE(f.height == 480);
+    REQUIRE(f.backgroundColor == -1);
+    REQUIRE(f.controls.empty());
+}
