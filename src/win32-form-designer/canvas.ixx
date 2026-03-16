@@ -353,9 +353,8 @@ namespace Designer
 		{
 			auto& ctrl = state.form.controls[i];
 			auto name = ControlTypeDisplayName(ctrl.type);
-			auto textNarrow = std::string(ctrl.text.begin(), ctrl.text.end());
-			auto label = std::format(L"{}: {} - {}", i, name,
-				ctrl.text.empty() ? L"(no text)" : ctrl.text);
+			auto label = std::format(L"{}: {} - {} (tab: {})", i, name,
+				ctrl.text.empty() ? L"(no text)" : ctrl.text, ctrl.tabIndex);
 			Win32::SendMessageW(list, Win32::ListBox::AddString, 0,
 				reinterpret_cast<Win32::LPARAM>(label.c_str()));
 		}
@@ -550,6 +549,8 @@ namespace Designer
 				DrawSelection(*state, hdc);
 				DrawAlignGuides(*state, hdc);
 				DrawRulers(*state, hdc);
+				if (state->tabOrderMode)
+					DrawTabOrderBadges(*state, hdc);
 				if (state->lastCursorPos.x >= 0)
 					DrawRulerCursorIndicator(*state, hdc,
 						state->lastCursorPos.x, state->lastCursorPos.y);
@@ -593,6 +594,21 @@ namespace Designer
 			if (state->placementMode)
 			{
 				PlaceControl(*state, x, y);
+				return 0;
+			}
+
+			// Tab order mode: click assigns next tab index.
+			if (state->tabOrderMode)
+			{
+				int hit = HitTest(*state, x, y);
+				if (hit >= 0)
+				{
+					state->entries[hit].control->tabIndex = state->tabOrderNext;
+					state->tabOrderNext++;
+					MarkDirty(*state);
+					Win32::InvalidateRect(hwnd, nullptr, true);
+					UpdatePropertyPanel(*state);
+				}
 				return 0;
 			}
 
@@ -1039,6 +1055,18 @@ namespace Designer
 		case Win32::Messages::KeyDown:
 		{
 			if (!state) break;
+
+			// Escape exits tab order mode.
+			if (state->tabOrderMode && wParam == Win32::Keys::Escape)
+			{
+				state->tabOrderMode = false;
+				state->tabOrderNext = 1;
+				auto menu = Win32::GetMenu(state->surfaceHwnd);
+				Win32::CheckMenuItem(menu, IDM_VIEW_TABORDER, Win32::Menu::Unchecked);
+				Win32::InvalidateRect(hwnd, nullptr, true);
+				return 0;
+			}
+
 			if (wParam == Win32::Keys::Delete)
 			{
 				DeleteSelectedControls(*state);

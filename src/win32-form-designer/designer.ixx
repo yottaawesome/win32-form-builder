@@ -62,6 +62,7 @@ namespace Designer
 		Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_DARKMODE, L"&Dark Mode");
 		Win32::AppendMenuW(viewMenu, Win32::Menu::Separator, 0, nullptr);
+		Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_TABORDER, L"Edit &Tab Order");
 		Win32::AppendMenuW(viewMenu, Win32::Menu::String, IDM_VIEW_ZORDER, L"Tab && &Z-Order...");
 
 		Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
@@ -330,6 +331,25 @@ namespace Designer
 			case IDM_EDIT_SELECTALL: SelectAll(*state);        return 0;
 			case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
 			case IDM_VIEW_ZORDER:  ShowZOrderPanel(*state); return 0;
+			case IDM_VIEW_TABORDER:
+			{
+				state->tabOrderMode = !state->tabOrderMode;
+				auto menu = Win32::GetMenu(hwnd);
+				Win32::CheckMenuItem(menu, IDM_VIEW_TABORDER,
+					state->tabOrderMode ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+				if (state->tabOrderMode)
+				{
+					PushUndo(*state);
+					AutoAssignTabOrder(*state);
+					state->tabOrderNext = static_cast<int>(state->entries.size()) + 1;
+				}
+				else
+				{
+					state->tabOrderNext = 1;
+				}
+				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+				return 0;
+			}
 			case IDM_VIEW_SHOWGRID:
 			{
 				state->showGrid = !state->showGrid;

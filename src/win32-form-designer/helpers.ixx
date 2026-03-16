@@ -744,6 +744,69 @@ namespace Designer
 		Win32::DeleteObject(pen);
 	}
 
+	// Sorts controls by position (top-to-bottom, left-to-right) and assigns
+	// sequential tab indices starting from 1.
+	export void AutoAssignTabOrder(DesignState& state)
+	{
+		int count = static_cast<int>(state.form.controls.size());
+		if (count == 0) return;
+
+		// Build index list sorted by (y, x).
+		auto indices = std::vector<int>(count);
+		std::iota(indices.begin(), indices.end(), 0);
+		std::sort(indices.begin(), indices.end(), [&](int a, int b)
+		{
+			auto& ra = state.form.controls[a].rect;
+			auto& rb = state.form.controls[b].rect;
+			if (ra.y != rb.y) return ra.y < rb.y;
+			return ra.x < rb.x;
+		});
+
+		for (int i = 0; i < count; ++i)
+			state.form.controls[indices[i]].tabIndex = i + 1;
+	}
+
+	export void DrawTabOrderBadges(const DesignState& state, Win32::HDC hdc)
+	{
+		int offset = RulerOffset(state);
+		constexpr int BADGE_SIZE = 20;
+
+		auto badgeBrush = Win32::CreateSolidBrush(state.theme.selectionHighlight);
+		auto badgePen = Win32::CreatePen(Win32::PenStyles::Solid, 1, state.theme.selectionHighlight);
+		auto oldBrush = Win32::SelectObject(hdc, badgeBrush);
+		auto oldPen = Win32::SelectObject(hdc, badgePen);
+		auto oldTextColor = Win32::SetTextColor(hdc, Win32::MakeRgb(255, 255, 255));
+		auto oldBkMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+
+		auto font = Win32::CreateFontW(
+			14, 0, 0, 0, 700, false, false, false, 1, 0, 0, 0, 0, L"Segoe UI");
+		auto oldFont = Win32::SelectObject(hdc, font);
+
+		for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+		{
+			auto& ctrl = *state.entries[i].control;
+			int bx = ctrl.rect.x + offset - BADGE_SIZE / 2;
+			int by = ctrl.rect.y + offset - BADGE_SIZE / 2;
+
+			Win32::Ellipse(hdc, bx, by, bx + BADGE_SIZE, by + BADGE_SIZE);
+
+			auto label = std::to_wstring(ctrl.tabIndex);
+			Win32::RECT textRc = { bx, by, bx + BADGE_SIZE, by + BADGE_SIZE };
+			Win32::DrawTextW(hdc, label.c_str(), static_cast<int>(label.size()),
+				&textRc, Win32::DrawTextFlags::Center | Win32::DrawTextFlags::VCenter |
+				Win32::DrawTextFlags::SingleLine);
+		}
+
+		Win32::SelectObject(hdc, oldFont);
+		Win32::DeleteObject(font);
+		Win32::SetBkMode(hdc, oldBkMode);
+		Win32::SetTextColor(hdc, oldTextColor);
+		Win32::SelectObject(hdc, oldPen);
+		Win32::SelectObject(hdc, oldBrush);
+		Win32::DeleteObject(badgePen);
+		Win32::DeleteObject(badgeBrush);
+	}
+
 	export auto GetSettingsPath() -> std::filesystem::path
 	{
 		wchar_t exePath[Win32::MaxPath] = {};

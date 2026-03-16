@@ -34,6 +34,7 @@ export namespace Designer
 	constexpr Win32::UINT IDM_VIEW_SHOWRULERS = 40019;
 	constexpr Win32::UINT IDM_VIEW_CLEARGUIDES = 40020;
 	constexpr Win32::UINT IDM_VIEW_DARKMODE = 40022;
+	constexpr Win32::UINT IDM_VIEW_TABORDER = 40023;
 
 	// File menu IDs (continued).
 	constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
@@ -261,6 +262,8 @@ export namespace Designer
 		Win32::POINT lastCursorPos = { -1, -1 }; // form coordinates for ruler indicator
 		Theme theme = LightTheme();
 		std::set<Win32::UINT> invalidFields;
+		bool tabOrderMode = false;
+		int tabOrderNext = 1;
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

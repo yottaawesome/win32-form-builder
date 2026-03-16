@@ -412,3 +412,39 @@ TEST_CASE("IsDuplicateId allows duplicate zeros", "[helpers]")
     REQUIRE(IsDuplicateId(state, 0, 0) == false);
     REQUIRE(IsDuplicateId(state, 0, 1) == false);
 }
+
+// === AutoAssignTabOrder ===
+
+TEST_CASE("AutoAssignTabOrder assigns by position top-to-bottom left-to-right", "[helpers]")
+{
+    Control c1, c2, c3;
+    c1.rect = { 200, 100, 80, 30 };  // middle-right
+    c2.rect = { 50,  100, 80, 30 };  // middle-left
+    c3.rect = { 100,  10, 80, 30 };  // top
+    auto state = MakeTestState({ c1, c2, c3 });
+
+    AutoAssignTabOrder(state);
+
+    // c3 is topmost (y=10), then c2 (y=100, x=50), then c1 (y=100, x=200)
+    REQUIRE(state.form.controls[0].tabIndex == 3); // c1
+    REQUIRE(state.form.controls[1].tabIndex == 2); // c2
+    REQUIRE(state.form.controls[2].tabIndex == 1); // c3
+}
+
+TEST_CASE("AutoAssignTabOrder handles empty controls list", "[helpers]")
+{
+    auto state = MakeTestState({});
+    AutoAssignTabOrder(state);
+    REQUIRE(state.form.controls.empty());
+}
+
+TEST_CASE("AutoAssignTabOrder single control gets index 1", "[helpers]")
+{
+    Control c1;
+    c1.rect = { 50, 50, 80, 30 };
+    auto state = MakeTestState({ c1 });
+
+    AutoAssignTabOrder(state);
+
+    REQUIRE(state.form.controls[0].tabIndex == 1);
+}

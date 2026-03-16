@@ -87,6 +87,8 @@ export namespace Win32
 		::CreateSolidBrush,
 		::CreateFontW,
 		::Rectangle,
+		::Ellipse,
+		::DrawTextW,
 		::CreateCompatibleDC,
 		::CreateCompatibleBitmap,
 		::BitBlt,
@@ -94,6 +96,13 @@ export namespace Win32
 		;
 
 	constexpr auto SrcCopy = SRCCOPY;
+
+	namespace DrawTextFlags
+	{
+		constexpr auto Center     = DT_CENTER;
+		constexpr auto VCenter    = DT_VCENTER;
+		constexpr auto SingleLine = DT_SINGLELINE;
+	}
 
 	const auto HwndBottom = HWND_BOTTOM;
 	const auto HwndTop    = HWND_TOP;
