@@ -15,7 +15,7 @@
       "id": 101,
       "rect": [
         90,
-        22,
+        20,
         200,
         24
       ],
@@ -78,12 +78,13 @@
       "onClick": "submit_form",
       "rect": [
         80,
-        206,
+        210,
         100,
         30
       ],
       "style": 1,
       "text": "Submit",
+      "textAlign": "center",
       "type": "Button"
     },
     {
@@ -91,11 +92,12 @@
       "onClick": "cancel_form",
       "rect": [
         190,
-        206,
+        210,
         100,
         30
       ],
       "text": "Cancel",
+      "textAlign": "center",
       "type": "Button"
     }
   ],

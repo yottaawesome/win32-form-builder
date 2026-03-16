@@ -41,11 +41,13 @@ export void UpdatePropertyPanel(DesignState& state)
     };
     constexpr Win32::UINT formIds[] = {
         IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
-        IDC_PROP_FORM_HEIGHT, IDC_PROP_FORM_BGCOLOR
+        IDC_PROP_FORM_HEIGHT, IDC_PROP_FORM_BGCOLOR,
+        IDC_PROP_FORM_CAPTION, IDC_PROP_FORM_SYSMENU,
+        IDC_PROP_FORM_RESIZABLE, IDC_PROP_FORM_MINIMIZE, IDC_PROP_FORM_MAXIMIZE
     };
 
     SetPropertyGroupVisibility(panel, ctrlIds, 16, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
-    SetPropertyGroupVisibility(panel, formIds, 4, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+    SetPropertyGroupVisibility(panel, formIds, 9, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
     auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
     if (bgBtn) Win32::ShowWindow(bgBtn, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
@@ -108,6 +110,23 @@ export void UpdatePropertyPanel(DesignState& state)
         Win32::SetDlgItemInt(panel, IDC_PROP_FORM_HEIGHT, state.form.height, false);
         Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_BGCOLOR,
             ColorRefToHex(state.form.backgroundColor).c_str());
+
+        // Populate window style checkboxes.
+        struct StyleBit { Win32::UINT id; Win32::DWORD flag; };
+        StyleBit bits[] = {
+            { IDC_PROP_FORM_CAPTION,  Win32::Styles::Caption },
+            { IDC_PROP_FORM_SYSMENU,  Win32::Styles::SysMenu },
+            { IDC_PROP_FORM_RESIZABLE, Win32::Styles::ThickFrame },
+            { IDC_PROP_FORM_MINIMIZE, Win32::Styles::MinimizeBox },
+            { IDC_PROP_FORM_MAXIMIZE, Win32::Styles::MaximizeBox },
+        };
+        for (auto& b : bits)
+        {
+            bool on = (state.form.style & b.flag) != 0;
+            Win32::SendMessageW(Win32::GetDlgItem(panel, b.id),
+                Win32::Button::SetCheck,
+                on ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+        }
     }
 
     state.updatingProperties = false;
@@ -415,10 +434,40 @@ export void CreatePropertyControls(DesignState& state)
         reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_BGCOLOR_BTN)),
         hInst, nullptr);
     Win32::SendMessageW(bgBtn, Win32::Messages::SetFont, font, true);
+
+    // Window style checkboxes (visible when no control is selected).
+    struct StyleCheck { const wchar_t* label; Win32::UINT id; };
+    StyleCheck styleChecks[] = {
+        { L"Title Bar",      IDC_PROP_FORM_CAPTION },
+        { L"System Menu",    IDC_PROP_FORM_SYSMENU },
+        { L"Resizable",      IDC_PROP_FORM_RESIZABLE },
+        { L"Minimize Box",   IDC_PROP_FORM_MINIMIZE },
+        { L"Maximize Box",   IDC_PROP_FORM_MAXIMIZE },
+    };
+
+    y = 30 + 4 * 26 + 10; // After the 4 form property edit rows + spacing.
+    auto styleHeader = Win32::CreateWindowExW(0, L"STATIC", L"Window Style",
+        Win32::Styles::Child | Win32::Styles::Visible,
+        5, y, 210, 18, parent,
+        reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_CAPTION + IDL_OFFSET)),
+        hInst, nullptr);
+    Win32::SendMessageW(styleHeader, Win32::Messages::SetFont, font, true);
+    y += 22;
+
+    for (auto& sc : styleChecks)
+    {
+        auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, sc.label,
+            Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::AutoCheckBox,
+            15, y, 200, 20, parent,
+            reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(sc.id)),
+            hInst, nullptr);
+        Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+        y += 22;
+    }
 }
 
 constexpr int PROP_CONTENT_CTRL = 30 + 16 * 26 + 10;  // control properties: 456px
-constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10;   // form properties: 144px
+constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 10;  // form properties + style checkboxes: 264px
 constexpr int SCROLL_LINE = 26;                         // one row height
 
 void UpdateScrollRange(DesignState& state)
@@ -548,6 +597,37 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
                 Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
                 MarkDirty(*state);
             }
+            return 0;
+        }
+
+        // Window style checkboxes.
+        if (code == Win32::Notifications::ButtonClicked &&
+            id >= IDC_PROP_FORM_CAPTION && id <= IDC_PROP_FORM_MAXIMIZE)
+        {
+            PushUndo(*state);
+            struct StyleBit { Win32::UINT id; Win32::DWORD flag; };
+            StyleBit bits[] = {
+                { IDC_PROP_FORM_CAPTION,  Win32::Styles::Caption },
+                { IDC_PROP_FORM_SYSMENU,  Win32::Styles::SysMenu },
+                { IDC_PROP_FORM_RESIZABLE, Win32::Styles::ThickFrame },
+                { IDC_PROP_FORM_MINIMIZE, Win32::Styles::MinimizeBox },
+                { IDC_PROP_FORM_MAXIMIZE, Win32::Styles::MaximizeBox },
+            };
+            for (auto& b : bits)
+            {
+                if (b.id == id)
+                {
+                    auto chk = Win32::GetDlgItem(hwnd, id);
+                    bool checked = Win32::SendMessageW(chk,
+                        Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+                    if (checked)
+                        state->form.style |= b.flag;
+                    else
+                        state->form.style &= ~b.flag;
+                    break;
+                }
+            }
+            MarkDirty(*state);
             return 0;
         }
 

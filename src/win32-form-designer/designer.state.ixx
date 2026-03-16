@@ -63,6 +63,11 @@ constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;
 constexpr Win32::UINT IDC_PROP_FORM_HEIGHT     = 52003;
 constexpr Win32::UINT IDC_PROP_FORM_BGCOLOR    = 52004;
 constexpr Win32::UINT IDC_PROP_FORM_BGCOLOR_BTN = 52005;
+constexpr Win32::UINT IDC_PROP_FORM_CAPTION    = 52006;
+constexpr Win32::UINT IDC_PROP_FORM_SYSMENU    = 52007;
+constexpr Win32::UINT IDC_PROP_FORM_RESIZABLE  = 52008;
+constexpr Win32::UINT IDC_PROP_FORM_MINIMIZE   = 52009;
+constexpr Win32::UINT IDC_PROP_FORM_MAXIMIZE   = 52010;
 
 // Label IDs are offset from the corresponding edit IDs.
 constexpr Win32::UINT IDL_OFFSET = 10000;

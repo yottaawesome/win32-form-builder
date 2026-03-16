@@ -96,6 +96,13 @@ export namespace Win32
 		constexpr auto TreeViewLinesAtRoot = TVS_LINESATROOT;
 		constexpr auto EditMultiLine = ES_MULTILINE;
 		constexpr auto EditAutoVScroll = ES_AUTOVSCROLL;
+
+		// Window style flags for form-level properties.
+		constexpr auto Caption     = WS_CAPTION;
+		constexpr auto SysMenu     = WS_SYSMENU;
+		constexpr auto ThickFrame  = WS_THICKFRAME;
+		constexpr auto MinimizeBox = WS_MINIMIZEBOX;
+		constexpr auto MaximizeBox = WS_MAXIMIZEBOX;
 	}
 
 	// === Class styles ===
@@ -144,7 +151,9 @@ export namespace Win32
 	namespace Button
 	{
 		constexpr auto GetCheck = BM_GETCHECK;
+		constexpr auto SetCheck = BM_SETCHECK;
 		constexpr auto Checked = BST_CHECKED;
+		constexpr auto Unchecked = BST_UNCHECKED;
 	}
 
 	// === Control class names ===
