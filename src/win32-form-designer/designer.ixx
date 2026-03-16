@@ -254,7 +254,8 @@ auto CreateDesignSurface(
 
     state->propertyHwnd = Win32::CreateWindowExW(
         0, L"PropertyPanel", nullptr,
-        Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border,
+        Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::Border |
+            Win32::Styles::VScroll,
         state->form.width + TOOLBOX_WIDTH, 0,
         PROPERTY_WIDTH, state->form.height,
         hwnd, nullptr, hInstance, nullptr);

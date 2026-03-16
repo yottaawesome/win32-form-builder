@@ -8,6 +8,10 @@ import :helpers;
 namespace Designer
 {
 
+void UpdateScrollRange(DesignState& state);
+void ScrollPropertyPanel(DesignState& state, int newPos);
+void ResetPropertyScroll(DesignState& state);
+
 void SetPropertyGroupVisibility(Win32::HWND panel, const Win32::UINT ids[], int count, int show)
 {
     for (int i = 0; i < count; ++i)
@@ -44,6 +48,9 @@ export void UpdatePropertyPanel(DesignState& state)
 
     auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
     if (bgBtn) Win32::ShowWindow(bgBtn, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+
+    ResetPropertyScroll(state);
+    UpdateScrollRange(state);
 
     if (hasSel)
     {
@@ -357,6 +364,60 @@ export void CreatePropertyControls(DesignState& state)
     Win32::SendMessageW(bgBtn, Win32::Messages::SetFont, font, true);
 }
 
+constexpr int PROP_CONTENT_CTRL = 30 + 14 * 26 + 10;  // control properties: 404px
+constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10;   // form properties: 144px
+constexpr int SCROLL_LINE = 26;                         // one row height
+
+void UpdateScrollRange(DesignState& state)
+{
+    auto panel = state.propertyHwnd;
+    int sel = SingleSelection(state);
+    bool hasSel = sel >= 0 && sel < static_cast<int>(state.entries.size());
+    int contentHeight = hasSel ? PROP_CONTENT_CTRL : PROP_CONTENT_FORM;
+
+    Win32::RECT rc;
+    Win32::GetClientRect(panel, &rc);
+
+    Win32::SCROLLINFO si = {
+        .cbSize = sizeof(Win32::SCROLLINFO),
+        .fMask = Win32::ScrollInfo::Range | Win32::ScrollInfo::Page,
+        .nMin = 0,
+        .nMax = contentHeight,
+        .nPage = static_cast<Win32::UINT>(rc.bottom),
+    };
+    Win32::SetScrollInfo(panel, Win32::ScrollBar::Vert, &si, true);
+}
+
+void ScrollPropertyPanel(DesignState& state, int newPos)
+{
+    auto panel = state.propertyHwnd;
+
+    // Clamp.
+    Win32::SCROLLINFO si = { .cbSize = sizeof(Win32::SCROLLINFO), .fMask = Win32::ScrollInfo::All };
+    Win32::GetScrollInfo(panel, Win32::ScrollBar::Vert, &si);
+    int maxPos = si.nMax - static_cast<int>(si.nPage);
+    if (maxPos < 0) maxPos = 0;
+    if (newPos < 0) newPos = 0;
+    if (newPos > maxPos) newPos = maxPos;
+
+    int delta = state.propertyScrollY - newPos;
+    if (delta == 0) return;
+
+    state.propertyScrollY = newPos;
+    si.fMask = Win32::ScrollInfo::Pos;
+    si.nPos = newPos;
+    Win32::SetScrollInfo(panel, Win32::ScrollBar::Vert, &si, true);
+    Win32::ScrollWindowEx(panel, 0, delta, nullptr, nullptr, nullptr, nullptr,
+        Win32::ScrollWindow::ScrollChildren | Win32::ScrollWindow::Invalidate |
+        Win32::ScrollWindow::Erase);
+}
+
+void ResetPropertyScroll(DesignState& state)
+{
+    if (state.propertyScrollY != 0)
+        ScrollPropertyPanel(state, 0);
+}
+
 Win32::COLORREF g_customColors[16] = {};
 
 export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
@@ -367,6 +428,43 @@ export auto PropertyPanelProc(Win32::HWND hwnd, Win32::UINT msg,
 
     switch (msg)
     {
+    case Win32::Messages::Size:
+    {
+        if (state) UpdateScrollRange(*state);
+        break;
+    }
+
+    case Win32::Messages::VScroll:
+    {
+        if (!state) break;
+        Win32::SCROLLINFO si = { .cbSize = sizeof(Win32::SCROLLINFO), .fMask = Win32::ScrollInfo::All };
+        Win32::GetScrollInfo(hwnd, Win32::ScrollBar::Vert, &si);
+        int pos = state->propertyScrollY;
+
+        switch (Win32::GetLowWord(wParam))
+        {
+        case Win32::ScrollBar::LineUp:        pos -= SCROLL_LINE; break;
+        case Win32::ScrollBar::LineDown:      pos += SCROLL_LINE; break;
+        case Win32::ScrollBar::PageUp:        pos -= static_cast<int>(si.nPage); break;
+        case Win32::ScrollBar::PageDown:      pos += static_cast<int>(si.nPage); break;
+        case Win32::ScrollBar::ThumbTrack:    pos = si.nTrackPos; break;
+        case Win32::ScrollBar::ThumbPosition: pos = si.nTrackPos; break;
+        case Win32::ScrollBar::Top:           pos = si.nMin; break;
+        case Win32::ScrollBar::Bottom:        pos = si.nMax; break;
+        }
+        ScrollPropertyPanel(*state, pos);
+        return 0;
+    }
+
+    case Win32::Messages::MouseWheel:
+    {
+        if (!state) break;
+        int delta = Win32::GetWheelDelta(wParam);
+        int lines = delta / 120;
+        ScrollPropertyPanel(*state, state->propertyScrollY - lines * SCROLL_LINE);
+        return 0;
+    }
+
     case Win32::Messages::Command:
     {
         if (!state || state->updatingProperties) break;

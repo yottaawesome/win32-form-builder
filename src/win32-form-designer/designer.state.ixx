@@ -123,6 +123,7 @@ struct DesignState
     FormDesigner::ControlType placementType = FormDesigner::ControlType::Button;
 
     bool updatingProperties = false;
+    int propertyScrollY = 0;
 
     std::vector<AlignGuide> guides;
 

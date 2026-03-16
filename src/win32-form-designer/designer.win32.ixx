@@ -62,8 +62,14 @@ using
     ::MoveToEx,
     ::LineTo,
     ::SetBkMode,
-    ::GetKeyState
+    ::GetKeyState,
+    ::SetScrollInfo,
+    ::GetScrollInfo,
+    ::ScrollWindowEx
     ;
+
+// === Scroll types ===
+using ::SCROLLINFO;
 
 // === Pen styles ===
 namespace PenStyles
@@ -90,6 +96,8 @@ namespace Messages
     constexpr auto SetCursorMsg = WM_SETCURSOR;
     constexpr auto KeyDown      = WM_KEYDOWN;
     constexpr auto Size         = WM_SIZE;
+    constexpr auto VScroll      = WM_VSCROLL;
+    constexpr auto MouseWheel   = WM_MOUSEWHEEL;
     constexpr auto Close        = WM_CLOSE;
     constexpr auto NcDestroy    = WM_NCDESTROY;
 }
@@ -127,6 +135,7 @@ namespace Styles
     constexpr auto EditReadOnly             = ES_READONLY;
     constexpr auto ButtonPush               = BS_PUSHBUTTON;
     constexpr auto TabStop                  = WS_TABSTOP;
+    constexpr auto VScroll                  = WS_VSCROLL;
     constexpr auto ListBoxNotify            = LBS_NOTIFY;
     constexpr auto ListBoxNoIntegralHeight  = LBS_NOINTEGRALHEIGHT;
 }
@@ -191,6 +200,38 @@ namespace Cursors
     const auto SizeNS   = IDC_SIZENS;
     const auto SizeWE   = IDC_SIZEWE;
 }
+
+// === Scroll bar constants ===
+namespace ScrollBar
+{
+    constexpr auto Vert          = SB_VERT;
+    constexpr auto LineUp        = SB_LINEUP;
+    constexpr auto LineDown      = SB_LINEDOWN;
+    constexpr auto PageUp        = SB_PAGEUP;
+    constexpr auto PageDown      = SB_PAGEDOWN;
+    constexpr auto ThumbTrack    = SB_THUMBTRACK;
+    constexpr auto ThumbPosition = SB_THUMBPOSITION;
+    constexpr auto Top           = SB_TOP;
+    constexpr auto Bottom        = SB_BOTTOM;
+}
+
+namespace ScrollInfo
+{
+    constexpr auto Range = SIF_RANGE;
+    constexpr auto Page  = SIF_PAGE;
+    constexpr auto Pos   = SIF_POS;
+    constexpr auto All   = SIF_ALL;
+}
+
+namespace ScrollWindow
+{
+    constexpr auto ScrollChildren = SW_SCROLLCHILDREN;
+    constexpr auto Invalidate     = SW_INVALIDATE;
+    constexpr auto Erase          = SW_ERASE;
+}
+
+// === Macro wrappers ===
+auto GetWheelDelta(WPARAM wParam) noexcept -> short { return GET_WHEEL_DELTA_WPARAM(wParam); }
 
 // === Miscellaneous ===
 constexpr auto MaxPath = MAX_PATH;
