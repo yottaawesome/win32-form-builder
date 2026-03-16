@@ -6,12 +6,12 @@ Unit tests for the [formbuilder](../formbuilder/README.md) library using [Catch2
 
 | File | Tests | What It Covers |
 |------|-------|----------------|
-| `test_schema.cpp` | 15 | `ControlType` enum, `ClassNameFor`, `ImpliedStyleFor`, `AlignmentStyleFor`, default values |
-| `test_parser_serializer.cpp` | 28 | JSON → `Form` parsing, `Form` → JSON serialization, round-trip fidelity, edge cases |
+| `test_schema.cpp` | 17 | `ControlType` enum, `ClassNameFor`, `ImpliedStyleFor`, `AlignmentStyleFor`, default values (anchor, groupId) |
+| `test_parser_serializer.cpp` | 32 | JSON → `Form` parsing, `Form` → JSON serialization, round-trip fidelity, edge cases, anchor serialization |
 | `test_events.cpp` | 5 | `EventMap` registration and dispatch for all 7 event types |
-| `test_helpers.cpp` | 31 | Designer helpers — hit testing, resize handles, snap guides, control type display names |
-| `test_codegen.cpp` | 20 | C++ code generation — preamble, styles, controls, events, IDC defines, RichEdit, escaping |
-| **Total** | **99** | **385 assertions** |
+| `test_helpers.cpp` | 39 | Designer helpers — hit testing, resize handles, snap guides, control type display names, validation, tab order, grouping, recent files |
+| `test_codegen.cpp` | 29 | C++ code generation — preamble, styles, controls, events, IDC defines, RichEdit, escaping, anchoring |
+| **Total** | **122** | **437 assertions** |
 
 ## Running
 

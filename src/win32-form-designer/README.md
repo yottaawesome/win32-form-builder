@@ -16,9 +16,10 @@ A visual form designer for Win32 applications. Design forms by dragging and drop
 - **Keyboard nudge** — arrow keys move selected controls by 1px (or grid size with Snap)
 
 ### Property Editor
-- Edit control properties: type, text, ID, position, size, tab index, text alignment, locked state
+- Edit control properties: type, text, ID, position, size, tab index, text alignment, anchor, locked state
 - Edit form properties: title, width, height, background color (with color picker), window styles
 - 7 event types: onClick, onChange, onDoubleClick, onSelectionChange, onFocus, onBlur, onCheck
+- **Property validation** — invalid values are rejected with pink/red visual error highlighting and status bar messages
 - Scrollable panel for forms with many properties
 
 ### Editing
@@ -26,12 +27,16 @@ A visual form designer for Win32 applications. Design forms by dragging and drop
 - **Cut/Copy/Paste/Duplicate** (Ctrl+X/C/V/D)
 - **Delete** selected controls (Del key)
 - **Select All** (Ctrl+A)
+- **Control grouping** (Ctrl+G / Ctrl+Shift+G) — group related controls so they select and move as a unit, shown with dashed border
 - **Control locking** — prevent accidental edits to finalized controls
+- **Control anchoring** — configure resize behavior per control (Top, Bottom, Left, Right edge flags)
+- **Tab order editor** — visual mode (View menu) with click-to-assign tab indices, shown as numbered badges
 - **Z-order management** — reorder controls via the Tab & Z-Order panel
-- **Right-click context menu** — Cut, Copy, Paste, Duplicate, Delete, Lock/Unlock, Bring to Front, Send to Back
+- **Right-click context menu** — Cut, Copy, Paste, Duplicate, Delete, Lock/Unlock, Group/Ungroup, Bring to Front, Send to Back
 
 ### File Operations
 - **New / Open / Save / Save As** with JSON format
+- **Recent Files** — quick access to recently opened forms (persisted across sessions)
 - **Export to C++** — generates a standalone `.cpp` file with `WinMain`, `WndProc`, `CreateWindowExW` calls, and event handler stubs (choice of classic `#include` or C++20 `import std;` style)
 - **Preview** (F5) — live in-process preview of the form
 
@@ -39,6 +44,8 @@ A visual form designer for Win32 applications. Design forms by dragging and drop
 - Show/hide grid overlay and snap-to-grid (View menu)
 - Show/hide rulers with draggable guide lines
 - Clear all guides
+- **Dark mode** — toggle between light and dark themes (persisted to `designer.ini`)
+- **Tab order editor** — visual mode for assigning tab indices by clicking controls
 
 ### UI
 - **Toolbar** with common actions (New, Open, Save, Undo, Redo, Cut, Copy, Paste, Delete, Preview)
@@ -87,7 +94,7 @@ The designer is built as a C++20 module (`designer`) with six partitions:
 |-----------|------|---------|
 | `:win32` | `win32.ixx` | Win32 API wrappers (only file that includes `<Windows.h>`) |
 | `:state` | `state.ixx` | Data structures, constants, menu IDs, `DesignState` struct |
-| `:helpers` | `helpers.ixx` | Hit testing, resize, selection drawing, snap guides, rulers |
+| `:helpers` | `helpers.ixx` | Hit testing, resize, selection drawing, snap guides, rulers, theme persistence, validation, tab order, grouping, recent files |
 | `:properties` | `properties.ixx` | Property panel creation, updates, and change handlers |
 | `:canvas` | `canvas.ixx` | Canvas window procedure, control lifecycle, drag/resize, clipboard |
 | `:fileops` | `fileops.ixx` | File dialogs, save/open/new/export operations |
@@ -150,6 +157,8 @@ Forms are saved as JSON files. See `sample-form.json` in the runner project for 
 | Ctrl+V | Paste |
 | Ctrl+D | Duplicate |
 | Ctrl+A | Select All |
+| Ctrl+G | Group selected controls |
+| Ctrl+Shift+G | Ungroup selected controls |
 | Del | Delete selected |
 | Arrow keys | Nudge selected controls |
-| Esc | Cancel control placement mode |
+| Esc | Cancel placement / exit tab order mode |

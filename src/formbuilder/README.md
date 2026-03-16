@@ -20,12 +20,12 @@ The library is a single C++20 module (`formbuilder`) split into partitions:
 |-----------|------|---------|
 | `:win32` | `win32.ixx` | Win32 API imports — the only file that includes `<Windows.h>` |
 | `:json` | `json.ixx` | Re-exports `nlohmann::json` from the global module fragment |
-| `:schema` | `schema.ixx` | Core types: `ControlType` (16 types), `TextAlign`, `Control`, `Form`, `Rect`, `DesignerGuide` |
+| `:schema` | `schema.ixx` | Core types: `ControlType` (16 types), `TextAlign`, `Anchor`, `Control`, `Form`, `Rect`, `DesignerGuide` |
 | `:events` | `events.ixx` | Event structs (`ClickEvent`, `ChangeEvent`, etc.) and `EventMap` dispatcher |
 | `:parser` | `parser.ixx` | `ParseForm(json)` — JSON → `Form` |
 | `:serializer` | `serializer.ixx` | `SerializeForm(Form)` → JSON string |
 | `:codegen` | `codegen.ixx` | `GenerateCode(Form, useModules)` → standalone C++ source |
-| `:loader` | `loader.ixx` | `LoadForm()`, `LoadFormFromFile()` — creates Win32 windows at runtime |
+| `:loader` | `loader.ixx` | `LoadForm()`, `LoadFormFromFile()` — creates Win32 windows at runtime with anchor-based resize support |
 
 The facade (`formbuilder.ixx`) re-exports all partitions.
 
@@ -116,5 +116,7 @@ Forms are described as JSON objects. See `sample-form.json` in the runner projec
 | `style` | int | Additional Win32 window style flags |
 | `textAlign` | string | `"left"`, `"center"`, or `"right"` |
 | `tabIndex` | int | Tab order |
+| `anchor` | `["top","left",...]` | Resize anchoring flags (default: top+left) |
 | `locked` | bool | Locked in the designer (not editable) |
+| `groupId` | int | Designer control group membership |
 | `onClick`, `onChange`, ... | string | Event handler function names |

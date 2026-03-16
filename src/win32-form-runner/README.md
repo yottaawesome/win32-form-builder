@@ -21,6 +21,8 @@ The runner is a thin host (~50 lines) that:
 4. Creates the window with `FormDesigner::LoadForm()`
 5. Runs the Win32 message loop
 
+Controls with anchoring flags are automatically repositioned and resized when the form window is resized at runtime.
+
 ### Example: Adding Event Handlers
 
 ```cpp

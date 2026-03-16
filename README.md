@@ -17,7 +17,7 @@ On the Microsoft front for UI frameworks, things are even worse. Despite being b
 | [formbuilder](src/formbuilder/README.md) | Static library | Core data model, JSON parser/serializer, runtime loader, C++ code generator |
 | [win32-form-designer](src/win32-form-designer/README.md) | Application | Visual drag-and-drop form designer with toolbox, property editor, and canvas |
 | [win32-form-runner](src/win32-form-runner/README.md) | Application | Lightweight runtime that loads and displays JSON forms |
-| [tests](src/tests/README.md) | Console app | 99 unit tests (385 assertions) using Catch2 |
+| [tests](src/tests/README.md) | Console app | 122 unit tests (437 assertions) using Catch2 |
 
 ## Quick Start
 
@@ -49,7 +49,13 @@ src\x64\Debug\tests.exe
 
 - **16 control types**: Button, CheckBox, RadioButton, Label, TextBox, GroupBox, ListBox, ComboBox, ProgressBar, TrackBar, DateTimePicker, TabControl, ListView, TreeView, UpDown, RichEdit
 - **Visual design**: Drag-and-drop placement, resize handles, snap guides, ruler guides, grid overlay
-- **Property editing**: Type, text, ID, position, size, alignment, events, styles, locking
+- **Property editing**: Type, text, ID, position, size, alignment, anchoring, events, styles, locking
+- **Property validation**: Invalid values are highlighted with visual feedback and rejected on focus loss
+- **Control anchoring**: Configure how controls resize/reposition when the form is resized (Top, Bottom, Left, Right flags)
+- **Control grouping**: Group related controls (Ctrl+G) so they select and move together
+- **Tab order editor**: Visual click-to-assign tab index mode with numbered badges
+- **Dark mode**: Toggle between light and dark themes (persisted to settings)
+- **Recent files**: Quick access to recently opened/saved forms in the File menu
 - **Undo/Redo**, Cut/Copy/Paste/Duplicate, z-order management
 - **Export to C++**: Generate standalone Win32 apps (classic or C++20 module style)
 - **Live preview** (F5) within the designer
