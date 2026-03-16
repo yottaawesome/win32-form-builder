@@ -85,12 +85,12 @@ The designer is built as a C++20 module (`designer`) with six partitions:
 
 | Partition | File | Purpose |
 |-----------|------|---------|
-| `:win32` | `designer.win32.ixx` | Win32 API wrappers (only file that includes `<Windows.h>`) |
-| `:state` | `designer.state.ixx` | Data structures, constants, menu IDs, `DesignState` struct |
-| `:helpers` | `designer.helpers.ixx` | Hit testing, resize, selection drawing, snap guides, rulers |
-| `:properties` | `designer.properties.ixx` | Property panel creation, updates, and change handlers |
-| `:canvas` | `designer.canvas.ixx` | Canvas window procedure, control lifecycle, drag/resize, clipboard |
-| `:fileops` | `designer.fileops.ixx` | File dialogs, save/open/new/export operations |
+| `:win32` | `win32.ixx` | Win32 API wrappers (only file that includes `<Windows.h>`) |
+| `:state` | `state.ixx` | Data structures, constants, menu IDs, `DesignState` struct |
+| `:helpers` | `helpers.ixx` | Hit testing, resize, selection drawing, snap guides, rulers |
+| `:properties` | `properties.ixx` | Property panel creation, updates, and change handlers |
+| `:canvas` | `canvas.ixx` | Canvas window procedure, control lifecycle, drag/resize, clipboard |
+| `:fileops` | `fileops.ixx` | File dialogs, save/open/new/export operations |
 
 The main module interface (`designer.ixx`) creates the design surface, menu bar, accelerator table, toolbar, and status bar.
 
