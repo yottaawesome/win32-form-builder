@@ -145,3 +145,109 @@ TEST_CASE("Form guides defaults to empty", "[schema]")
     auto f = Form{};
     REQUIRE(f.guides.empty());
 }
+
+// === FontInfo tests ===
+
+TEST_CASE("FontInfo default is not set", "[schema][font]")
+{
+    FontInfo fi;
+    REQUIRE_FALSE(fi.isSet());
+    REQUIRE(fi.family.empty());
+    REQUIRE(fi.size == 0);
+    REQUIRE(fi.bold == false);
+    REQUIRE(fi.italic == false);
+}
+
+TEST_CASE("FontInfo with family is set", "[schema][font]")
+{
+    FontInfo fi;
+    fi.family = L"Arial";
+    REQUIRE(fi.isSet());
+}
+
+TEST_CASE("FontInfo with size is set", "[schema][font]")
+{
+    FontInfo fi;
+    fi.size = 12;
+    REQUIRE(fi.isSet());
+}
+
+TEST_CASE("FontInfo with bold only is not set (bold needs family or size)", "[schema][font]")
+{
+    FontInfo fi;
+    fi.bold = true;
+    REQUIRE_FALSE(fi.isSet());
+}
+
+TEST_CASE("Control has default font", "[schema][font]")
+{
+    Control c;
+    REQUIRE_FALSE(c.font.isSet());
+}
+
+TEST_CASE("Form has default font", "[schema][font]")
+{
+    Form f;
+    REQUIRE_FALSE(f.font.isSet());
+}
+
+TEST_CASE("ResolveFont returns system default when nothing set", "[schema][font]")
+{
+    FontInfo ctrl, form;
+    auto resolved = ResolveFont(ctrl, form);
+    REQUIRE(resolved.family == DefaultFontFamily);
+    REQUIRE(resolved.size == DefaultFontSize);
+    REQUIRE(resolved.bold == false);
+    REQUIRE(resolved.italic == false);
+}
+
+TEST_CASE("ResolveFont uses form font when control has no override", "[schema][font]")
+{
+    FontInfo ctrl;
+    FontInfo form;
+    form.family = L"Consolas";
+    form.size = 14;
+    form.bold = true;
+
+    auto resolved = ResolveFont(ctrl, form);
+    REQUIRE(resolved.family == L"Consolas");
+    REQUIRE(resolved.size == 14);
+    REQUIRE(resolved.bold == true);
+    REQUIRE(resolved.italic == false);
+}
+
+TEST_CASE("ResolveFont control overrides form", "[schema][font]")
+{
+    FontInfo ctrl;
+    ctrl.family = L"Arial";
+    ctrl.size = 10;
+
+    FontInfo form;
+    form.family = L"Consolas";
+    form.size = 14;
+    form.bold = true;
+
+    auto resolved = ResolveFont(ctrl, form);
+    REQUIRE(resolved.family == L"Arial");
+    REQUIRE(resolved.size == 10);
+    // When control font is set, its bold/italic override the form's.
+    REQUIRE(resolved.bold == false);
+    REQUIRE(resolved.italic == false);
+}
+
+TEST_CASE("ResolveFont partial control override with bold/italic", "[schema][font]")
+{
+    FontInfo ctrl;
+    ctrl.size = 20;
+    ctrl.bold = true;  // Explicitly setting bold on control.
+
+    FontInfo form;
+    form.family = L"Times New Roman";
+    form.italic = true;
+
+    auto resolved = ResolveFont(ctrl, form);
+    REQUIRE(resolved.family == L"Times New Roman");  // From form (control has no family).
+    REQUIRE(resolved.size == 20);                     // From control.
+    REQUIRE(resolved.bold == true);                   // From control.
+    REQUIRE(resolved.italic == false);                // Control overrides, italic defaults to false.
+}

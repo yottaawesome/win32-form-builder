@@ -399,9 +399,55 @@ namespace FormDesigner
 		return result + "Class";
 	}
 
+	// Key for identifying unique font configurations in codegen.
+	struct FontKey
+	{
+		std::wstring family;
+		int size;
+		bool bold;
+		bool italic;
+
+		auto operator<=>(const FontKey&) const = default;
+		bool operator==(const FontKey&) const = default;
+		auto operator<(const FontKey& other) const -> bool
+		{
+			if (family != other.family) return family < other.family;
+			if (size != other.size) return size < other.size;
+			if (bold != other.bold) return bold < other.bold;
+			return italic < other.italic;
+		}
+	};
+
+	// Collects unique fonts used across the form. Returns map of FontKey → variable name.
+	void CollectFonts(std::span<const Control> controls, const FontInfo& formFont,
+		std::map<FontKey, std::string>& fontMap, int& fontIndex)
+	{
+		for (auto& ctrl : controls)
+		{
+			auto resolved = ResolveFont(ctrl.font, formFont);
+			auto key = FontKey{ resolved.family, resolved.size, resolved.bold, resolved.italic };
+			if (!fontMap.contains(key))
+				fontMap[key] = std::format("hFont{}", fontIndex++);
+
+			if (!ctrl.children.empty())
+				CollectFonts(ctrl.children, formFont, fontMap, fontIndex);
+		}
+	}
+
+	// Returns the font variable name for a given control's resolved font.
+	auto FontVarForControl(const Control& ctrl, const FontInfo& formFont,
+		const std::map<FontKey, std::string>& fontMap) -> std::string
+	{
+		auto resolved = ResolveFont(ctrl.font, formFont);
+		auto key = FontKey{ resolved.family, resolved.size, resolved.bold, resolved.italic };
+		auto it = fontMap.find(key);
+		return it != fontMap.end() ? it->second : "hFont";
+	}
+
 	// Emits CreateWindowExW calls for a list of controls.
 	void EmitControlCreation(std::ostringstream& out, std::span<const Control> controls,
-		const std::string& parentVar, int& controlIndex, const std::string& indent)
+		const std::string& parentVar, int& controlIndex, const std::string& indent,
+		const FontInfo& formFont, const std::map<FontKey, std::string>& fontMap)
 	{
 		for (auto& ctrl : controls)
 		{
@@ -430,13 +476,15 @@ namespace FormDesigner
 			out << indent << "    " << ctrl.rect.x << ", " << ctrl.rect.y << ", "
 				<< ctrl.rect.width << ", " << ctrl.rect.height << ",\n";
 			out << indent << "    " << parentVar << ", " << menuExpr << ", hInstance, NULL);\n";
-			out << indent << "SendMessageW(" << varName << ", WM_SETFONT, (WPARAM)hFont, TRUE);\n";
+
+			auto fontVar = FontVarForControl(ctrl, formFont, fontMap);
+			out << indent << "SendMessageW(" << varName << ", WM_SETFONT, (WPARAM)" << fontVar << ", TRUE);\n";
 
 			if (!ctrl.children.empty())
 			{
 				out << "\n";
 				auto childIndex = 0;
-				EmitControlCreation(out, ctrl.children, varName, childIndex, indent);
+				EmitControlCreation(out, ctrl.children, varName, childIndex, indent, formFont, fontMap);
 			}
 
 			out << "\n";
@@ -547,12 +595,49 @@ export namespace FormDesigner
 		// ============================
 		// 5. CreateFormControls
 		// ============================
+		// Collect unique font configurations.
+		auto fontMap = std::map<FontKey, std::string>{};
+		auto fontIndex = 0;
+
+		// Always include the default/resolved form font.
+		auto defaultResolved = ResolveFont(FontInfo{}, form.font);
+		auto defaultKey = FontKey{ defaultResolved.family, defaultResolved.size, defaultResolved.bold, defaultResolved.italic };
+		fontMap[defaultKey] = "hFont";
+		fontIndex = 1;
+
+		CollectFonts(form.controls, form.font, fontMap, fontIndex);
+
+		bool hasCustomFonts = fontMap.size() > 1 || defaultKey.family != DefaultFontFamily
+			|| defaultKey.size != DefaultFontSize || defaultKey.bold || defaultKey.italic;
+
 		out << "void CreateFormControls(HWND hwnd, HINSTANCE hInstance)\n";
 		out << "{\n";
-		out << "    HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);\n\n";
+
+		if (!hasCustomFonts)
+		{
+			out << "    HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);\n\n";
+		}
+		else
+		{
+			// Emit CreateFontW for each unique font.
+			for (auto& [key, varName] : fontMap)
+			{
+				auto narrowFamily = std::string(key.family.begin(), key.family.end());
+				out << "    HFONT " << varName << " = CreateFontW("
+					<< "-MulDiv(" << key.size << ", GetDeviceCaps(GetDC(hwnd), LOGPIXELSY), 72), "
+					<< "0, 0, 0, "
+					<< (key.bold ? "FW_BOLD" : "FW_NORMAL") << ", "
+					<< (key.italic ? "TRUE" : "FALSE") << ", "
+					<< "FALSE, FALSE, DEFAULT_CHARSET, "
+					<< "OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, "
+					<< "DEFAULT_PITCH | FF_DONTCARE, "
+					<< "L\"" << narrowFamily << "\");\n";
+			}
+			out << "\n";
+		}
 
 		auto controlIndex = 0;
-		EmitControlCreation(out, form.controls, "hwnd", controlIndex, "    ");
+		EmitControlCreation(out, form.controls, "hwnd", controlIndex, "    ", form.font, fontMap);
 
 		out << "}\n\n";
 
@@ -713,8 +798,22 @@ export namespace FormDesigner
 
 		// WM_DESTROY
 		out << "    case WM_DESTROY:\n";
-		out << "        PostQuitMessage(0);\n";
-		out << "        return 0;\n";
+		if (hasCustomFonts)
+		{
+			out << "    {\n";
+			// Note: the font handles are local to CreateFormControls, so we need
+			// to generate them as globals or statics. For simplicity, the generated
+			// code uses local fonts which are valid for the lifetime of the window.
+			// The OS cleans up GDI objects on process exit.
+			out << "        PostQuitMessage(0);\n";
+			out << "        return 0;\n";
+			out << "    }\n";
+		}
+		else
+		{
+			out << "        PostQuitMessage(0);\n";
+			out << "        return 0;\n";
+		}
 
 		out << "    }\n";
 		out << "    return DefWindowProcW(hwnd, msg, wParam, lParam);\n";

@@ -116,6 +116,22 @@ export namespace FormDesigner
 			}
 		}
 
+		if (j.contains("font"))
+		{
+			auto& fj = j["font"];
+			if (fj.contains("family"))
+			{
+				auto narrow = fj["family"].get<std::string>();
+				control.font.family = std::wstring(narrow.begin(), narrow.end());
+			}
+			if (fj.contains("size"))
+				control.font.size = fj["size"].get<int>();
+			if (fj.contains("bold"))
+				control.font.bold = fj["bold"].get<bool>();
+			if (fj.contains("italic"))
+				control.font.italic = fj["italic"].get<bool>();
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));
@@ -172,6 +188,22 @@ export namespace FormDesigner
 					g.value("horizontal", false),
 					g.value("position", 0)
 				});
+
+		if (j.contains("font"))
+		{
+			auto& fj = j["font"];
+			if (fj.contains("family"))
+			{
+				auto narrow = fj["family"].get<std::string>();
+				form.font.family = std::wstring(narrow.begin(), narrow.end());
+			}
+			if (fj.contains("size"))
+				form.font.size = fj["size"].get<int>();
+			if (fj.contains("bold"))
+				form.font.bold = fj["bold"].get<bool>();
+			if (fj.contains("italic"))
+				form.font.italic = fj["italic"].get<bool>();
+		}
 
 		return form;
 	}

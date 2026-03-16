@@ -598,3 +598,127 @@ TEST_CASE("Anchor missing from JSON defaults to Top|Left", "[parser]")
 
     REQUIRE(form.controls[0].anchor == (Anchor::Top | Anchor::Left));
 }
+
+// === Font parse and serialize tests ===
+
+TEST_CASE("ParseForm parses control font", "[parser][font]")
+{
+    auto json = R"({
+        "title":"Test","width":400,"height":300,
+        "controls":[{
+            "type":"Button","rect":[10,10,80,25],
+            "font":{"family":"Consolas","size":12,"bold":true,"italic":false}
+        }]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].font.isSet());
+    REQUIRE(form.controls[0].font.family == L"Consolas");
+    REQUIRE(form.controls[0].font.size == 12);
+    REQUIRE(form.controls[0].font.bold == true);
+    REQUIRE(form.controls[0].font.italic == false);
+}
+
+TEST_CASE("ParseForm parses form-level font", "[parser][font]")
+{
+    auto json = R"({
+        "title":"Test","width":400,"height":300,
+        "font":{"family":"Arial","size":10,"bold":false,"italic":true},
+        "controls":[]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.font.isSet());
+    REQUIRE(form.font.family == L"Arial");
+    REQUIRE(form.font.size == 10);
+    REQUIRE(form.font.bold == false);
+    REQUIRE(form.font.italic == true);
+}
+
+TEST_CASE("ParseForm handles partial font (only some fields)", "[parser][font]")
+{
+    auto json = R"({
+        "title":"Test","width":400,"height":300,
+        "controls":[{
+            "type":"Label","rect":[0,0,100,20],
+            "font":{"size":14}
+        }]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].font.isSet());
+    REQUIRE(form.controls[0].font.family.empty());
+    REQUIRE(form.controls[0].font.size == 14);
+    REQUIRE(form.controls[0].font.bold == false);
+    REQUIRE(form.controls[0].font.italic == false);
+}
+
+TEST_CASE("ParseForm handles missing font (defaults to unset)", "[parser][font]")
+{
+    auto json = R"({"title":"Test","width":400,"height":300,"controls":[{"type":"Button","rect":[0,0,80,25]}]})";
+    auto form = ParseForm(json);
+    REQUIRE_FALSE(form.controls[0].font.isSet());
+    REQUIRE_FALSE(form.font.isSet());
+}
+
+TEST_CASE("SerializeForm omits font when not set", "[serializer][font]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::Button;
+    form.controls[0].text = L"OK";
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"font\"") == std::string::npos);
+}
+
+TEST_CASE("SerializeForm includes control font when set", "[serializer][font]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::Button;
+    form.controls[0].font.family = L"Consolas";
+    form.controls[0].font.size = 12;
+    form.controls[0].font.bold = true;
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"font\"") != std::string::npos);
+    REQUIRE(json.find("Consolas") != std::string::npos);
+}
+
+TEST_CASE("SerializeForm includes form-level font when set", "[serializer][font]")
+{
+    Form form;
+    form.font.family = L"Arial";
+    form.font.size = 10;
+    form.font.italic = true;
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"font\"") != std::string::npos);
+    REQUIRE(json.find("Arial") != std::string::npos);
+}
+
+TEST_CASE("Font round-trips through serialize/parse", "[parser][serializer][font]")
+{
+    Form original;
+    original.font.family = L"Verdana";
+    original.font.size = 11;
+    original.font.bold = true;
+    original.font.italic = false;
+
+    original.controls.emplace_back();
+    original.controls[0].type = ControlType::Label;
+    original.controls[0].font.family = L"Courier New";
+    original.controls[0].font.size = 14;
+    original.controls[0].font.italic = true;
+
+    auto json = SerializeForm(original);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.font.family == L"Verdana");
+    REQUIRE(parsed.font.size == 11);
+    REQUIRE(parsed.font.bold == true);
+    REQUIRE(parsed.font.italic == false);
+
+    REQUIRE(parsed.controls[0].font.family == L"Courier New");
+    REQUIRE(parsed.controls[0].font.size == 14);
+    REQUIRE(parsed.controls[0].font.italic == true);
+    REQUIRE(parsed.controls[0].font.bold == false);
+}

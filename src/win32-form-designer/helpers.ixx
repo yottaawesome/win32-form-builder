@@ -91,8 +91,22 @@ namespace Designer
 
 		if (entry.hwnd)
 		{
-			Win32::SendMessageW(entry.hwnd, Win32::Messages::SetFont,
-				reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+			// Apply resolved font.
+			auto resolved = FormDesigner::ResolveFont(ctrl.font, state.form.font);
+			if (resolved.family != FormDesigner::DefaultFontFamily || resolved.size != FormDesigner::DefaultFontSize
+				|| resolved.bold || resolved.italic)
+			{
+				auto hFont = Win32::CreateFontFromInfo(
+					resolved.family.c_str(), resolved.size, resolved.bold, resolved.italic, entry.hwnd);
+				state.controlFonts.push_back(hFont);
+				Win32::SendMessageW(entry.hwnd, Win32::Messages::SetFont,
+					reinterpret_cast<Win32::WPARAM>(hFont), true);
+			}
+			else
+			{
+				Win32::SendMessageW(entry.hwnd, Win32::Messages::SetFont,
+					reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+			}
 			Win32::SetWindowSubclass(entry.hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
 		}
 		Win32::InvalidateRect(state.canvasHwnd, nullptr, true);

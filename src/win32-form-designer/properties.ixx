@@ -12,6 +12,36 @@ namespace Designer
 	void ScrollPropertyPanel(DesignState& state, int newPos);
 	void ResetPropertyScroll(DesignState& state);
 
+	// Formats a FontInfo into a display string like "Segoe UI, 12pt, Bold Italic" or "(inherited)".
+	auto FontDisplayString(const FormDesigner::FontInfo& font) -> std::wstring
+	{
+		if (!font.isSet())
+			return L"(inherited)";
+
+		auto result = std::wstring{};
+		if (!font.family.empty())
+			result = font.family;
+		else
+			result = L"(inherited)";
+
+		if (font.size != 0)
+			result += std::format(L", {}pt", font.size);
+
+		if (font.bold)
+			result += L", Bold";
+		if (font.italic)
+			result += L", Italic";
+
+		return result;
+	}
+
+	auto FormFontDisplayString(const FormDesigner::FontInfo& font) -> std::wstring
+	{
+		if (!font.isSet())
+			return L"(default)";
+		return FontDisplayString(font);
+	}
+
 	void SetPropertyGroupVisibility(Win32::HWND panel, const Win32::UINT ids[], int count, int show)
 	{
 		for (int i = 0; i < count; ++i)
@@ -52,6 +82,27 @@ namespace Designer
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
 		if (bgBtn) Win32::ShowWindow(bgBtn, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+
+		// Font controls visibility.
+		auto fontLabel = Win32::GetDlgItem(panel, IDC_PROP_FONT_LABEL);
+		auto fontBtn = Win32::GetDlgItem(panel, IDC_PROP_FONT_BTN);
+		auto fontClear = Win32::GetDlgItem(panel, IDC_PROP_FONT_CLEAR);
+		if (fontLabel) Win32::ShowWindow(fontLabel, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+		if (fontBtn)   Win32::ShowWindow(fontBtn, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+		if (fontClear) Win32::ShowWindow(fontClear, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+
+		auto formFontLabel = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_LABEL);
+		auto formFontBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_BTN);
+		auto formFontClear = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_CLEAR);
+		if (formFontLabel) Win32::ShowWindow(formFontLabel, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+		if (formFontBtn)   Win32::ShowWindow(formFontBtn, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+		if (formFontClear) Win32::ShowWindow(formFontClear, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
+
+		// Font label for form properties.
+		auto fontLblHdr = Win32::GetDlgItem(panel, IDC_PROP_FONT_LABEL + IDL_OFFSET);
+		if (fontLblHdr) Win32::ShowWindow(fontLblHdr, hasSel ? Win32::Sw_Show : Win32::Sw_Hide);
+		auto formFontLblHdr = Win32::GetDlgItem(panel, IDC_PROP_FORM_FONT_LABEL + IDL_OFFSET);
+		if (formFontLblHdr) Win32::ShowWindow(formFontLblHdr, hasSel ? Win32::Sw_Hide : Win32::Sw_Show);
 
 		ResetPropertyScroll(state);
 		UpdateScrollRange(state);
@@ -123,6 +174,10 @@ namespace Designer
 					Win32::ComboBox::SetCurSel, anchorIdx, 0);
 			}
 
+			// Set font label.
+			Win32::SetDlgItemTextW(panel, IDC_PROP_FONT_LABEL,
+				FontDisplayString(ctrl.font).c_str());
+
 			Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 				IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 				IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
@@ -154,6 +209,10 @@ namespace Designer
 					Win32::Button::SetCheck,
 					on ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
 			}
+
+			// Set form font label.
+			Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_FONT_LABEL,
+				FormFontDisplayString(state.form.font).c_str());
 		}
 
 		state.updatingProperties = false;
@@ -571,6 +630,38 @@ namespace Designer
 			Win32::SendMessageW(combo, Win32::ComboBox::SetCurSel, 0, 0);
 		}
 
+		// Control font row: label + "..." button + "Clear" button.
+		y += 26;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Font:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				5, y + 2, 55, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_LABEL + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto fontLabel = Win32::CreateWindowExW(0, L"STATIC", L"(inherited)",
+				Win32::Styles::Child | Win32::Styles::StaticLeft,
+				65, y + 2, 85, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_LABEL)),
+				hInst, nullptr);
+			Win32::SendMessageW(fontLabel, Win32::Messages::SetFont, font, true);
+
+			auto fontBtn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
+				Win32::Styles::Child | Win32::Styles::ButtonPush,
+				155, y, 30, 22, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_BTN)),
+				hInst, nullptr);
+			Win32::SendMessageW(fontBtn, Win32::Messages::SetFont, font, true);
+
+			auto fontClear = Win32::CreateWindowExW(0, L"BUTTON", L"X",
+				Win32::Styles::Child | Win32::Styles::ButtonPush,
+				190, y, 25, 22, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FONT_CLEAR)),
+				hInst, nullptr);
+			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
+		}
+
 		// Form property rows (visible when no control is selected).
 		PropRow formRows[] = {
 			{ L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -637,10 +728,42 @@ namespace Designer
 			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
 			y += 22;
 		}
+
+		// Form font row: label + "..." button + "Clear" button.
+		y += 8;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Font:",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticRight,
+				5, y + 2, 55, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_LABEL + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto fontLabel = Win32::CreateWindowExW(0, L"STATIC", L"(default)",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticLeft,
+				65, y + 2, 85, 18, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_LABEL)),
+				hInst, nullptr);
+			Win32::SendMessageW(fontLabel, Win32::Messages::SetFont, font, true);
+
+			auto fontBtn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
+				155, y, 30, 22, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_BTN)),
+				hInst, nullptr);
+			Win32::SendMessageW(fontBtn, Win32::Messages::SetFont, font, true);
+
+			auto fontClear = Win32::CreateWindowExW(0, L"BUTTON", L"X",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::ButtonPush,
+				190, y, 25, 22, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_FONT_CLEAR)),
+				hInst, nullptr);
+			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
+		}
 	}
 
-	constexpr int PROP_CONTENT_CTRL = 30 + 17 * 26 + 10;  // control properties: 482px
-	constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 10;  // form properties + style checkboxes: 264px
+	constexpr int PROP_CONTENT_CTRL = 30 + 18 * 26 + 10;  // control properties + font row: 508px
+	constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 8 + 26 + 10;  // form properties + style checkboxes + font row: 298px
 	constexpr int SCROLL_LINE = 26;                         // one row height
 
 	void UpdateScrollRange(DesignState& state)
@@ -814,6 +937,125 @@ namespace Designer
 						break;
 					}
 				}
+				MarkDirty(*state);
+				return 0;
+			}
+
+			// Control font "..." button.
+			if (id == IDC_PROP_FONT_BTN && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+
+				auto& ctrl = *state->entries[sel].control;
+				auto resolved = FormDesigner::ResolveFont(ctrl.font, state->form.font);
+
+				Win32::LOGFONTW lf = {};
+				auto hdc = Win32::GetDC(state->surfaceHwnd);
+				lf.lfHeight = -Win32::MulDiv(resolved.size, Win32::GetDeviceCaps(
+					hdc, Win32::FontMetrics::LogPixelsY), 72);
+				Win32::ReleaseDC(state->surfaceHwnd, hdc);
+				lf.lfWeight = resolved.bold ? Win32::FontWeight::Bold : Win32::FontWeight::Normal;
+				lf.lfItalic = resolved.italic ? 1 : 0;
+				lf.lfCharSet = Win32::FontCharset::Default;
+				lf.lfOutPrecision = Win32::FontPrecision::OutDefault;
+				lf.lfClipPrecision = Win32::FontPrecision::ClipDefault;
+				lf.lfQuality = Win32::FontPrecision::QualityDefault;
+				auto len = resolved.family.size();
+				if (len > 31) len = 31;
+				for (size_t i = 0; i < len; ++i) lf.lfFaceName[i] = resolved.family[i];
+				lf.lfFaceName[len] = L'\0';
+
+				Win32::CHOOSEFONTW cf = {};
+				cf.lStructSize = sizeof(Win32::CHOOSEFONTW);
+				cf.hwndOwner = state->surfaceHwnd;
+				cf.lpLogFont = &lf;
+				cf.Flags = Win32::FontDialog::ScreenFonts | Win32::FontDialog::InitToLogFont
+					| Win32::FontDialog::NoSimulations;
+				cf.iPointSize = resolved.size * 10;
+
+				if (Win32::ChooseFontW(&cf))
+				{
+					PushUndo(*state);
+					ctrl.font.family = lf.lfFaceName;
+					ctrl.font.size = cf.iPointSize / 10;
+					ctrl.font.bold = (lf.lfWeight >= Win32::FontWeight::Bold);
+					ctrl.font.italic = (lf.lfItalic != 0);
+					RebuildSingleControl(*state, state->entries[sel]);
+					UpdatePropertyPanel(*state);
+					MarkDirty(*state);
+				}
+				return 0;
+			}
+
+			// Control font "Clear" button.
+			if (id == IDC_PROP_FONT_CLEAR && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+
+				PushUndo(*state);
+				state->entries[sel].control->font = {};
+				RebuildSingleControl(*state, state->entries[sel]);
+				UpdatePropertyPanel(*state);
+				MarkDirty(*state);
+				return 0;
+			}
+
+			// Form font "..." button.
+			if (id == IDC_PROP_FORM_FONT_BTN && code == Win32::Notifications::ButtonClicked)
+			{
+				auto resolved = state->form.font.isSet()
+					? state->form.font
+					: FormDesigner::FontInfo{ FormDesigner::DefaultFontFamily, FormDesigner::DefaultFontSize, false, false };
+
+				Win32::LOGFONTW lf = {};
+				auto hdc = Win32::GetDC(state->surfaceHwnd);
+				lf.lfHeight = -Win32::MulDiv(resolved.size, Win32::GetDeviceCaps(
+					hdc, Win32::FontMetrics::LogPixelsY), 72);
+				Win32::ReleaseDC(state->surfaceHwnd, hdc);
+				lf.lfWeight = resolved.bold ? Win32::FontWeight::Bold : Win32::FontWeight::Normal;
+				lf.lfItalic = resolved.italic ? 1 : 0;
+				lf.lfCharSet = Win32::FontCharset::Default;
+				lf.lfOutPrecision = Win32::FontPrecision::OutDefault;
+				lf.lfClipPrecision = Win32::FontPrecision::ClipDefault;
+				lf.lfQuality = Win32::FontPrecision::QualityDefault;
+				auto len = resolved.family.size();
+				if (len > 31) len = 31;
+				for (size_t i = 0; i < len; ++i) lf.lfFaceName[i] = resolved.family[i];
+				lf.lfFaceName[len] = L'\0';
+
+				Win32::CHOOSEFONTW cf = {};
+				cf.lStructSize = sizeof(Win32::CHOOSEFONTW);
+				cf.hwndOwner = state->surfaceHwnd;
+				cf.lpLogFont = &lf;
+				cf.Flags = Win32::FontDialog::ScreenFonts | Win32::FontDialog::InitToLogFont
+					| Win32::FontDialog::NoSimulations;
+				cf.iPointSize = resolved.size * 10;
+
+				if (Win32::ChooseFontW(&cf))
+				{
+					PushUndo(*state);
+					state->form.font.family = lf.lfFaceName;
+					state->form.font.size = cf.iPointSize / 10;
+					state->form.font.bold = (lf.lfWeight >= Win32::FontWeight::Bold);
+					state->form.font.italic = (lf.lfItalic != 0);
+					for (auto& entry : state->entries)
+						RebuildSingleControl(*state, entry);
+					UpdatePropertyPanel(*state);
+					MarkDirty(*state);
+				}
+				return 0;
+			}
+
+			// Form font "Clear" button.
+			if (id == IDC_PROP_FORM_FONT_CLEAR && code == Win32::Notifications::ButtonClicked)
+			{
+				PushUndo(*state);
+				state->form.font = {};
+				for (auto& entry : state->entries)
+					RebuildSingleControl(*state, entry);
+				UpdatePropertyPanel(*state);
 				MarkDirty(*state);
 				return 0;
 			}

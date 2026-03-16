@@ -10,7 +10,9 @@ export namespace FormDesigner
 	void CreateChildren(
 		Win32::HWND parent,
 		Win32::HINSTANCE hInstance,
-		std::span<const Control> controls)
+		std::span<const Control> controls,
+		const FontInfo& formFont,
+		std::vector<Win32::HFONT>& createdFonts)
 	{
 		for (auto& control : controls)
 		{
@@ -49,12 +51,24 @@ export namespace FormDesigner
 				continue;
 			}
 
-			// Set the default GUI font on the control.
-			auto font = static_cast<Win32::HFONT>(Win32::GetStockObject(Win32::DefaultGuiFont));
-			Win32::SendMessageW(hwnd, Win32::Messages::SetFont, reinterpret_cast<Win32::WPARAM>(font), 1);
+			// Apply the resolved font (control → form → system default).
+			auto resolved = ResolveFont(control.font, formFont);
+			if (resolved.family != DefaultFontFamily || resolved.size != DefaultFontSize
+				|| resolved.bold || resolved.italic)
+			{
+				auto hFont = Win32::CreateFontFromInfo(
+					resolved.family.c_str(), resolved.size, resolved.bold, resolved.italic, parent);
+				createdFonts.push_back(hFont);
+				Win32::SendMessageW(hwnd, Win32::Messages::SetFont, reinterpret_cast<Win32::WPARAM>(hFont), 1);
+			}
+			else
+			{
+				auto font = static_cast<Win32::HFONT>(Win32::GetStockObject(Win32::DefaultGuiFont));
+				Win32::SendMessageW(hwnd, Win32::Messages::SetFont, reinterpret_cast<Win32::WPARAM>(font), 1);
+			}
 
 			if (not control.children.empty())
-				CreateChildren(hwnd, hInstance, control.children);
+				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts);
 		}
 	}
 
@@ -73,6 +87,7 @@ export namespace FormDesigner
 		int originalWidth = 0;
 		int originalHeight = 0;
 		std::vector<AnchorInfo> anchors;
+		std::vector<Win32::HFONT> createdFonts;
 	};
 
 	// Window procedure for designer-created forms.
@@ -257,6 +272,8 @@ export namespace FormDesigner
 			if (data)
 			{
 				if (data->bgBrush) Win32::DeleteObject(data->bgBrush);
+				for (auto hFont : data->createdFonts)
+					Win32::DeleteObject(hFont);
 				delete data;
 			}
 			Win32::PostQuitMessage(0);
@@ -319,8 +336,6 @@ export namespace FormDesigner
 			return nullptr;
 		}
 
-		CreateChildren(hwnd, hInstance, form.controls);
-
 		// Store window data for WndProc dispatch.
 		auto* windowData = new FormWindowData{
 			.events = &events,
@@ -335,6 +350,9 @@ export namespace FormDesigner
 			if (c.id != 0)
 				windowData->anchors.push_back({ c.id, c.rect, c.anchor });
 		}
+
+		CreateChildren(hwnd, hInstance, form.controls, form.font, windowData->createdFonts);
+
 		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 
 		Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);

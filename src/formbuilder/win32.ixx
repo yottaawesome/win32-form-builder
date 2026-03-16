@@ -187,6 +187,37 @@ export namespace Win32
 	constexpr auto ColorWindow = COLOR_WINDOW;
 	constexpr auto ColorBtnFace = COLOR_BTNFACE;
 
+	// === Font constants ===
+	constexpr auto FwNormal = FW_NORMAL;
+	constexpr auto FwBold   = FW_BOLD;
+	constexpr auto DefaultCharset       = DEFAULT_CHARSET;
+	constexpr auto OutDefaultPrecis     = OUT_DEFAULT_PRECIS;
+	constexpr auto ClipDefaultPrecis    = CLIP_DEFAULT_PRECIS;
+	constexpr auto ClearTypeQuality     = CLEARTYPE_QUALITY;
+	constexpr auto DefaultPitch         = DEFAULT_PITCH;
+	constexpr auto FfDontCare           = FF_DONTCARE;
+
+	// Creates an HFONT from font properties.
+	inline auto CreateFontFromInfo(const wchar_t* family, int size, bool bold, bool italic, HWND hwnd = nullptr) -> HFONT
+	{
+		auto hdc = ::GetDC(hwnd);
+		auto logPixelsY = ::GetDeviceCaps(hdc, LOGPIXELSY);
+		::ReleaseDC(hwnd, hdc);
+		int height = -::MulDiv(size, logPixelsY, 72);
+		return ::CreateFontW(
+			height, 0, 0, 0,
+			bold ? FW_BOLD : FW_NORMAL,
+			italic ? TRUE : FALSE,
+			FALSE, FALSE,
+			DEFAULT_CHARSET,
+			OUT_DEFAULT_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			CLEARTYPE_QUALITY,
+			DEFAULT_PITCH | FF_DONTCARE,
+			family
+		);
+	}
+
 	// === Cursors ===
 	namespace Cursors
 	{

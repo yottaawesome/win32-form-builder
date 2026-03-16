@@ -403,3 +403,91 @@ TEST_CASE("Codegen omits WM_SIZE when all controls use default anchor", "[codege
 
 	REQUIRE_FALSE(contains(code, "WM_SIZE"));
 }
+
+// === Font code generation tests ===
+
+TEST_CASE("GenerateCode omits CreateFontW when no custom fonts", "[codegen][font]")
+{
+	Form form;
+	form.title = L"No Font";
+	form.controls.emplace_back();
+	form.controls[0].type = ControlType::Button;
+	form.controls[0].text = L"OK";
+	form.controls[0].id = 1;
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE_FALSE(contains(code, "CreateFontW"));
+	REQUIRE(contains(code, "DEFAULT_GUI_FONT"));
+}
+
+TEST_CASE("GenerateCode emits CreateFontW for control with custom font", "[codegen][font]")
+{
+	Form form;
+	form.title = L"Font Test";
+	form.controls.emplace_back();
+	form.controls[0].type = ControlType::Label;
+	form.controls[0].text = L"Hello";
+	form.controls[0].id = 1;
+	form.controls[0].font.family = L"Consolas";
+	form.controls[0].font.size = 14;
+	form.controls[0].font.bold = true;
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "CreateFontW"));
+	REQUIRE(contains(code, "L\"Consolas\""));
+	REQUIRE(contains(code, "FW_BOLD"));
+}
+
+TEST_CASE("GenerateCode emits CreateFontW for form-level font", "[codegen][font]")
+{
+	Form form;
+	form.title = L"Form Font";
+	form.font.family = L"Arial";
+	form.font.size = 11;
+
+	form.controls.emplace_back();
+	form.controls[0].type = ControlType::Button;
+	form.controls[0].text = L"OK";
+	form.controls[0].id = 1;
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "CreateFontW"));
+	REQUIRE(contains(code, "L\"Arial\""));
+}
+
+TEST_CASE("GenerateCode shares font variable when controls have same font", "[codegen][font]")
+{
+	Form form;
+	form.title = L"Shared Font";
+
+	auto font = FontInfo{ L"Consolas", 12, false, false };
+
+	Control c1;
+	c1.type = ControlType::Label;
+	c1.text = L"A";
+	c1.id = 1;
+	c1.font = font;
+
+	Control c2;
+	c2.type = ControlType::Label;
+	c2.text = L"B";
+	c2.id = 2;
+	c2.font = font;
+
+	form.controls.push_back(c1);
+	form.controls.push_back(c2);
+
+	auto code = GenerateCode(form, false);
+
+	// Should only have one CreateFontW call for the shared font.
+	auto first = code.find("CreateFontW");
+	REQUIRE(first != std::string::npos);
+	auto second = code.find("CreateFontW", first + 1);
+	// Second occurrence should be from WM_SETFONT, not another CreateFontW variable.
+	// Count unique hFont variable declarations.
+	REQUIRE(contains(code, "hFont"));
+	// Both controls should use the same font variable.
+}

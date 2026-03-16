@@ -11,6 +11,25 @@ namespace Designer
 
 	void RefreshZOrderPanel(DesignState& state);
 
+	// Applies the resolved font to a design-time control HWND.
+	void ApplyControlFont(DesignState& state, Win32::HWND hwnd, const FormDesigner::Control& ctrl)
+	{
+		auto resolved = FormDesigner::ResolveFont(ctrl.font, state.form.font);
+		if (resolved.family != FormDesigner::DefaultFontFamily || resolved.size != FormDesigner::DefaultFontSize
+			|| resolved.bold || resolved.italic)
+		{
+			auto hFont = Win32::CreateFontFromInfo(
+				resolved.family.c_str(), resolved.size, resolved.bold, resolved.italic, hwnd);
+			state.controlFonts.push_back(hFont);
+			Win32::SendMessageW(hwnd, Win32::Messages::SetFont, reinterpret_cast<Win32::WPARAM>(hFont), true);
+		}
+		else
+		{
+			Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
+				reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+		}
+	}
+
 	export void PopulateControls(DesignState& state)
 	{
 		// Flatten nested children into top-level controls so all controls
@@ -61,8 +80,7 @@ namespace Designer
 			if (!hwnd)
 				continue;
 
-			Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
-				reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+			ApplyControlFont(state, hwnd, control);
 
 			Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
 			state.entries.push_back({ &control, hwnd });
@@ -75,6 +93,11 @@ namespace Designer
 			Win32::DestroyWindow(entry.hwnd);
 		state.entries.clear();
 		state.selection.clear();
+
+		// Clean up created fonts.
+		for (auto hFont : state.controlFonts)
+			Win32::DeleteObject(hFont);
+		state.controlFonts.clear();
 
 		// Sync guides from form to design state.
 		state.userGuides.clear();
@@ -176,7 +199,9 @@ namespace Designer
 		Win32::SetWindowLongPtrW(state.previewHwnd, Win32::Gwlp_UserData,
 			reinterpret_cast<Win32::LONG_PTR>(&state));
 
-		FormDesigner::CreateChildren(state.previewHwnd, state.hInstance, form.controls);
+		auto previewFonts = std::vector<Win32::HFONT>{};
+		FormDesigner::CreateChildren(state.previewHwnd, state.hInstance, form.controls, form.font, previewFonts);
+		// Preview fonts are leaked intentionally (preview is short-lived).
 
 		Win32::ShowWindow(state.previewHwnd, Win32::Sw_ShowDefault);
 		Win32::UpdateWindow(state.previewHwnd);
@@ -241,8 +266,7 @@ namespace Designer
 
 		if (hwnd)
 		{
-			Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
-				reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+			ApplyControlFont(state, hwnd, ctrl);
 			Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
 			state.entries.push_back({ &ctrl, hwnd });
 			state.selection = { static_cast<int>(state.entries.size()) - 1 };
@@ -418,8 +442,7 @@ namespace Designer
 
 			if (hwnd)
 			{
-				Win32::SendMessageW(hwnd, Win32::Messages::SetFont,
-					reinterpret_cast<Win32::WPARAM>(Win32::GetStockObject(Win32::DefaultGuiFont)), true);
+				ApplyControlFont(state, hwnd, placed);
 				Win32::SetWindowSubclass(hwnd, ControlSubclassProc, SUBCLASS_ID, 0);
 				state.entries.push_back({ &placed, hwnd });
 				state.selection.insert(static_cast<int>(state.entries.size()) - 1);

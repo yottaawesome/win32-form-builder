@@ -37,6 +37,50 @@ export namespace FormDesigner
 	// Text alignment options for controls that support it.
 	enum class TextAlign { Left, Center, Right };
 
+	// Font properties for controls and forms.
+	struct FontInfo
+	{
+		std::wstring family;
+		int size = 0;
+		bool bold = false;
+		bool italic = false;
+
+		auto isSet() const noexcept -> bool { return !family.empty() || size != 0; }
+	};
+
+	// System default font used when no font is specified.
+	inline constexpr int DefaultFontSize = 9;
+	inline const std::wstring DefaultFontFamily = L"Segoe UI";
+
+	// Resolves the effective font for a control, cascading: control → form → system default.
+	inline auto ResolveFont(const FontInfo& controlFont, const FontInfo& formFont) -> FontInfo
+	{
+		auto result = FontInfo{
+			.family = DefaultFontFamily,
+			.size = DefaultFontSize,
+			.bold = false,
+			.italic = false,
+		};
+
+		if (formFont.isSet())
+		{
+			if (!formFont.family.empty()) result.family = formFont.family;
+			if (formFont.size != 0) result.size = formFont.size;
+			result.bold = formFont.bold;
+			result.italic = formFont.italic;
+		}
+
+		if (controlFont.isSet())
+		{
+			if (!controlFont.family.empty()) result.family = controlFont.family;
+			if (controlFont.size != 0) result.size = controlFont.size;
+			result.bold = controlFont.bold;
+			result.italic = controlFont.italic;
+		}
+
+		return result;
+	}
+
 	// Anchor flags — bitmask controlling how controls respond to parent resize.
 	namespace Anchor
 	{
@@ -67,6 +111,7 @@ export namespace FormDesigner
 		bool locked = false;
 		int groupId = 0;
 		int anchor = Anchor::Default;
+		FontInfo font;
 		std::vector<Control> children;
 	};
 
@@ -86,6 +131,7 @@ export namespace FormDesigner
 		Win32::DWORD style = Win32::Styles::OverlappedWindow;
 		Win32::DWORD exStyle = 0;
 		int backgroundColor = -1; // -1 = system default; otherwise COLORREF
+		FontInfo font;
 		std::vector<Control> controls;
 		std::vector<DesignerGuide> guides;
 	};

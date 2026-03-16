@@ -29,7 +29,9 @@ export namespace Win32
 		::CHOOSECOLORW,
 		::HACCEL,
 		::ACCEL,
-		::LPCWSTR
+		::LPCWSTR,
+		::LOGFONTW,
+		::CHOOSEFONTW
 		;
 
 	// === Additional functions ===
@@ -61,6 +63,7 @@ export namespace Win32
 		::GetSaveFileNameW,
 		::GetOpenFileNameW,
 		::ChooseColorW,
+		::ChooseFontW,
 		::GetSysColor,
 		::SetCursor,
 		::CreatePen,
@@ -217,6 +220,7 @@ export namespace Win32
 	namespace Styles
 	{
 		constexpr auto StaticRight              = SS_RIGHT;
+		constexpr auto StaticLeft               = SS_LEFT;
 		constexpr auto EditReadOnly             = ES_READONLY;
 		constexpr auto ButtonPush               = BS_PUSHBUTTON;
 		constexpr auto TabStop                  = WS_TABSTOP;
@@ -276,6 +280,41 @@ export namespace Win32
 		constexpr auto FullOpen = CC_FULLOPEN;
 		constexpr auto RgbInit  = CC_RGBINIT;
 	}
+
+	// === Font dialog flags ===
+	namespace FontDialog
+	{
+		constexpr auto ScreenFonts   = CF_SCREENFONTS;
+		constexpr auto InitToLogFont = CF_INITTOLOGFONTSTRUCT;
+		constexpr auto NoSimulations = CF_NOSIMULATIONS;
+	}
+
+	// === Font helpers for property panel ===
+	namespace FontWeight
+	{
+		constexpr auto Normal = FW_NORMAL;
+		constexpr auto Bold   = FW_BOLD;
+	}
+
+	namespace FontCharset
+	{
+		constexpr auto Default = DEFAULT_CHARSET;
+	}
+
+	namespace FontPrecision
+	{
+		constexpr auto OutDefault     = OUT_DEFAULT_PRECIS;
+		constexpr auto ClipDefault    = CLIP_DEFAULT_PRECIS;
+		constexpr auto QualityDefault = CLEARTYPE_QUALITY;
+	}
+
+	namespace FontMetrics
+	{
+		constexpr auto LogPixelsY = LOGPIXELSY;
+	}
+
+	using ::MulDiv;
+	using ::GetDeviceCaps;
 
 	// === Accelerator flags ===
 	namespace Accel

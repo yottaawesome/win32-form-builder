@@ -74,6 +74,11 @@ export namespace Designer
 	// Anchor combo for control properties.
 	constexpr Win32::UINT IDC_PROP_ANCHOR = 51018;
 
+	// Font property controls.
+	constexpr Win32::UINT IDC_PROP_FONT_LABEL = 51019;
+	constexpr Win32::UINT IDC_PROP_FONT_BTN   = 51020;
+	constexpr Win32::UINT IDC_PROP_FONT_CLEAR = 51021;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;
@@ -85,6 +90,11 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_FORM_RESIZABLE  = 52008;
 	constexpr Win32::UINT IDC_PROP_FORM_MINIMIZE   = 52009;
 	constexpr Win32::UINT IDC_PROP_FORM_MAXIMIZE   = 52010;
+
+	// Form font property controls.
+	constexpr Win32::UINT IDC_PROP_FORM_FONT_LABEL = 52011;
+	constexpr Win32::UINT IDC_PROP_FORM_FONT_BTN   = 52012;
+	constexpr Win32::UINT IDC_PROP_FORM_FONT_CLEAR = 52013;
 
 	// Label IDs are offset from the corresponding edit IDs.
 	constexpr Win32::UINT IDL_OFFSET = 10000;
@@ -274,6 +284,7 @@ export namespace Designer
 		int tabOrderNext = 1;
 		int nextGroupId = 1;
 		std::vector<std::filesystem::path> recentFiles;
+		std::vector<Win32::HFONT> controlFonts; // Fonts created for design-time controls.
 	};
 
 	constexpr Win32::UINT SUBCLASS_ID = 1;

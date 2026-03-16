@@ -108,6 +108,20 @@ export namespace FormDesigner
 				j["children"].push_back(SerializeControl(child));
 		}
 
+		if (control.font.isSet())
+		{
+			auto fj = nlohmann::json{};
+			if (!control.font.family.empty())
+				fj["family"] = std::string(control.font.family.begin(), control.font.family.end());
+			if (control.font.size != 0)
+				fj["size"] = control.font.size;
+			if (control.font.bold)
+				fj["bold"] = true;
+			if (control.font.italic)
+				fj["italic"] = true;
+			j["font"] = fj;
+		}
+
 		return j;
 	}
 }
@@ -150,6 +164,20 @@ export namespace FormDesigner
 				gj["position"] = g.position;
 				j["guides"].push_back(gj);
 			}
+		}
+
+		if (form.font.isSet())
+		{
+			auto fj = nlohmann::json{};
+			if (!form.font.family.empty())
+				fj["family"] = std::string(form.font.family.begin(), form.font.family.end());
+			if (form.font.size != 0)
+				fj["size"] = form.font.size;
+			if (form.font.bold)
+				fj["bold"] = true;
+			if (form.font.italic)
+				fj["italic"] = true;
+			j["font"] = fj;
 		}
 
 		return j.dump(indent);
