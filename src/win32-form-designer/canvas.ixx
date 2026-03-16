@@ -1,7 +1,6 @@
 export module designer:canvas;
 import std;
 import formbuilder;
-import :win32;
 import :state;
 import :hit_testing;
 import :rendering;

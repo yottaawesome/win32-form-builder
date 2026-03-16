@@ -1,7 +1,6 @@
 export module designer;
 import std;
 import formbuilder;
-export import :win32;
 export import :state;
 export import :hit_testing;
 export import :rendering;

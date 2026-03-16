@@ -88,28 +88,30 @@ win32-form-designer.exe [path-to-form.json]
 
 ## Architecture
 
-The designer is built as a C++20 module (`designer`) with six partitions:
+The designer is built as a C++20 module (`designer`) with partitions that build on the `formbuilder` library:
 
 | Partition | File | Purpose |
 |-----------|------|---------|
-| `:win32` | `win32.ixx` | Win32 API wrappers (only file that includes `<Windows.h>`) |
 | `:state` | `state.ixx` | Data structures, constants, menu IDs, `DesignState` struct |
-| `:helpers` | `helpers.ixx` | Hit testing, resize, selection drawing, snap guides, rulers, theme persistence, validation, tab order, grouping, recent files |
+| `:hit_testing` | `hit_testing.ixx` | Control hit testing and resize handle detection |
+| `:rendering` | `rendering.ixx` | Selection rendering, snap guides, rulers, canvas painting |
+| `:settings` | `settings.ixx` | Theme persistence and user settings |
+| `:helpers` | `helpers.ixx` | Validation, tab order, grouping, recent files, utility functions |
 | `:properties` | `properties.ixx` | Property panel creation, updates, and change handlers |
 | `:canvas` | `canvas.ixx` | Canvas window procedure, control lifecycle, drag/resize, clipboard |
 | `:fileops` | `fileops.ixx` | File dialogs, save/open/new/export operations |
 
 The main module interface (`designer.ixx`) creates the design surface, menu bar, accelerator table, toolbar, and status bar.
 
+Win32 API wrappers are centralised in the `formbuilder:win32` partition — the only file that includes `<Windows.h>`. All designer partitions access Win32 APIs via `import formbuilder`.
+
 ### Partition dependency chain
 ```
-state → helpers → properties → canvas → fileops → designer.ixx
+state → hit_testing → rendering → settings → helpers → properties → canvas → fileops → designer.ixx
 ```
 
-Each partition imports the ones before it. The `:win32` partition is imported by `:state` and available transitively to all others.
-
 ### Key design patterns
-- **Single `<Windows.h>` include** — only `designer.win32.ixx` includes Windows headers; all other files use `import :win32`
+- **Single `<Windows.h>` include** — only the formbuilder's `win32.ixx` includes Windows headers; all other files use `import formbuilder`
 - **Win32:: namespace** — all Win32 types, functions, and constants are wrapped in the `Win32` namespace with descriptive names (e.g. `Win32::Styles::Child`, `Win32::Messages::Paint`)
 - **DesignState** — single struct holding all mutable state, stored via `GWLP_USERDATA` on each window
 - **Snapshot undo** — entire `Form` is copied on each undoable action

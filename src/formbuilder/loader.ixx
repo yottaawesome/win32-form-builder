@@ -86,14 +86,14 @@ export namespace FormDesigner
 				(control.type == ControlType::ComboBox || control.type == ControlType::ListBox))
 			{
 				auto addMsg = (control.type == ControlType::ComboBox)
-					? Win32::CbMessages::AddString : Win32::LbMessages::AddString;
+					? Win32::ComboBox::AddString : Win32::ListBox::AddString;
 				for (auto& item : control.items)
 					Win32::SendMessageW(hwnd, addMsg, 0,
 						reinterpret_cast<Win32::LPARAM>(item.c_str()));
 				if (control.selectedIndex >= 0)
 				{
 					auto selMsg = (control.type == ControlType::ComboBox)
-						? Win32::CbMessages::SetCurSel : Win32::LbMessages::SetCurSel;
+						? Win32::ComboBox::SetCurSel : Win32::ListBox::SetCurSel;
 					Win32::SendMessageW(hwnd, selMsg, control.selectedIndex, 0);
 				}
 			}

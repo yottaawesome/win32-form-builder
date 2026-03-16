@@ -149,7 +149,6 @@
     <ClCompile Include="test_codegen.cpp" />
     <ClCompile Include="test_helpers.cpp" />
     <!-- Designer module partitions (compiled in-project for testing) -->
-    <ClCompile Include="..\win32-form-designer\win32.ixx" />
     <ClCompile Include="..\win32-form-designer\state.ixx" />
     <ClCompile Include="..\win32-form-designer\hit_testing.ixx" />
     <ClCompile Include="..\win32-form-designer\rendering.ixx" />

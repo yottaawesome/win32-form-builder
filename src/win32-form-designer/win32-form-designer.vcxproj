@@ -140,7 +140,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="win32.ixx" />
     <ClCompile Include="state.ixx" />
     <ClCompile Include="hit_testing.ixx" />
     <ClCompile Include="rendering.ixx" />

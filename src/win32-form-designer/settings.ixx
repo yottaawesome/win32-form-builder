@@ -1,7 +1,6 @@
 export module designer:settings;
 import std;
 import formbuilder;
-import :win32;
 import :state;
 
 namespace Designer
