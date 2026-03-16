@@ -157,7 +157,15 @@ export void Redo(DesignState& state)
     MarkDirty(state);
 }
 
-void DeleteSelectedControls(DesignState& state);
+export void DeleteSelectedControls(DesignState& state);
+
+export void SelectAll(DesignState& state)
+{
+    for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+        state.selection.insert(i);
+    Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+    UpdatePropertyPanel(state);
+}
 
 export void CopySelected(DesignState& state)
 {
@@ -500,6 +508,11 @@ export auto CanvasProc(Win32::HWND hwnd, Win32::UINT msg,
         if (wParam == Win32::Keys::Delete)
         {
             DeleteSelectedControls(*state);
+            return 0;
+        }
+        if (wParam == 'A' && (Win32::GetKeyState(Win32::Keys::Control) & 0x8000))
+        {
+            SelectAll(*state);
             return 0;
         }
         break;

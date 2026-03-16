@@ -19,6 +19,8 @@ constexpr Win32::UINT IDM_EDIT_CUT       = 40009;
 constexpr Win32::UINT IDM_EDIT_COPY      = 40010;
 constexpr Win32::UINT IDM_EDIT_PASTE     = 40011;
 constexpr Win32::UINT IDM_EDIT_DUPLICATE = 40012;
+constexpr Win32::UINT IDM_EDIT_DELETE    = 40013;
+constexpr Win32::UINT IDM_EDIT_SELECTALL = 40014;
 
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;

@@ -36,6 +36,10 @@ auto CreateMenuBar() -> Win32::HMENU
     Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_PASTE,     L"&Paste\tCtrl+V");
     Win32::AppendMenuW(editMenu, Win32::Menu::Separator, 0, nullptr);
     Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_DUPLICATE, L"&Duplicate\tCtrl+D");
+    Win32::AppendMenuW(editMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_DELETE,    L"De&lete\tDel");
+    Win32::AppendMenuW(editMenu, Win32::Menu::Separator, 0, nullptr);
+    Win32::AppendMenuW(editMenu, Win32::Menu::String, IDM_EDIT_SELECTALL, L"Select &All\tCtrl+A");
 
     Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
         reinterpret_cast<Win32::UINT_PTR>(editMenu), L"&Edit");
@@ -118,6 +122,8 @@ auto DesignSurfaceProc(Win32::HWND hwnd, Win32::UINT msg,
         case IDM_EDIT_COPY:      CopySelected(*state);     return 0;
         case IDM_EDIT_PASTE:     PasteControl(*state);     return 0;
         case IDM_EDIT_DUPLICATE: DuplicateSelected(*state); return 0;
+        case IDM_EDIT_DELETE:    DeleteSelectedControls(*state); return 0;
+        case IDM_EDIT_SELECTALL: SelectAll(*state);        return 0;
         case IDM_CANCEL_PLACE: CancelPlacement(*state); return 0;
         }
         break;
