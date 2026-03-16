@@ -491,3 +491,75 @@ TEST_CASE("GenerateCode shares font variable when controls have same font", "[co
 	REQUIRE(contains(code, "hFont"));
 	// Both controls should use the same font variable.
 }
+
+// === Tooltip code generation tests ===
+
+TEST_CASE("GenerateCode emits tooltip window when control has tooltip", "[codegen][tooltip]")
+{
+	Form form;
+	form.title = L"Tooltip Test";
+
+	Control c;
+	c.type = ControlType::Button;
+	c.text = L"OK";
+	c.id = 101;
+	c.tooltip = L"Click me";
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "TOOLTIPS_CLASS"));
+	REQUIRE(contains(code, "TTM_SETMAXTIPWIDTH"));
+	REQUIRE(contains(code, "TTM_ADDTOOL"));
+	REQUIRE(contains(code, "TTF_SUBCLASS"));
+	REQUIRE(contains(code, "Click me"));
+}
+
+TEST_CASE("GenerateCode omits tooltip window when no tooltips", "[codegen][tooltip]")
+{
+	Form form;
+	form.title = L"No Tooltips";
+
+	Control c;
+	c.type = ControlType::Button;
+	c.text = L"OK";
+	c.id = 101;
+	form.controls.push_back(c);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE_FALSE(contains(code, "TOOLTIPS_CLASS"));
+	REQUIRE_FALSE(contains(code, "TTM_ADDTOOL"));
+	REQUIRE_FALSE(contains(code, "hTooltip"));
+}
+
+TEST_CASE("GenerateCode emits tooltip only for controls that have one", "[codegen][tooltip]")
+{
+	Form form;
+	form.title = L"Mixed Tooltips";
+
+	Control c1;
+	c1.type = ControlType::Button;
+	c1.text = L"Save";
+	c1.id = 1;
+	c1.tooltip = L"Save file";
+
+	Control c2;
+	c2.type = ControlType::Button;
+	c2.text = L"Cancel";
+	c2.id = 2;
+	// No tooltip
+
+	form.controls.push_back(c1);
+	form.controls.push_back(c2);
+
+	auto code = GenerateCode(form, false);
+
+	REQUIRE(contains(code, "TOOLTIPS_CLASS"));
+	REQUIRE(contains(code, "Save file"));
+	// Count TTM_ADDTOOL occurrences - should be exactly 1
+	auto pos = code.find("TTM_ADDTOOL");
+	REQUIRE(pos != std::string::npos);
+	auto second = code.find("TTM_ADDTOOL", pos + 1);
+	REQUIRE(second == std::string::npos);
+}

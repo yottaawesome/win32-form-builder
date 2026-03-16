@@ -722,3 +722,94 @@ TEST_CASE("Font round-trips through serialize/parse", "[parser][serializer][font
     REQUIRE(parsed.controls[0].font.italic == true);
     REQUIRE(parsed.controls[0].font.bold == false);
 }
+
+// === Tooltip parse and serialize tests ===
+
+TEST_CASE("ParseForm parses control tooltip", "[parser][tooltip]")
+{
+    auto json = R"({
+        "title":"T","width":400,"height":300,
+        "controls":[{
+            "type":"Button","text":"OK","rect":[10,10,80,25],
+            "tooltip":"Click to confirm"
+        }]
+    })";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].tooltip == L"Click to confirm");
+}
+
+TEST_CASE("ParseForm handles missing tooltip (defaults to empty)", "[parser][tooltip]")
+{
+    auto json = R"({"title":"T","width":400,"height":300,"controls":[{"type":"Button","text":"OK","rect":[10,10,80,25]}]})";
+    auto form = ParseForm(json);
+    REQUIRE(form.controls[0].tooltip.empty());
+}
+
+TEST_CASE("SerializeForm includes tooltip when set", "[serializer][tooltip]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::Button;
+    form.controls[0].tooltip = L"Help text";
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"tooltip\"") != std::string::npos);
+    REQUIRE(json.find("Help text") != std::string::npos);
+}
+
+TEST_CASE("SerializeForm omits tooltip when empty", "[serializer][tooltip]")
+{
+    Form form;
+    form.controls.emplace_back();
+    form.controls[0].type = ControlType::Button;
+
+    auto json = SerializeForm(form);
+    REQUIRE(json.find("\"tooltip\"") == std::string::npos);
+}
+
+TEST_CASE("Tooltip round-trips through serialize/parse", "[parser][serializer][tooltip]")
+{
+    Form original;
+    original.controls.emplace_back();
+    original.controls[0].type = ControlType::Label;
+    original.controls[0].text = L"Name:";
+    original.controls[0].tooltip = L"Enter your full name";
+
+    auto json = SerializeForm(original);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].tooltip == L"Enter your full name");
+}
+
+TEST_CASE("Multiple controls with different tooltips round-trip", "[parser][serializer][tooltip]")
+{
+    Form original;
+    Control c1;
+    c1.type = ControlType::Button;
+    c1.text = L"Save";
+    c1.tooltip = L"Save the file";
+    c1.id = 1;
+
+    Control c2;
+    c2.type = ControlType::Button;
+    c2.text = L"Cancel";
+    c2.id = 2;
+    // No tooltip on c2
+
+    Control c3;
+    c3.type = ControlType::TextBox;
+    c3.text = L"";
+    c3.tooltip = L"Type here";
+    c3.id = 3;
+
+    original.controls.push_back(c1);
+    original.controls.push_back(c2);
+    original.controls.push_back(c3);
+
+    auto json = SerializeForm(original);
+    auto parsed = ParseForm(json);
+
+    REQUIRE(parsed.controls[0].tooltip == L"Save the file");
+    REQUIRE(parsed.controls[1].tooltip.empty());
+    REQUIRE(parsed.controls[2].tooltip == L"Type here");
+}

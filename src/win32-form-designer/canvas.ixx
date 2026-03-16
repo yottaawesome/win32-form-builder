@@ -202,8 +202,23 @@ namespace Designer
 			reinterpret_cast<Win32::LONG_PTR>(&state));
 
 		auto previewFonts = std::vector<Win32::HFONT>{};
-		FormDesigner::CreateChildren(state.previewHwnd, state.hInstance, form.controls, form.font, previewFonts);
-		// Preview fonts are leaked intentionally (preview is short-lived).
+
+		// Create tooltip window for preview if any controls have tooltips.
+		Win32::HWND previewTooltips = nullptr;
+		auto hasTooltips = [](auto& self, std::span<const FormDesigner::Control> ctrls) -> bool {
+			for (auto& c : ctrls)
+			{
+				if (!c.tooltip.empty()) return true;
+				if (!c.children.empty() && self(self, c.children)) return true;
+			}
+			return false;
+		};
+		if (hasTooltips(hasTooltips, form.controls))
+			previewTooltips = FormDesigner::CreateTooltipWindow(state.previewHwnd, state.hInstance);
+
+		FormDesigner::CreateChildren(state.previewHwnd, state.hInstance, form.controls, form.font,
+			previewFonts, previewTooltips);
+		// Preview fonts/tooltips are leaked intentionally (preview is short-lived).
 
 		Win32::ShowWindow(state.previewHwnd, Win32::Sw_ShowDefault);
 		Win32::UpdateWindow(state.previewHwnd);

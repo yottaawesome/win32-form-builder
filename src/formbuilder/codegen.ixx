@@ -231,6 +231,17 @@ namespace FormDesigner
 		return false;
 	}
 
+	// Checks whether any control in the tree has a tooltip.
+	auto NeedsTooltips(std::span<const Control> controls) -> bool
+	{
+		for (auto& c : controls)
+		{
+			if (!c.tooltip.empty()) return true;
+			if (NeedsTooltips(c.children)) return true;
+		}
+		return false;
+	}
+
 	// Event dispatch info collected from controls.
 	struct DispatchEntry
 	{
@@ -447,7 +458,8 @@ namespace FormDesigner
 	// Emits CreateWindowExW calls for a list of controls.
 	void EmitControlCreation(std::ostringstream& out, std::span<const Control> controls,
 		const std::string& parentVar, int& controlIndex, const std::string& indent,
-		const FontInfo& formFont, const std::map<FontKey, std::string>& fontMap)
+		const FontInfo& formFont, const std::map<FontKey, std::string>& fontMap,
+		bool hasTooltips)
 	{
 		for (auto& ctrl : controls)
 		{
@@ -480,11 +492,19 @@ namespace FormDesigner
 			auto fontVar = FontVarForControl(ctrl, formFont, fontMap);
 			out << indent << "SendMessageW(" << varName << ", WM_SETFONT, (WPARAM)" << fontVar << ", TRUE);\n";
 
+			if (hasTooltips && !ctrl.tooltip.empty())
+			{
+				auto tipLiteral = std::format("L\"{}\"", EscapeWString(ctrl.tooltip));
+				out << indent << "{ TOOLINFO ti = { sizeof(TOOLINFO), TTF_SUBCLASS | TTF_IDISHWND, "
+					<< parentVar << ", (UINT_PTR)" << varName << ", {}, " << tipLiteral << " };\n";
+				out << indent << "  SendMessageW(hTooltip, TTM_ADDTOOL, 0, (LPARAM)&ti); }\n";
+			}
+
 			if (!ctrl.children.empty())
 			{
 				out << "\n";
 				auto childIndex = 0;
-				EmitControlCreation(out, ctrl.children, varName, childIndex, indent, formFont, fontMap);
+				EmitControlCreation(out, ctrl.children, varName, childIndex, indent, formFont, fontMap, hasTooltips);
 			}
 
 			out << "\n";
@@ -500,6 +520,7 @@ export namespace FormDesigner
 	{
 		auto out = std::ostringstream{};
 		auto richEdit = NeedsRichEdit(form.controls);
+		auto hasTooltips = NeedsTooltips(form.controls);
 		auto className = MakeClassName(form.title);
 		auto formStyleExpr = BuildFormStyleExpression(form.style);
 
@@ -636,8 +657,17 @@ export namespace FormDesigner
 			out << "\n";
 		}
 
+		if (hasTooltips)
+		{
+			out << "    // Create tooltip control\n";
+			out << "    HWND hTooltip = CreateWindowExW(0, TOOLTIPS_CLASS, NULL,\n";
+			out << "        TTS_ALWAYSTIP | TTS_NOPREFIX, 0, 0, 0, 0,\n";
+			out << "        hwnd, NULL, hInstance, NULL);\n";
+			out << "    SendMessageW(hTooltip, TTM_SETMAXTIPWIDTH, 0, 300);\n\n";
+		}
+
 		auto controlIndex = 0;
-		EmitControlCreation(out, form.controls, "hwnd", controlIndex, "    ", form.font, fontMap);
+		EmitControlCreation(out, form.controls, "hwnd", controlIndex, "    ", form.font, fontMap, hasTooltips);
 
 		out << "}\n\n";
 

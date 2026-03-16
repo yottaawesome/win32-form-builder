@@ -101,6 +101,9 @@ export namespace FormDesigner
 			j["anchor"] = arr;
 		}
 
+		if (not control.tooltip.empty())
+			j["tooltip"] = std::string(control.tooltip.begin(), control.tooltip.end());
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

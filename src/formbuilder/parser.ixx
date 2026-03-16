@@ -132,6 +132,12 @@ export namespace FormDesigner
 				control.font.italic = fj["italic"].get<bool>();
 		}
 
+		if (j.contains("tooltip"))
+		{
+			auto narrow = j["tooltip"].get<std::string>();
+			control.tooltip = std::wstring(narrow.begin(), narrow.end());
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

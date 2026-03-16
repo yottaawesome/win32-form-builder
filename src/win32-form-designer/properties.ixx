@@ -61,7 +61,7 @@ namespace Designer
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_ANCHOR
+			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP
 		};
 		constexpr Win32::UINT formIds[] = {
 			IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
@@ -73,7 +73,7 @@ namespace Designer
 		int ctrlShow = hasSel ? Win32::Sw_Show : Win32::Sw_Hide;
 		int formShow = hasSel ? Win32::Sw_Hide : Win32::Sw_Show;
 
-		SetPropertyGroupVisibility(panel, ctrlIds, 18, ctrlShow);
+		SetPropertyGroupVisibility(panel, ctrlIds, 19, ctrlShow);
 		SetPropertyGroupVisibility(panel, formIds, 9, formShow);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -161,10 +161,13 @@ namespace Designer
 		Win32::SetDlgItemTextW(panel, IDC_PROP_FONT_LABEL,
 			FontDisplayString(ctrl.font).c_str());
 
+		Win32::SetDlgItemTextW(panel, IDC_PROP_TOOLTIP, ctrl.tooltip.c_str());
+
 		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
-			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX };
+			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
+			IDC_PROP_TOOLTIP };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
 	}
@@ -318,6 +321,13 @@ namespace Designer
 			auto sel = static_cast<int>(Win32::SendMessageW(combo, Win32::ComboBox::GetCurSel, 0, 0));
 			if (sel >= 0 && sel < 9)
 				ctrl.anchor = anchorValues[sel];
+			break;
+		}
+		case IDC_PROP_TOOLTIP:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_TOOLTIP, buf, 256);
+			ctrl.tooltip = buf;
 			break;
 		}
 		default:
@@ -479,6 +489,7 @@ namespace Designer
 			{ L"onBlur:",  IDC_PROP_ONBLUR,      Win32::Styles::EditAutoHScroll },
 			{ L"onCheck:", IDC_PROP_ONCHECK,     Win32::Styles::EditAutoHScroll },
 			{ L"TabIdx:", IDC_PROP_TABINDEX,    Win32::Styles::EditAutoHScroll },
+			{ L"Tooltip:", IDC_PROP_TOOLTIP,    Win32::Styles::EditAutoHScroll },
 		};
 
 		int y = 30;
@@ -702,7 +713,7 @@ namespace Designer
 		}
 	}
 
-	constexpr int PROP_CONTENT_CTRL = 30 + 18 * 26 + 10;  // control properties + font row: 508px
+	constexpr int PROP_CONTENT_CTRL = 30 + 19 * 26 + 10;  // control properties + tooltip + font row: 534px
 	constexpr int PROP_CONTENT_FORM = 30 + 4 * 26 + 10 + 22 + 5 * 22 + 8 + 26 + 10;  // form properties + style checkboxes + font row: 298px
 	constexpr int SCROLL_LINE = 26;                         // one row height
 
@@ -1009,7 +1020,7 @@ namespace Designer
 			// Property edits (validate then apply on focus loss).
 			if (code == Win32::Notifications::EditKillFocus)
 			{
-				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX);
+				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX) || id == IDC_PROP_TOOLTIP;
 				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR);
 				if (isCtrlProp || isFormProp)
 					ValidateAndApply(*state, hwnd, id, isFormProp);

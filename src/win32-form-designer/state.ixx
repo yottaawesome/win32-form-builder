@@ -78,6 +78,7 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_FONT_LABEL = 51019;
 	constexpr Win32::UINT IDC_PROP_FONT_BTN   = 51020;
 	constexpr Win32::UINT IDC_PROP_FONT_CLEAR = 51021;
+	constexpr Win32::UINT IDC_PROP_TOOLTIP    = 51022;
 
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;

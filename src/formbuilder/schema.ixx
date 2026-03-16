@@ -112,6 +112,7 @@ export namespace FormDesigner
 		int groupId = 0;
 		int anchor = Anchor::Default;
 		FontInfo font;
+		std::wstring tooltip;
 		std::vector<Control> children;
 	};
 

@@ -12,7 +12,8 @@ export namespace FormDesigner
 		Win32::HINSTANCE hInstance,
 		std::span<const Control> controls,
 		const FontInfo& formFont,
-		std::vector<Win32::HFONT>& createdFonts)
+		std::vector<Win32::HFONT>& createdFonts,
+		Win32::HWND hTooltips = nullptr)
 	{
 		for (auto& control : controls)
 		{
@@ -67,9 +68,37 @@ export namespace FormDesigner
 				Win32::SendMessageW(hwnd, Win32::Messages::SetFont, reinterpret_cast<Win32::WPARAM>(font), 1);
 			}
 
+			// Register tooltip if text is specified.
+			if (hTooltips && !control.tooltip.empty())
+			{
+				Win32::TTTOOLINFOW ti = {};
+				ti.cbSize = sizeof(Win32::TTTOOLINFOW);
+				ti.uFlags = Win32::TooltipFlags::Subclass | Win32::TooltipFlags::IdIsHwnd;
+				ti.hwnd = parent;
+				ti.uId = reinterpret_cast<Win32::UINT_PTR>(hwnd);
+				ti.lpszText = const_cast<wchar_t*>(control.tooltip.c_str());
+				Win32::SendMessageW(hTooltips, Win32::TooltipMessages::AddTool, 0,
+					reinterpret_cast<Win32::LPARAM>(&ti));
+			}
+
 			if (not control.children.empty())
-				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts);
+				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, hTooltips);
 		}
+	}
+
+	// Creates a shared tooltip window as a child of the given parent.
+	Win32::HWND CreateTooltipWindow(Win32::HWND parent, Win32::HINSTANCE hInstance)
+	{
+		auto hTooltips = Win32::CreateWindowExW(
+			0, Win32::Controls::Tooltips, nullptr,
+			Win32::TooltipStyles::AlwaysTip | Win32::TooltipStyles::NoPrefix,
+			0, 0, 0, 0,
+			parent, nullptr, hInstance, nullptr);
+
+		if (hTooltips)
+			Win32::SendMessageW(hTooltips, Win32::TooltipMessages::SetMaxTipWidth, 0, 300);
+
+		return hTooltips;
 	}
 
 	// Stores original position and anchor flags for a control, keyed by control ID.
@@ -88,6 +117,7 @@ export namespace FormDesigner
 		int originalHeight = 0;
 		std::vector<AnchorInfo> anchors;
 		std::vector<Win32::HFONT> createdFonts;
+		Win32::HWND hTooltips = nullptr;
 	};
 
 	// Window procedure for designer-created forms.
@@ -351,7 +381,20 @@ export namespace FormDesigner
 				windowData->anchors.push_back({ c.id, c.rect, c.anchor });
 		}
 
-		CreateChildren(hwnd, hInstance, form.controls, form.font, windowData->createdFonts);
+		// Create shared tooltip window if any control has tooltip text.
+		auto hasTooltips = [](auto& self, std::span<const Control> ctrls) -> bool {
+			for (auto& c : ctrls)
+			{
+				if (!c.tooltip.empty()) return true;
+				if (!c.children.empty() && self(self, c.children)) return true;
+			}
+			return false;
+		};
+		if (hasTooltips(hasTooltips, form.controls))
+			windowData->hTooltips = CreateTooltipWindow(hwnd, hInstance);
+
+		CreateChildren(hwnd, hInstance, form.controls, form.font, windowData->createdFonts,
+			windowData->hTooltips);
 
 		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 

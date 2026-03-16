@@ -177,7 +177,32 @@ export namespace Win32
 		constexpr auto TreeView = WC_TREEVIEW;
 		constexpr auto UpDown = UPDOWN_CLASS;
 		constexpr auto RichEdit = MSFTEDIT_CLASS;
+		constexpr auto Tooltips = TOOLTIPS_CLASS;
 	}
+
+	// === Tooltip constants ===
+	namespace TooltipStyles
+	{
+		constexpr auto AlwaysTip = TTS_ALWAYSTIP;
+		constexpr auto NoPrefix = TTS_NOPREFIX;
+	}
+
+	namespace TooltipFlags
+	{
+		constexpr auto Subclass = TTF_SUBCLASS;
+		constexpr auto IdIsHwnd = TTF_IDISHWND;
+	}
+
+	namespace TooltipMessages
+	{
+		constexpr auto AddTool = TTM_ADDTOOLW;
+		constexpr auto DelTool = TTM_DELTOOLW;
+		constexpr auto UpdateTipText = TTM_UPDATETIPTEXTW;
+		constexpr auto SetMaxTipWidth = TTM_SETMAXTIPWIDTH;
+	}
+
+	using UINT_PTR = ::UINT_PTR;
+	using TTTOOLINFOW = ::TTTOOLINFOW;
 
 	// === System constants ===
 	constexpr auto Gwlp_UserData = GWLP_USERDATA;
