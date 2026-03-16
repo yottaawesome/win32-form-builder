@@ -36,7 +36,7 @@ constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
 
 // Toolbox and layout constants.
 constexpr int TOOLBOX_WIDTH  = 140;
-constexpr int PROPERTY_WIDTH = 220;
+constexpr int PROPERTY_WIDTH = 240;
 constexpr Win32::UINT IDC_TOOLBOX   = 50001;
 
 // Control property edit IDs.

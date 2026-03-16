@@ -15,7 +15,7 @@
       "id": 101,
       "rect": [
         90,
-        18,
+        22,
         200,
         24
       ],
@@ -42,30 +42,6 @@
       "type": "TextBox"
     },
     {
-      "children": [
-        {
-          "id": 201,
-          "rect": [
-            15,
-            25,
-            200,
-            20
-          ],
-          "text": "Subscribe to newsletter",
-          "type": "CheckBox"
-        },
-        {
-          "id": 202,
-          "rect": [
-            15,
-            50,
-            200,
-            20
-          ],
-          "text": "Accept terms and conditions",
-          "type": "CheckBox"
-        }
-      ],
       "rect": [
         20,
         90,
@@ -74,6 +50,28 @@
       ],
       "text": "Options",
       "type": "GroupBox"
+    },
+    {
+      "id": 201,
+      "rect": [
+        35,
+        115,
+        200,
+        20
+      ],
+      "text": "Subscribe to newsletter",
+      "type": "CheckBox"
+    },
+    {
+      "id": 202,
+      "rect": [
+        35,
+        140,
+        200,
+        20
+      ],
+      "text": "Accept terms and conditions",
+      "type": "CheckBox"
     },
     {
       "id": 301,
