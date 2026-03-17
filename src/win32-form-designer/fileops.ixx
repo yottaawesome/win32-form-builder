@@ -171,6 +171,20 @@ namespace Designer
 		UpdateStatusBar(state);
 	}
 
+	export void ApplyTemplate(DesignState& state, FormDesigner::Form templateForm)
+	{
+		if (!PromptSaveIfDirty(state))
+			return;
+
+		PushUndo(state);
+		state.form = std::move(templateForm);
+		state.currentFile.clear();
+		state.dirty = true;
+		RebuildControls(state);
+		UpdateTitle(state);
+		UpdateStatusBar(state);
+	}
+
 	auto ShowCppSaveDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
 	{
 		wchar_t filename[Win32::MaxPath] = {};

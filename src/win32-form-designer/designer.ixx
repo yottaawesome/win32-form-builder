@@ -10,6 +10,7 @@ export import :properties;
 export import :canvas;
 export import :fileops;
 export import :alignment;
+export import :templates;
 
 namespace Designer
 {
@@ -22,6 +23,16 @@ namespace Designer
 		auto fileMenu = Win32::CreatePopupMenu();
 
 		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_NEW,     L"&New\tCtrl+N");
+
+		auto templateMenu = Win32::CreatePopupMenu();
+		Win32::AppendMenuW(templateMenu, Win32::Menu::String, IDM_TEMPLATE_LOGIN,     L"&Login Dialog");
+		Win32::AppendMenuW(templateMenu, Win32::Menu::String, IDM_TEMPLATE_SETTINGS,  L"&Settings Dialog");
+		Win32::AppendMenuW(templateMenu, Win32::Menu::String, IDM_TEMPLATE_DATAENTRY, L"&Data Entry Form");
+		Win32::AppendMenuW(templateMenu, Win32::Menu::String, IDM_TEMPLATE_ABOUT,     L"&About Dialog");
+		Win32::AppendMenuW(templateMenu, Win32::Menu::String, IDM_TEMPLATE_SEARCH,    L"S&earch Form");
+		Win32::AppendMenuW(fileMenu, Win32::Menu::Popup,
+			reinterpret_cast<Win32::UINT_PTR>(templateMenu), L"New From &Template");
+
 		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_OPEN,    L"&Open...\tCtrl+O");
 		Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_SAVE,    L"&Save\tCtrl+S");
@@ -733,6 +744,11 @@ namespace Designer
 			case IDM_FILE_PREVIEW: PreviewForm(*state); return 0;
 			case IDM_FILE_EXPORT_CPP: DoExportCpp(*state); return 0;
 			case IDM_FILE_EXPORT_RC:  DoExportRc(*state);  return 0;
+			case IDM_TEMPLATE_LOGIN:     ApplyTemplate(*state, TemplateLoginDialog()); return 0;
+			case IDM_TEMPLATE_SETTINGS:  ApplyTemplate(*state, TemplateSettingsDialog()); return 0;
+			case IDM_TEMPLATE_DATAENTRY: ApplyTemplate(*state, TemplateDataEntryForm()); return 0;
+			case IDM_TEMPLATE_ABOUT:     ApplyTemplate(*state, TemplateAboutDialog()); return 0;
+			case IDM_TEMPLATE_SEARCH:    ApplyTemplate(*state, TemplateSearchForm()); return 0;
 			default:
 			{
 				auto id = Win32::GetLowWord(wParam);

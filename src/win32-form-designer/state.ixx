@@ -58,6 +58,13 @@ export namespace Designer
 	constexpr Win32::UINT IDM_FORMAT_SAME_HEIGHT     = 40310;
 	constexpr Win32::UINT IDM_FORMAT_SAME_SIZE       = 40311;
 
+	// Template menu IDs.
+	constexpr Win32::UINT IDM_TEMPLATE_LOGIN      = 40401;
+	constexpr Win32::UINT IDM_TEMPLATE_SETTINGS   = 40402;
+	constexpr Win32::UINT IDM_TEMPLATE_DATAENTRY  = 40403;
+	constexpr Win32::UINT IDM_TEMPLATE_ABOUT      = 40404;
+	constexpr Win32::UINT IDM_TEMPLATE_SEARCH     = 40405;
+
 	// Toolbox control ID.
 	constexpr Win32::UINT IDC_TOOLBOX   = 50001;
 

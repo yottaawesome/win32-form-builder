@@ -149,6 +149,7 @@
     <ClCompile Include="properties.ixx" />
     <ClCompile Include="canvas.ixx" />
     <ClCompile Include="fileops.ixx" />
+    <ClCompile Include="templates.ixx" />
     <ClCompile Include="designer.ixx" />
   </ItemGroup>
   <ItemGroup>

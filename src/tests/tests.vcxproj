@@ -166,6 +166,7 @@
     <ClCompile Include="..\win32-form-designer\canvas.ixx" />
     <ClCompile Include="..\win32-form-designer\alignment.ixx" />
     <ClCompile Include="..\win32-form-designer\fileops.ixx" />
+    <ClCompile Include="..\win32-form-designer\templates.ixx" />
     <ClCompile Include="..\win32-form-designer\designer.ixx" />
   </ItemGroup>
   <ItemGroup>
