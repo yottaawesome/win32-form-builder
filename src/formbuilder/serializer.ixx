@@ -3,6 +3,7 @@ import std;
 import :win32;
 import :json;
 import :schema;
+import :errors;
 
 export namespace FormDesigner
 {
@@ -258,13 +259,23 @@ export namespace FormDesigner
 		return j.dump(indent);
 	}
 
-	// Saves a Form definition to a JSON file on disk.
-	auto SaveFormToFile(const Form& form, const std::filesystem::path& path) -> void
+	// Saves a Form definition to a JSON file on disk (nothrow overload).
+	auto TrySaveFormToFile(const Form& form, const std::filesystem::path& path) -> std::expected<void, FormException>
 	{
 		auto file = std::ofstream{ path };
 		if (not file.is_open())
-			throw std::runtime_error(std::format("Cannot open file for writing: '{}'", path.string()));
+			return std::unexpected(FormException(FormErrorCode::FileWriteError,
+				std::format("Cannot open file for writing: '{}'", path.string())));
 
 		file << SerializeForm(form);
+		return {};
+	}
+
+	// Saves a Form definition to a JSON file on disk (throwing overload).
+	auto SaveFormToFile(const Form& form, const std::filesystem::path& path) -> void
+	{
+		auto result = TrySaveFormToFile(form, path);
+		if (!result)
+			throw std::move(result.error());
 	}
 }

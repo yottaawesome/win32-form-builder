@@ -162,6 +162,7 @@
     <ClCompile Include="test_modal.cpp" />
     <ClCompile Include="test_accessibility.cpp" />
     <ClCompile Include="test_value.cpp" />
+    <ClCompile Include="test_errors.cpp" />
     <!-- Designer module partitions (compiled in-project for testing) -->
     <ClCompile Include="..\win32-form-designer\state.ixx" />
     <ClCompile Include="..\win32-form-designer\hit_testing.ixx" />

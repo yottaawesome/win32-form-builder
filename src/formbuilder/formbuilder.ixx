@@ -1,4 +1,5 @@
 export module formbuilder;
+export import :errors;
 export import :schema;
 export import :events;
 export import :parser;

@@ -3,6 +3,7 @@ import std;
 import :win32;
 import :json;
 import :schema;
+import :errors;
 
 export namespace FormDesigner
 {
@@ -38,7 +39,8 @@ export namespace FormDesigner
 		if (auto it = map.find(type); it != map.end())
 			return it->second;
 
-		throw std::runtime_error(std::format("Unknown control type: '{}'", type));
+		throw FormException(FormErrorCode::UnknownControlType,
+			std::format("Unknown control type: '{}'", type));
 	}
 
 	auto ParseControl(const nlohmann::json& j) -> Control
@@ -218,93 +220,144 @@ export namespace FormDesigner
 
 export namespace FormDesigner
 {
-	// Parses a Form definition from a JSON string.
-	auto ParseForm(const std::string& jsonText) -> Form
+	// Parses a Form definition from a JSON string (nothrow overload).
+	auto TryParseForm(const std::string& jsonText) -> std::expected<Form, FormException>
 	{
-		auto j = nlohmann::json::parse(jsonText);
-		auto form = Form{};
-
-		if (j.contains("title"))
+		nlohmann::json j;
+		try
 		{
-			auto narrow = j["title"].get<std::string>();
-			form.title = std::wstring(narrow.begin(), narrow.end());
+			j = nlohmann::json::parse(jsonText);
+		}
+		catch (const nlohmann::json::parse_error& e)
+		{
+			return std::unexpected(FormException(FormErrorCode::ParseError,
+				std::format("JSON parse error: {}", e.what())));
 		}
 
-		if (j.contains("width"))
-			form.width = j["width"].get<int>();
-
-		if (j.contains("height"))
-			form.height = j["height"].get<int>();
-
-		if (j.contains("style"))
-			form.style = j["style"].get<Win32::DWORD>();
-
-		if (j.contains("exStyle"))
-			form.exStyle = j["exStyle"].get<Win32::DWORD>();
-
-		if (j.contains("backgroundColor"))
+		try
 		{
-			auto hex = j["backgroundColor"].get<std::string>();
-			if (hex.size() == 7 && hex[0] == '#')
+			auto form = Form{};
+
+			if (j.contains("title"))
 			{
-				unsigned int r = std::stoul(hex.substr(1, 2), nullptr, 16);
-				unsigned int g = std::stoul(hex.substr(3, 2), nullptr, 16);
-				unsigned int b = std::stoul(hex.substr(5, 2), nullptr, 16);
-				form.backgroundColor = static_cast<int>(r | (g << 8) | (b << 16));
+				auto narrow = j["title"].get<std::string>();
+				form.title = std::wstring(narrow.begin(), narrow.end());
 			}
-		}
 
-		if (j.contains("visible"))
-			form.visible = j["visible"].get<bool>();
+			if (j.contains("width"))
+				form.width = j["width"].get<int>();
 
-		if (j.contains("enabled"))
-			form.enabled = j["enabled"].get<bool>();
+			if (j.contains("height"))
+				form.height = j["height"].get<int>();
 
-		if (j.contains("controls"))
-			for (auto& control : j["controls"])
-				form.controls.push_back(ParseControl(control));
+			if (j.contains("style"))
+				form.style = j["style"].get<Win32::DWORD>();
 
-		if (j.contains("guides"))
-			for (auto& g : j["guides"])
-				form.guides.push_back({
-					g.value("horizontal", false),
-					g.value("position", 0)
-				});
+			if (j.contains("exStyle"))
+				form.exStyle = j["exStyle"].get<Win32::DWORD>();
 
-		if (j.contains("font"))
-		{
-			auto& fj = j["font"];
-			if (fj.contains("family"))
+			if (j.contains("backgroundColor"))
 			{
-				auto narrow = fj["family"].get<std::string>();
-				form.font.family = std::wstring(narrow.begin(), narrow.end());
+				auto hex = j["backgroundColor"].get<std::string>();
+				if (hex.size() == 7 && hex[0] == '#')
+				{
+					unsigned int r = std::stoul(hex.substr(1, 2), nullptr, 16);
+					unsigned int g = std::stoul(hex.substr(3, 2), nullptr, 16);
+					unsigned int b = std::stoul(hex.substr(5, 2), nullptr, 16);
+					form.backgroundColor = static_cast<int>(r | (g << 8) | (b << 16));
+				}
 			}
-			if (fj.contains("size"))
-				form.font.size = fj["size"].get<int>();
-			if (fj.contains("bold"))
-				form.font.bold = fj["bold"].get<bool>();
-			if (fj.contains("italic"))
-				form.font.italic = fj["italic"].get<bool>();
+
+			if (j.contains("visible"))
+				form.visible = j["visible"].get<bool>();
+
+			if (j.contains("enabled"))
+				form.enabled = j["enabled"].get<bool>();
+
+			if (j.contains("controls"))
+				for (auto& control : j["controls"])
+					form.controls.push_back(ParseControl(control));
+
+			if (j.contains("guides"))
+				for (auto& g : j["guides"])
+					form.guides.push_back({
+						g.value("horizontal", false),
+						g.value("position", 0)
+					});
+
+			if (j.contains("font"))
+			{
+				auto& fj = j["font"];
+				if (fj.contains("family"))
+				{
+					auto narrow = fj["family"].get<std::string>();
+					form.font.family = std::wstring(narrow.begin(), narrow.end());
+				}
+				if (fj.contains("size"))
+					form.font.size = fj["size"].get<int>();
+				if (fj.contains("bold"))
+					form.font.bold = fj["bold"].get<bool>();
+				if (fj.contains("italic"))
+					form.font.italic = fj["italic"].get<bool>();
+			}
+
+			if (j.contains("bindStruct"))
+				form.bindStruct = j["bindStruct"].get<std::string>();
+
+			return form;
 		}
-
-		if (j.contains("bindStruct"))
-			form.bindStruct = j["bindStruct"].get<std::string>();
-
-		return form;
+		catch (const FormException& e)
+		{
+			return std::unexpected(e);
+		}
+		catch (const nlohmann::json::out_of_range& e)
+		{
+			return std::unexpected(FormException(FormErrorCode::InvalidField,
+				std::format("Missing required field: {}", e.what())));
+		}
+		catch (const nlohmann::json::type_error& e)
+		{
+			return std::unexpected(FormException(FormErrorCode::InvalidField,
+				std::format("Invalid field type: {}", e.what())));
+		}
+		catch (const nlohmann::json::exception& e)
+		{
+			return std::unexpected(FormException(FormErrorCode::ParseError,
+				std::format("JSON error: {}", e.what())));
+		}
 	}
 
-	// Loads a Form definition from a JSON file on disk.
-	auto LoadFormFromFile(const std::filesystem::path& path) -> Form
+	// Parses a Form definition from a JSON string (throwing overload).
+	auto ParseForm(const std::string& jsonText) -> Form
+	{
+		auto result = TryParseForm(jsonText);
+		if (!result)
+			throw std::move(result.error());
+		return std::move(*result);
+	}
+
+	// Loads a Form definition from a JSON file on disk (nothrow overload).
+	auto TryLoadFormFromFile(const std::filesystem::path& path) -> std::expected<Form, FormException>
 	{
 		auto file = std::ifstream{ path };
 		if (not file.is_open())
-			throw std::runtime_error(std::format("Cannot open form file: '{}'", path.string()));
+			return std::unexpected(FormException(FormErrorCode::FileNotFound,
+				std::format("Cannot open form file: '{}'", path.string())));
 
 		auto content = std::string{
 			std::istreambuf_iterator<char>{file},
 			std::istreambuf_iterator<char>{}
 		};
 
-		return ParseForm(content);
+		return TryParseForm(content);
+	}
+
+	// Loads a Form definition from a JSON file on disk (throwing overload).
+	auto LoadFormFromFile(const std::filesystem::path& path) -> Form
+	{
+		auto result = TryLoadFormFromFile(path);
+		if (!result)
+			throw std::move(result.error());
+		return std::move(*result);
 	}
 }

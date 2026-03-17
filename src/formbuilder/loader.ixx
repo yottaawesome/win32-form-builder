@@ -3,6 +3,7 @@ import std;
 import :win32;
 import :schema;
 import :events;
+import :errors;
 
 export namespace FormDesigner
 {
@@ -439,12 +440,11 @@ export namespace FormDesigner
 		}
 	}
 
-	// Creates and shows a top-level window from a Form definition.
+	// Creates and shows a top-level window from a Form definition (nothrow overload).
 	// formBasePath is the directory containing the form file, used for resolving relative image paths.
 	// parent, if not null, creates an owned window (for use with modal dialogs).
-	// Returns the HWND of the created window, or nullptr on failure.
-	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
-		const std::wstring& formBasePath = L"", Win32::HWND parent = nullptr) -> Win32::HWND
+	auto TryLoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
+		const std::wstring& formBasePath = L"", Win32::HWND parent = nullptr) -> std::expected<Win32::HWND, FormException>
 	{
 		static constexpr auto ClassName = L"FormDesignerWindow";
 		static auto registered = false;
@@ -463,8 +463,8 @@ export namespace FormDesigner
 
 			if (not Win32::RegisterClassExW(&wc))
 			{
-				std::println(std::cerr, "Failed to register form class: error {}", Win32::GetLastError());
-				return nullptr;
+				return std::unexpected(FormException(FormErrorCode::ClassRegistrationFailed,
+					std::format("Failed to register form class: error {}", Win32::GetLastError())));
 			}
 			registered = true;
 		}
@@ -493,8 +493,8 @@ export namespace FormDesigner
 
 		if (not hwnd)
 		{
-			std::println(std::cerr, "Failed to create form window: error {}", Win32::GetLastError());
-			return nullptr;
+			return std::unexpected(FormException(FormErrorCode::WindowCreationFailed,
+				std::format("Failed to create form window: error {}", Win32::GetLastError())));
 		}
 
 		// Store window data for WndProc dispatch.
@@ -541,6 +541,16 @@ export namespace FormDesigner
 		return hwnd;
 	}
 
+	// Creates and shows a top-level window from a Form definition (throwing overload).
+	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
+		const std::wstring& formBasePath = L"", Win32::HWND parent = nullptr) -> Win32::HWND
+	{
+		auto result = TryLoadForm(form, hInstance, events, formBasePath, parent);
+		if (!result)
+			throw std::move(result.error());
+		return *result;
+	}
+
 	// Runs the message loop. Call after LoadForm.
 	auto RunMessageLoop() -> int
 	{
@@ -563,20 +573,22 @@ export namespace FormDesigner
 		Win32::DestroyWindow(dialogHwnd);
 	}
 
-	// Shows a form as a modal dialog owned by parent.
+	// Shows a form as a modal dialog owned by parent (nothrow overload).
 	// Disables the parent, runs a nested message loop, and returns the dialog result
 	// after the dialog is dismissed via EndModal() or closed.
-	auto ShowModalForm(const Form& form, Win32::HINSTANCE hInstance,
+	auto TryShowModalForm(const Form& form, Win32::HINSTANCE hInstance,
 		const EventMap& events, Win32::HWND parent,
-		const std::wstring& formBasePath = L"") -> DialogResult
+		const std::wstring& formBasePath = L"") -> std::expected<DialogResult, FormException>
 	{
 		// Load with visibility suppressed — we control showing.
 		auto modalForm = form;
 		modalForm.visible = false;
 
-		auto dialogHwnd = LoadForm(modalForm, hInstance, events, formBasePath, parent);
-		if (!dialogHwnd)
-			return DialogResult::Cancel;
+		auto dialogResult = TryLoadForm(modalForm, hInstance, events, formBasePath, parent);
+		if (!dialogResult)
+			return std::unexpected(std::move(dialogResult.error()));
+
+		auto dialogHwnd = *dialogResult;
 
 		// Mark as modal.
 		auto* data = reinterpret_cast<FormWindowData*>(
@@ -603,5 +615,16 @@ export namespace FormDesigner
 
 		// Result was passed through PostQuitMessage wParam.
 		return static_cast<DialogResult>(msg.wParam);
+	}
+
+	// Shows a form as a modal dialog owned by parent (throwing overload).
+	auto ShowModalForm(const Form& form, Win32::HINSTANCE hInstance,
+		const EventMap& events, Win32::HWND parent,
+		const std::wstring& formBasePath = L"") -> DialogResult
+	{
+		auto result = TryShowModalForm(form, hInstance, events, parent, formBasePath);
+		if (!result)
+			throw std::move(result.error());
+		return *result;
 	}
 }

@@ -119,9 +119,6 @@ try
 	});
 
 	auto hwnd = FormDesigner::LoadForm(form, hInstance, events, formBasePath);
-	if (not hwnd)
-		return 1;
-
 	return FormDesigner::RunMessageLoop();
 }
 catch (const std::exception& ex)

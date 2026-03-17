@@ -131,6 +131,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="formbuilder.ixx" />
+    <ClCompile Include="errors.ixx" />
     <ClCompile Include="schema.ixx" />
     <ClCompile Include="events.ixx" />
     <ClCompile Include="parser.ixx" />
