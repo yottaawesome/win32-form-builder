@@ -61,15 +61,14 @@ namespace Designer
 		if (!state.dirty)
 			return true;
 
-		auto result = Win32::MessageBoxW(state.surfaceHwnd,
+		auto result = FormDesigner::AskYesNoCancel(state.surfaceHwnd,
 			L"Save changes before continuing?",
-			L"Form Designer",
-			Win32::Mb_YesNoCancel | Win32::Mb_IconQuestion);
+			L"Form Designer");
 
-		if (result == Win32::Id_Cancel)
+		if (result == FormDesigner::DialogResult::Cancel)
 			return false;
 
-		if (result == Win32::Id_Yes)
+		if (result == FormDesigner::DialogResult::Yes)
 		{
 			if (state.currentFile.empty())
 			{
@@ -140,8 +139,7 @@ namespace Designer
 		{
 			auto msg = std::string{ "Failed to open file:\n" } + ex.what();
 			auto wide = std::wstring(msg.begin(), msg.end());
-			Win32::MessageBoxW(state.surfaceHwnd, wide.c_str(), L"Error",
-				Win32::Mb_Ok | Win32::Mb_IconError);
+			FormDesigner::ShowError(state.surfaceHwnd, wide, L"Error");
 		}
 	}
 
@@ -215,17 +213,16 @@ namespace Designer
 	export void DoExportCpp(DesignState& state)
 	{
 		// Ask Classic vs Modules.
-		auto result = Win32::MessageBoxW(state.surfaceHwnd,
+		auto result = FormDesigner::AskYesNoCancel(state.surfaceHwnd,
 			L"Use C++20 modules style?\n\n"
 			L"Yes = import std; (requires C++20 module support)\n"
 			L"No  = Classic #include style (broader compatibility)",
-			L"Export to C++",
-			Win32::Mb_YesNoCancel | Win32::Mb_IconQuestion);
+			L"Export to C++");
 
-		if (result == Win32::Id_Cancel)
+		if (result == FormDesigner::DialogResult::Cancel)
 			return;
 
-		auto useModules = (result == Win32::Id_Yes);
+		auto useModules = (result == FormDesigner::DialogResult::Yes);
 
 		// Choose output path.
 		auto path = std::filesystem::path{};
@@ -238,16 +235,15 @@ namespace Designer
 		auto file = std::ofstream{ path };
 		if (!file.is_open())
 		{
-			Win32::MessageBoxW(state.surfaceHwnd, L"Failed to write file.",
-				L"Export Error", Win32::Mb_Ok | Win32::Mb_IconError);
+			FormDesigner::ShowError(state.surfaceHwnd, L"Failed to write file.", L"Export Error");
 			return;
 		}
 		file << code;
 		file.close();
 
-		Win32::MessageBoxW(state.surfaceHwnd,
+		FormDesigner::ShowInfo(state.surfaceHwnd,
 			L"C++ source exported successfully.",
-			L"Export to C++", Win32::Mb_Ok | Win32::Mb_IconInformation);
+			L"Export to C++");
 	}
 
 	auto ShowRcSaveDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
@@ -291,8 +287,7 @@ namespace Designer
 		auto rcFile = std::ofstream{ path };
 		if (!rcFile.is_open())
 		{
-			Win32::MessageBoxW(state.surfaceHwnd, L"Failed to write .rc file.",
-				L"Export Error", Win32::Mb_Ok | Win32::Mb_IconError);
+			FormDesigner::ShowError(state.surfaceHwnd, L"Failed to write .rc file.", L"Export Error");
 			return;
 		}
 		rcFile << rcContent;
@@ -303,16 +298,16 @@ namespace Designer
 		auto hdrFile = std::ofstream{ headerPath };
 		if (!hdrFile.is_open())
 		{
-			Win32::MessageBoxW(state.surfaceHwnd, L"RC file written but failed to write resource.h.",
-				L"Export Warning", Win32::Mb_Ok | Win32::Mb_IconWarning);
+			FormDesigner::ShowWarning(state.surfaceHwnd,
+				L"RC file written but failed to write resource.h.", L"Export Warning");
 			return;
 		}
 		hdrFile << headerContent;
 		hdrFile.close();
 
-		Win32::MessageBoxW(state.surfaceHwnd,
+		FormDesigner::ShowInfo(state.surfaceHwnd,
 			L"RC dialog exported successfully.\n\nFiles written:\n- .rc dialog template\n- resource.h header",
-			L"Export to RC", Win32::Mb_Ok | Win32::Mb_IconInformation);
+			L"Export to RC");
 	}
 
 	auto ShowHeaderSaveDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
@@ -358,16 +353,15 @@ namespace Designer
 		auto file = std::ofstream{ path };
 		if (!file.is_open())
 		{
-			Win32::MessageBoxW(state.surfaceHwnd, L"Failed to write file.",
-				L"Export Error", Win32::Mb_Ok | Win32::Mb_IconError);
+			FormDesigner::ShowError(state.surfaceHwnd, L"Failed to write file.", L"Export Error");
 			return;
 		}
 		file << content;
 		file.close();
 
-		Win32::MessageBoxW(state.surfaceHwnd,
+		FormDesigner::ShowInfo(state.surfaceHwnd,
 			L"Control IDs header exported successfully.",
-			L"Export Control IDs", Win32::Mb_Ok | Win32::Mb_IconInformation);
+			L"Export Control IDs");
 	}
 
 }

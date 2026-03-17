@@ -39,6 +39,6 @@ catch (const std::exception& ex)
 {
 	auto msg = std::string{ "Failed to start designer:\n" } + ex.what();
 	auto wide = std::wstring(msg.begin(), msg.end());
-	Win32::MessageBoxW(nullptr, wide.c_str(), L"Form Designer Error", Win32::Mb_IconError | Win32::Mb_Ok);
+	FormDesigner::ShowError(nullptr, wide, L"Form Designer Error");
 	return 1;
 }
