@@ -59,7 +59,8 @@ export namespace Win32
 		::ACCEL,
 		::NMHDR,
 		::TTTOOLINFOW,
-		::TBBUTTON
+		::TBBUTTON,
+		::NMTBGETINFOTIPW
 		;
 
 	// ===================================================================
@@ -350,6 +351,7 @@ export namespace Win32
 		constexpr auto TreeViewSelChanged  = TVN_SELCHANGEDW;
 		constexpr auto ListViewItemChanged = LVN_ITEMCHANGED;
 		constexpr auto TabSelChange        = TCN_SELCHANGE;
+		constexpr auto ToolbarGetInfoTip   = TBN_GETINFOTIPW;
 	}
 
 	// ===================================================================

@@ -331,6 +331,7 @@ export namespace Designer
 		int nextGroupId = 1;
 		std::vector<std::filesystem::path> recentFiles;
 		std::vector<Win32::HFONT> controlFonts; // Fonts created for design-time controls.
+		Win32::HWND propTooltipHwnd = nullptr;   // Tooltip window for property panel buttons.
 		DpiInfo dpiInfo;
 	};
 

@@ -962,6 +962,35 @@ namespace Designer
 				hInst, nullptr);
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
+
+		// Create tooltip window for property panel buttons.
+		state.propTooltipHwnd = FormDesigner::CreateTooltipWindow(parent, hInst);
+		if (state.propTooltipHwnd)
+		{
+			struct BtnTip { Win32::UINT id; const wchar_t* text; };
+			BtnTip tips[] = {
+				{ IDC_PROP_FONT_BTN,          L"Choose control font" },
+				{ IDC_PROP_FONT_CLEAR,        L"Clear custom font (use inherited)" },
+				{ IDC_PROP_ITEMS_BTN,         L"Edit items (one per line)" },
+				{ IDC_PROP_FORM_BGCOLOR_BTN,  L"Choose background color" },
+				{ IDC_PROP_FORM_FONT_BTN,     L"Choose form font" },
+				{ IDC_PROP_FORM_FONT_CLEAR,   L"Clear form font (use default)" },
+			};
+			for (auto& bt : tips)
+			{
+				auto hwnd = Win32::GetDlgItem(parent, bt.id);
+				if (!hwnd) continue;
+				Win32::TTTOOLINFOW ti = {};
+				ti.cbSize = sizeof(Win32::TTTOOLINFOW);
+				ti.uFlags = Win32::TooltipFlags::Subclass | Win32::TooltipFlags::IdIsHwnd;
+				ti.hwnd = parent;
+				ti.uId = reinterpret_cast<Win32::UINT_PTR>(hwnd);
+				ti.lpszText = const_cast<wchar_t*>(bt.text);
+				Win32::SendMessageW(state.propTooltipHwnd,
+					Win32::TooltipMessages::AddTool, 0,
+					reinterpret_cast<Win32::LPARAM>(&ti));
+			}
+		}
 	}
 
 	auto PropContentCtrl(const DpiInfo& d) -> int { return d.Scale(30) + 21 * d.Scale(26) + d.Scale(10); }

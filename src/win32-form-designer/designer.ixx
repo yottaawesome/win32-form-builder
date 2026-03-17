@@ -400,6 +400,44 @@ namespace Designer
 			break;
 		}
 
+		case Win32::Messages::Notify:
+		{
+			if (!state) break;
+			auto* nmhdr = reinterpret_cast<Win32::NMHDR*>(lParam);
+			if (nmhdr->code == Win32::NotifyCodes::ToolbarGetInfoTip)
+			{
+				auto* tip = reinterpret_cast<Win32::NMTBGETINFOTIPW*>(lParam);
+				const wchar_t* text = nullptr;
+				switch (static_cast<Win32::UINT>(tip->iItem))
+				{
+				case IDM_FILE_NEW:               text = L"New form (Ctrl+N)"; break;
+				case IDM_FILE_OPEN:              text = L"Open form (Ctrl+O)"; break;
+				case IDM_FILE_SAVE:              text = L"Save form (Ctrl+S)"; break;
+				case IDM_EDIT_UNDO:              text = L"Undo (Ctrl+Z)"; break;
+				case IDM_EDIT_REDO:              text = L"Redo (Ctrl+Y)"; break;
+				case IDM_EDIT_CUT:               text = L"Cut selected (Ctrl+X)"; break;
+				case IDM_EDIT_COPY:              text = L"Copy selected (Ctrl+C)"; break;
+				case IDM_EDIT_PASTE:             text = L"Paste (Ctrl+V)"; break;
+				case IDM_EDIT_DELETE:            text = L"Delete selected (Del)"; break;
+				case IDM_FILE_PREVIEW:           text = L"Preview form (F5)"; break;
+				case IDM_FORMAT_ALIGN_LEFT:      text = L"Align left edges"; break;
+				case IDM_FORMAT_ALIGN_CENTER_H:  text = L"Align centers horizontally"; break;
+				case IDM_FORMAT_ALIGN_RIGHT:     text = L"Align right edges"; break;
+				case IDM_FORMAT_ALIGN_TOP:       text = L"Align top edges"; break;
+				case IDM_FORMAT_ALIGN_MIDDLE_V:  text = L"Align centers vertically"; break;
+				case IDM_FORMAT_ALIGN_BOTTOM:    text = L"Align bottom edges"; break;
+				}
+				if (text && tip->pszText && tip->cchTextMax > 0)
+				{
+					int i = 0;
+					for (; text[i] && i < tip->cchTextMax - 1; ++i)
+						tip->pszText[i] = text[i];
+					tip->pszText[i] = L'\0';
+				}
+			}
+			return 0;
+		}
+
 		case Win32::Messages::Command:
 		{
 			if (!state) break;
