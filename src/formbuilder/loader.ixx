@@ -216,6 +216,8 @@ export namespace FormDesigner
 		std::vector<AnchorInfo> anchors;
 		std::vector<Win32::HFONT> createdFonts;
 		Win32::HWND hTooltips = nullptr;
+		bool isModal = false;
+		int dialogResult = 0;
 	};
 
 	// Window procedure for designer-created forms.
@@ -407,16 +409,29 @@ export namespace FormDesigner
 			}
 			return 0;
 		}
+		case Win32::Messages::Close:
+		{
+			// For modal windows, closing via X button or Escape returns Cancel.
+			if (data && data->isModal)
+			{
+				data->dialogResult = 2; // DialogResult::Cancel
+				Win32::DestroyWindow(hwnd);
+				return 0;
+			}
+			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+		}
 		case Win32::Messages::Destroy:
 		{
+			auto modalResult = 0;
 			if (data)
 			{
+				modalResult = data->dialogResult;
 				if (data->bgBrush) Win32::DeleteObject(data->bgBrush);
 				for (auto hFont : data->createdFonts)
 					Win32::DeleteObject(hFont);
 				delete data;
 			}
-			Win32::PostQuitMessage(0);
+			Win32::PostQuitMessage(modalResult);
 			return 0;
 		}
 		default:
@@ -426,9 +441,10 @@ export namespace FormDesigner
 
 	// Creates and shows a top-level window from a Form definition.
 	// formBasePath is the directory containing the form file, used for resolving relative image paths.
+	// parent, if not null, creates an owned window (for use with modal dialogs).
 	// Returns the HWND of the created window, or nullptr on failure.
 	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
-		const std::wstring& formBasePath = L"") -> Win32::HWND
+		const std::wstring& formBasePath = L"", Win32::HWND parent = nullptr) -> Win32::HWND
 	{
 		static constexpr auto ClassName = L"FormDesignerWindow";
 		static auto registered = false;
@@ -469,7 +485,7 @@ export namespace FormDesigner
 			Win32::Cw_UseDefault,
 			rc.right - rc.left,
 			rc.bottom - rc.top,
-			nullptr,
+			parent,
 			nullptr,
 			hInstance,
 			nullptr
@@ -535,5 +551,57 @@ export namespace FormDesigner
 			Win32::DispatchMessageW(&msg);
 		}
 		return static_cast<int>(msg.wParam);
+	}
+
+	// Ends a modal dialog, setting its result and destroying the window.
+	void EndModal(Win32::HWND dialogHwnd, DialogResult result)
+	{
+		auto* data = reinterpret_cast<FormWindowData*>(
+			Win32::GetWindowLongPtrW(dialogHwnd, Win32::Gwlp_UserData));
+		if (data)
+			data->dialogResult = static_cast<int>(result);
+		Win32::DestroyWindow(dialogHwnd);
+	}
+
+	// Shows a form as a modal dialog owned by parent.
+	// Disables the parent, runs a nested message loop, and returns the dialog result
+	// after the dialog is dismissed via EndModal() or closed.
+	auto ShowModalForm(const Form& form, Win32::HINSTANCE hInstance,
+		const EventMap& events, Win32::HWND parent,
+		const std::wstring& formBasePath = L"") -> DialogResult
+	{
+		// Load with visibility suppressed — we control showing.
+		auto modalForm = form;
+		modalForm.visible = false;
+
+		auto dialogHwnd = LoadForm(modalForm, hInstance, events, formBasePath, parent);
+		if (!dialogHwnd)
+			return DialogResult::Cancel;
+
+		// Mark as modal.
+		auto* data = reinterpret_cast<FormWindowData*>(
+			Win32::GetWindowLongPtrW(dialogHwnd, Win32::Gwlp_UserData));
+		if (data)
+			data->isModal = true;
+
+		// Disable parent and show dialog.
+		Win32::EnableWindow(parent, false);
+		Win32::ShowWindow(dialogHwnd, Win32::Sw_Show);
+		Win32::UpdateWindow(dialogHwnd);
+
+		// Nested message loop — runs until the dialog posts WM_QUIT.
+		auto msg = Win32::MSG{};
+		while (Win32::GetMessageW(&msg, nullptr, 0, 0) > 0)
+		{
+			Win32::TranslateMessage(&msg);
+			Win32::DispatchMessageW(&msg);
+		}
+
+		// Re-enable parent before retrieving result (avoids focus issues).
+		Win32::EnableWindow(parent, true);
+		Win32::SetForegroundWindow(parent);
+
+		// Result was passed through PostQuitMessage wParam.
+		return static_cast<DialogResult>(msg.wParam);
 	}
 }

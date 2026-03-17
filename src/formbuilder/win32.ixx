@@ -84,6 +84,7 @@ export namespace Win32
 
 		// Message loop.
 		::GetMessageW,
+		::PeekMessageW,
 		::TranslateMessage,
 		::DispatchMessageW,
 		::PostQuitMessage,
@@ -103,6 +104,7 @@ export namespace Win32
 		::IsWindowEnabled,
 		::SetFocus,
 		::SetForegroundWindow,
+		::GetWindow,
 		::GetWindowRect,
 		::GetClientRect,
 		::GetParent,
@@ -336,6 +338,7 @@ export namespace Win32
 		constexpr auto InitMenuPopup = WM_INITMENUPOPUP;
 		constexpr auto DpiChanged    = WM_DPICHANGED;
 		constexpr auto GetMinMaxInfo = WM_GETMINMAXINFO;
+		constexpr auto Quit          = WM_QUIT;
 	}
 
 	// ===================================================================
@@ -795,6 +798,13 @@ export namespace Win32
 	constexpr auto Sw_ShowMaximized = SW_SHOWMAXIMIZED;
 	constexpr auto Sw_Show         = SW_SHOW;
 	constexpr auto Sw_Hide         = SW_HIDE;
+
+	// GetWindow() relationship constants.
+	constexpr auto Gw_Owner = GW_OWNER;
+
+	// PeekMessage() removal flags.
+	constexpr auto Pm_Remove   = PM_REMOVE;
+	constexpr auto Pm_NoRemove = PM_NOREMOVE;
 
 	// SetWindowPos constants.
 	const auto HwndBottom = HWND_BOTTOM;

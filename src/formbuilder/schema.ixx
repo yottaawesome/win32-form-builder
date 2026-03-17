@@ -4,6 +4,13 @@ import :win32;
 
 export namespace FormDesigner
 {
+	// Result returned by modal dialogs. Values match Win32 IDOK, IDCANCEL, etc.
+	enum class DialogResult : int
+	{
+		None = 0, Ok = 1, Cancel = 2, Abort = 3,
+		Retry = 4, Ignore = 5, Yes = 6, No = 7
+	};
+
 	struct Rect
 	{
 		int x = 0;
