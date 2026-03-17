@@ -13,13 +13,13 @@ win32-form-runner.exe [path-to-form.json]
 
 ## How It Works
 
-The runner is a thin host (~50 lines) that:
+The runner is a thin host that demonstrates:
 
-1. Initializes Common Controls and RichEdit
-2. Loads the JSON form via `FormDesigner::LoadFormFromFile()`
-3. Wires up event handlers programmatically via `FormDesigner::EventMap`
-4. Creates the window with `FormDesigner::LoadForm()`
-5. Runs the Win32 message loop
+1. Loading a JSON form via `FormDesigner::LoadFormFromFile()`
+2. Using **named control ID constants** (normally generated via File → Export Control IDs)
+3. Accessing controls via **typed wrappers** (`FormWindow`, `GetTextBox`, `GetCheckBox`)
+4. Showing a **modal confirmation dialog** with `ShowModalForm()` / `EndModal()`
+5. Running the Win32 message loop
 
 Controls with anchoring flags are automatically repositioned and resized when the form window is resized at runtime. The loader also applies:
 - **DPI scaling** — positions and sizes are scaled to the current monitor DPI
@@ -34,36 +34,49 @@ Controls with anchoring flags are automatically repositioned and resized when th
 ### Example: Adding Event Handlers
 
 ```cpp
+// Named control IDs (generated via File > Export Control IDs).
+namespace Controls {
+    inline constexpr int NameText = 101;
+    inline constexpr int SubmitButton = 301;
+    inline constexpr int CancelButton = 302;
+}
+
 auto events = FormDesigner::EventMap{};
 
-events.onClick(301, [](const FormDesigner::ClickEvent& e) {
-    Win32::MessageBoxW(e.formHwnd, L"Submitted!", L"OK", Win32::Mb_Ok);
+events.onClick(Controls::SubmitButton, [](const FormDesigner::ClickEvent& e) {
+    auto window = FormDesigner::FormWindow{e.formHwnd};
+    auto name = window.GetTextBox(Controls::NameText).GetText();
+    Win32::MessageBoxW(e.formHwnd, name.c_str(), L"Submitted", Win32::Mb_Ok);
 });
 
-events.onClick(302, [](const FormDesigner::ClickEvent& e) {
+events.onClick(Controls::CancelButton, [](const FormDesigner::ClickEvent& e) {
     Win32::DestroyWindow(e.formHwnd);
 });
 
 auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
 ```
 
-Event handlers are registered by control ID. The `sample-form.json` ships with two buttons wired up: **Submit** (ID 301) shows a message box and **Cancel** (ID 302) closes the window.
+### Example: Modal Confirmation Dialog
 
-### Example: Using Typed Control Wrappers
-
-Wrap the returned HWND in a `FormWindow` for ergonomic, type-safe control access:
+The runner demonstrates showing a modal dialog that blocks the parent until dismissed:
 
 ```cpp
-auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
-auto window = FormDesigner::FormWindow{hwnd};
+events.onClick(Controls::SubmitButton, [&](const FormDesigner::ClickEvent& e) {
+    auto window = FormDesigner::FormWindow{e.formHwnd};
+    auto name = window.GetTextBox(Controls::NameText).GetText();
 
-auto nameBox = window.GetTextBox(101);
-auto name = nameBox.GetText();
+    // Build and show a confirmation dialog.
+    auto dlgEvents = FormDesigner::EventMap{};
+    dlgEvents.onClick(1, [](auto& de) {
+        FormDesigner::EndModal(de.formHwnd, FormDesigner::DialogResult::Ok);
+    });
+    dlgEvents.onClick(2, [](auto& de) {
+        FormDesigner::EndModal(de.formHwnd, FormDesigner::DialogResult::Cancel);
+    });
 
-auto agree = window.GetCheckBox(103);
-if (agree.IsChecked()) { /* ... */ }
-
-window.SetTitle(L"Updated Title");
+    auto result = FormDesigner::ShowModalForm(dialogForm, hInstance, dlgEvents, e.formHwnd);
+    if (result == FormDesigner::DialogResult::Ok) { /* proceed */ }
+});
 ```
 
 ## Sample Form
