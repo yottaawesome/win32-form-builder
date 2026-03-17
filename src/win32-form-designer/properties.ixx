@@ -165,6 +165,66 @@ namespace Designer
 		if (tabStopChk) Win32::ShowWindow(tabStopChk, ctrlShow);
 		auto groupStartChk = Win32::GetDlgItem(panel, IDC_PROP_GROUPSTART);
 		if (groupStartChk) Win32::ShowWindow(groupStartChk, ctrlShow);
+
+		// Reflow conditional property rows to eliminate gaps from hidden controls.
+		// The conditional section (Image, Items, SelIdx, Validation, Min/Max, Value)
+		// starts after the TabStop/GroupStart row. Only visible rows get positioned.
+		if (hasSel)
+		{
+			auto& d = state.dpiInfo;
+			int pad = d.Scale(5);
+			int ex  = d.Scale(65);
+			int rh  = d.Scale(26);
+			int ch  = d.Scale(22);
+
+			// Fixed rows before conditional section:
+			// 16 ctrlRows + TextAlign + Locked/Visible(24) + Enabled(24) +
+			// Anchor + Font + Bind + AccName + AccDesc + TabStop = 23*rh + 2*24
+			int y = d.Scale(30) + 23 * d.Scale(26) + 2 * d.Scale(24);
+
+			auto moveCtrl = [&](Win32::UINT id, int x, int cy) {
+				auto h = Win32::GetDlgItem(panel, id);
+				if (h) Win32::SetWindowPos(h, nullptr, x, cy, 0, 0,
+					Win32::Swp::NoSize | Win32::Swp::NoZOrder);
+			};
+			auto moveStdRow = [&](Win32::UINT editId) {
+				moveCtrl(editId + IDL_OFFSET, pad, y + 2);
+				moveCtrl(editId, ex, y);
+				y += rh;
+			};
+
+			if (showImage) {
+				moveCtrl(IDC_PROP_IMAGEPATH + IDL_OFFSET, pad, y + 2);
+				moveCtrl(IDC_PROP_IMAGEPATH, ex, y);
+				moveCtrl(IDC_PROP_IMAGEPATH_BTN, d.Scale(175), y);
+				y += rh;
+			}
+			if (isListType) {
+				moveCtrl(IDC_PROP_ITEMS_LABEL + IDL_OFFSET, pad, y + 2);
+				moveCtrl(IDC_PROP_ITEMS_LABEL, ex, y + 2);
+				moveCtrl(IDC_PROP_ITEMS_BTN, d.Scale(155), y);
+				y += rh;
+				moveStdRow(IDC_PROP_SELINDEX);
+			}
+			if (showRequired) {
+				moveCtrl(IDC_PROP_VAL_REQUIRED + IDL_OFFSET, pad, y + 2);
+				y += ch;
+				moveCtrl(IDC_PROP_VAL_REQUIRED, d.Scale(15), y);
+				y += ch;
+			}
+			if (showTextVal) {
+				moveStdRow(IDC_PROP_VAL_MINLEN);
+				moveStdRow(IDC_PROP_VAL_MAXLEN);
+				moveStdRow(IDC_PROP_VAL_PATTERN);
+			}
+			if (showRangeVal) {
+				moveStdRow(IDC_PROP_VAL_MIN);
+				moveStdRow(IDC_PROP_VAL_MAX);
+			}
+			if (showValue) {
+				moveStdRow(IDC_PROP_VALUE);
+			}
+		}
 	}
 
 	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
