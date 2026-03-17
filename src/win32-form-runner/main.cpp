@@ -18,37 +18,6 @@ namespace Controls
 	inline constexpr int CancelButton = 302;
 }
 
-// Build a simple confirmation dialog form programmatically.
-auto MakeConfirmDialog(const std::wstring& name, const std::wstring& email) -> FormDesigner::Form
-{
-	auto form = FormDesigner::Form{};
-	form.title = L"Confirm Submission";
-	form.width = 320;
-	form.height = 160;
-	form.style = 0x00C80000; // WS_CAPTION | WS_SYSMENU
-
-	auto label = FormDesigner::Control{};
-	label.type = FormDesigner::ControlType::Label;
-	label.text = L"Submit form for " + name + L" (" + email + L")?";
-	label.rect = { 20, 20, 280, 40 };
-
-	auto okBtn = FormDesigner::Control{};
-	okBtn.type = FormDesigner::ControlType::Button;
-	okBtn.text = L"OK";
-	okBtn.id = 1;
-	okBtn.rect = { 60, 80, 80, 30 };
-	okBtn.style = 1; // BS_DEFPUSHBUTTON
-
-	auto cancelBtn = FormDesigner::Control{};
-	cancelBtn.type = FormDesigner::ControlType::Button;
-	cancelBtn.text = L"Cancel";
-	cancelBtn.id = 2;
-	cancelBtn.rect = { 170, 80, 80, 30 };
-
-	form.controls = { label, okBtn, cancelBtn };
-	return form;
-}
-
 auto wWinMain(Win32::HINSTANCE hInstance, Win32::HINSTANCE, Win32::LPWSTR lpCmdLine, int) -> int
 try
 {
@@ -82,9 +51,8 @@ try
 			formBasePath = wpath.substr(0, sep);
 	}
 
+	// Register submit handler via EventMap (before LoadForm).
 	auto events = FormDesigner::EventMap{};
-
-	// Submit button: read form values using typed wrappers, show modal confirmation.
 	events.onClick(Controls::SubmitButton, [&](const FormDesigner::ClickEvent& e) {
 		auto window = FormDesigner::FormWindow{e.formHwnd};
 
@@ -92,43 +60,44 @@ try
 		auto email = window.GetTextBox(Controls::EmailText).GetText();
 		auto subscribed = window.GetCheckBox(Controls::SubscribeCheck).IsChecked();
 
-		// Show a modal confirmation dialog.
-		auto dialogForm = MakeConfirmDialog(name, email);
-		auto dlgEvents = FormDesigner::EventMap{};
-		dlgEvents.onClick(1, [](const FormDesigner::ClickEvent& de) {
-			FormDesigner::EndModal(de.formHwnd, FormDesigner::DialogResult::Ok);
-		});
-		dlgEvents.onClick(2, [](const FormDesigner::ClickEvent& de) {
-			FormDesigner::EndModal(de.formHwnd, FormDesigner::DialogResult::Cancel);
-		});
+		// Prompt for confirmation using message box helper.
+		auto result = FormDesigner::AskYesNo(e.formHwnd,
+			L"Submit form for " + name + L" (" + email + L")?",
+			L"Confirm Submission");
 
-		auto result = FormDesigner::ShowModalForm(dialogForm, Win32::GetModuleHandleW(nullptr),
-			dlgEvents, e.formHwnd);
-
-		if (result == FormDesigner::DialogResult::Ok)
+		if (result == FormDesigner::DialogResult::Yes)
 		{
 			auto msg = L"Submitted: " + name + L"\nEmail: " + email
 				+ L"\nSubscribed: " + (subscribed ? L"Yes" : L"No");
-			Win32::MessageBoxW(e.formHwnd, msg.c_str(), L"Success", Win32::Mb_Ok | Win32::Mb_IconInformation);
+			FormDesigner::ShowInfo(e.formHwnd, msg, L"Success");
 		}
 	});
 
-	// Cancel button: close the form (using wrapper-based event binding).
+	// Load the form and get a typed window wrapper.
 	auto hwnd = FormDesigner::LoadForm(form, hInstance, events, formBasePath);
 	auto window = FormDesigner::FormWindow{hwnd};
+
+	// Register cancel handler via wrapper-based event binding (after LoadForm).
 	window.GetButton(Controls::CancelButton).OnClick([](const FormDesigner::ClickEvent& e) {
 		Win32::DestroyWindow(e.formHwnd);
 	});
 
-	// Enable hot reload: the form will automatically update when the JSON file is saved.
+	// Enable hot reload: the form automatically updates when the JSON file is saved.
 	FormDesigner::EnableHotReload(hwnd, path, formBasePath);
 
 	return FormDesigner::RunMessageLoop();
 }
-catch (const std::exception& ex)
+catch (const FormDesigner::FormException& ex)
 {
 	auto msg = std::string{ "Failed to load form:\n" } + ex.what();
 	auto wide = std::wstring(msg.begin(), msg.end());
-	Win32::MessageBoxW(nullptr, wide.c_str(), L"Form Designer Error", Win32::Mb_IconError | Win32::Mb_Ok);
+	FormDesigner::ShowError(nullptr, wide, L"Form Runner Error");
+	return 1;
+}
+catch (const std::exception& ex)
+{
+	auto msg = std::string{ "Unexpected error:\n" } + ex.what();
+	auto wide = std::wstring(msg.begin(), msg.end());
+	FormDesigner::ShowError(nullptr, wide, L"Form Runner Error");
 	return 1;
 }
