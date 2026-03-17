@@ -61,7 +61,8 @@ export namespace Win32
 		::NMHDR,
 		::TTTOOLINFOW,
 		::TBBUTTON,
-		::NMTBGETINFOTIPW
+		::NMTBGETINFOTIPW,
+		::WINDOWPLACEMENT
 		;
 
 	// ===================================================================
@@ -101,6 +102,8 @@ export namespace Win32
 		::GetWindowRect,
 		::GetClientRect,
 		::InvalidateRect,
+		::GetWindowPlacement,
+		::SetWindowPlacement,
 
 		// Dialog item helpers.
 		::GetDlgItem,
@@ -709,9 +712,11 @@ export namespace Win32
 	constexpr auto ColorAppWorkspace = COLOR_APPWORKSPACE;
 
 	// Show window commands.
-	constexpr auto Sw_ShowDefault = SW_SHOWDEFAULT;
-	constexpr auto Sw_Show        = SW_SHOW;
-	constexpr auto Sw_Hide        = SW_HIDE;
+	constexpr auto Sw_ShowDefault  = SW_SHOWDEFAULT;
+	constexpr auto Sw_ShowNormal   = SW_SHOWNORMAL;
+	constexpr auto Sw_ShowMaximized = SW_SHOWMAXIMIZED;
+	constexpr auto Sw_Show         = SW_SHOW;
+	constexpr auto Sw_Hide         = SW_HIDE;
 
 	// SetWindowPos constants.
 	const auto HwndBottom = HWND_BOTTOM;

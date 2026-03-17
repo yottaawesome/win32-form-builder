@@ -568,6 +568,7 @@ namespace Designer
 				Win32::CheckMenuItem(menu, IDM_VIEW_SHOWGRID,
 					state->showGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
 				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+				SaveViewSettings(*state);
 				return 0;
 			}
 			case IDM_VIEW_SNAPTOGRID:
@@ -576,6 +577,7 @@ namespace Designer
 				auto menu = Win32::GetMenu(hwnd);
 				Win32::CheckMenuItem(menu, IDM_VIEW_SNAPTOGRID,
 					state->snapToGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+				SaveViewSettings(*state);
 				return 0;
 			}
 			case IDM_VIEW_SHOWRULERS:
@@ -585,6 +587,7 @@ namespace Designer
 				Win32::CheckMenuItem(menu, IDM_VIEW_SHOWRULERS,
 					state->showRulers ? Win32::Menu::Checked : Win32::Menu::Unchecked);
 				RebuildControls(*state);
+				SaveViewSettings(*state);
 				return 0;
 			}
 			case IDM_VIEW_CLEARGUIDES:
@@ -600,7 +603,7 @@ namespace Designer
 				Win32::CheckMenuItem(menu, IDM_VIEW_DARKMODE,
 					state->theme.isDark ? Win32::Menu::Checked : Win32::Menu::Unchecked);
 				ApplyTheme(*state);
-				SaveThemePreference(state->theme.isDark);
+				SaveViewSettings(*state);
 				return 0;
 			}
 			}
@@ -610,6 +613,8 @@ namespace Designer
 		case Win32::Messages::Close:
 			if (state && !PromptSaveIfDirty(*state))
 				return 0;
+			if (state)
+				SaveWindowPlacement(hwnd);
 			Win32::DestroyWindow(hwnd);
 			return 0;
 
@@ -863,13 +868,21 @@ namespace Designer
 
 		CreatePropertyControls(*state);
 
-		// Load saved theme preference.
-		if (LoadThemePreference())
+		// Load all saved view preferences (theme, grid, snap, rulers).
+		LoadViewSettings(*state);
 		{
-			state->theme = DarkTheme();
 			auto menu = Win32::GetMenu(hwnd);
-			Win32::CheckMenuItem(menu, IDM_VIEW_DARKMODE, Win32::Menu::Checked);
-			ApplyTheme(*state);
+			if (state->theme.isDark)
+			{
+				Win32::CheckMenuItem(menu, IDM_VIEW_DARKMODE, Win32::Menu::Checked);
+				ApplyTheme(*state);
+			}
+			Win32::CheckMenuItem(menu, IDM_VIEW_SHOWGRID,
+				state->showGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+			Win32::CheckMenuItem(menu, IDM_VIEW_SNAPTOGRID,
+				state->snapToGrid ? Win32::Menu::Checked : Win32::Menu::Unchecked);
+			Win32::CheckMenuItem(menu, IDM_VIEW_SHOWRULERS,
+				state->showRulers ? Win32::Menu::Checked : Win32::Menu::Unchecked);
 		}
 
 		// Load recent files list.
@@ -886,7 +899,9 @@ namespace Designer
 		SyncNextGroupId(*state);
 		UpdatePropertyPanel(*state);
 
-		Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);
+		// Restore saved window position/size, or use default.
+		if (!RestoreWindowPlacement(hwnd))
+			Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);
 		Win32::UpdateWindow(hwnd);
 
 		return hwnd;

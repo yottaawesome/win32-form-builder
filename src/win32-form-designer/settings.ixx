@@ -58,6 +58,94 @@ namespace Designer
 		return false;
 	}
 
+	// Saves designer view preferences (grid, rulers, snap, grid size).
+	export void SaveViewSettings(const DesignState& state)
+	{
+		auto settings = LoadSettingsMap();
+		settings["theme"]      = state.theme.isDark ? "dark" : "light";
+		settings["showGrid"]   = state.showGrid ? "1" : "0";
+		settings["snapToGrid"] = state.snapToGrid ? "1" : "0";
+		settings["showRulers"] = state.showRulers ? "1" : "0";
+		settings["gridSize"]   = std::to_string(state.gridSize);
+		SaveSettingsMap(settings);
+	}
+
+	// Loads designer view preferences into state. Call before window is shown.
+	export void LoadViewSettings(DesignState& state)
+	{
+		auto settings = LoadSettingsMap();
+
+		auto readBool = [&](const std::string& key, bool fallback) -> bool {
+			auto it = settings.find(key);
+			return it != settings.end() ? (it->second == "1") : fallback;
+		};
+
+		state.theme = readBool("theme_dark_unused", false) ? DarkTheme() : LightTheme();
+		// Theme uses its own key format ("dark"/"light"), not "1"/"0".
+		{
+			auto it = settings.find("theme");
+			if (it != settings.end() && it->second == "dark")
+				state.theme = DarkTheme();
+		}
+
+		state.showGrid   = readBool("showGrid", true);
+		state.snapToGrid = readBool("snapToGrid", true);
+		state.showRulers = readBool("showRulers", true);
+
+		auto it = settings.find("gridSize");
+		if (it != settings.end())
+		{
+			int gs = std::atoi(it->second.c_str());
+			if (gs >= 5 && gs <= 50)
+				state.gridSize = gs;
+		}
+	}
+
+	// Saves window placement (position, size, maximized state).
+	export void SaveWindowPlacement(Win32::HWND hwnd)
+	{
+		Win32::WINDOWPLACEMENT wp = { .length = sizeof(Win32::WINDOWPLACEMENT) };
+		if (!Win32::GetWindowPlacement(hwnd, &wp)) return;
+
+		auto settings = LoadSettingsMap();
+		settings["windowX"] = std::to_string(wp.rcNormalPosition.left);
+		settings["windowY"] = std::to_string(wp.rcNormalPosition.top);
+		settings["windowW"] = std::to_string(wp.rcNormalPosition.right - wp.rcNormalPosition.left);
+		settings["windowH"] = std::to_string(wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);
+		settings["windowMax"] = (wp.showCmd == Win32::Sw_ShowMaximized) ? "1" : "0";
+		SaveSettingsMap(settings);
+	}
+
+	// Restores saved window placement. Returns true if placement was applied.
+	export auto RestoreWindowPlacement(Win32::HWND hwnd) -> bool
+	{
+		auto settings = LoadSettingsMap();
+
+		auto readInt = [&](const std::string& key) -> std::optional<int> {
+			auto it = settings.find(key);
+			if (it == settings.end()) return std::nullopt;
+			return std::atoi(it->second.c_str());
+		};
+
+		auto x = readInt("windowX");
+		auto y = readInt("windowY");
+		auto w = readInt("windowW");
+		auto h = readInt("windowH");
+
+		if (!x || !y || !w || !h) return false;
+		if (*w < 200 || *h < 150) return false;
+
+		Win32::WINDOWPLACEMENT wp = { .length = sizeof(Win32::WINDOWPLACEMENT) };
+		wp.rcNormalPosition = { *x, *y, *x + *w, *y + *h };
+
+		auto maxIt = settings.find("windowMax");
+		wp.showCmd = (maxIt != settings.end() && maxIt->second == "1")
+			? Win32::Sw_ShowMaximized : Win32::Sw_ShowNormal;
+
+		Win32::SetWindowPlacement(hwnd, &wp);
+		return true;
+	}
+
 	// Prepends a path to the recent files list, removes duplicates, caps at MAX_RECENT_FILES.
 	export void AddRecentFile(std::vector<std::filesystem::path>& recentFiles,
 		const std::filesystem::path& filePath)
