@@ -211,7 +211,7 @@ export namespace FormDesigner
 
 	struct FormWindowData
 	{
-		const EventMap* events = nullptr;
+		EventMap* events = nullptr;
 		Win32::HBRUSH bgBrush = nullptr;
 		int originalWidth = 0;
 		int originalHeight = 0;
@@ -558,7 +558,7 @@ export namespace FormDesigner
 	// Creates and shows a top-level window from a Form definition (nothrow overload).
 	// formBasePath is the directory containing the form file, used for resolving relative image paths.
 	// parent, if not null, creates an owned window (for use with modal dialogs).
-	auto TryLoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
+	auto TryLoadForm(const Form& form, Win32::HINSTANCE hInstance, EventMap& events,
 		const std::wstring& formBasePath = L"", Win32::HWND parent = nullptr) -> std::expected<Win32::HWND, FormException>
 	{
 		static constexpr auto ClassName = L"FormDesignerWindow";
@@ -650,7 +650,7 @@ export namespace FormDesigner
 	}
 
 	// Creates and shows a top-level window from a Form definition (throwing overload).
-	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
+	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, EventMap& events,
 		const std::wstring& formBasePath = L"", Win32::HWND parent = nullptr) -> Win32::HWND
 	{
 		auto result = TryLoadForm(form, hInstance, events, formBasePath, parent);
@@ -685,7 +685,7 @@ export namespace FormDesigner
 	// Disables the parent, runs a nested message loop, and returns the dialog result
 	// after the dialog is dismissed via EndModal() or closed.
 	auto TryShowModalForm(const Form& form, Win32::HINSTANCE hInstance,
-		const EventMap& events, Win32::HWND parent,
+		EventMap& events, Win32::HWND parent,
 		const std::wstring& formBasePath = L"") -> std::expected<DialogResult, FormException>
 	{
 		// Load with visibility suppressed — we control showing.
@@ -727,7 +727,7 @@ export namespace FormDesigner
 
 	// Shows a form as a modal dialog owned by parent (throwing overload).
 	auto ShowModalForm(const Form& form, Win32::HINSTANCE hInstance,
-		const EventMap& events, Win32::HWND parent,
+		EventMap& events, Win32::HWND parent,
 		const std::wstring& formBasePath = L"") -> DialogResult
 	{
 		auto result = TryShowModalForm(form, hInstance, events, parent, formBasePath);

@@ -225,6 +225,7 @@ export namespace Win32
 
 	auto GetHighWord(WPARAM wParam) noexcept -> WORD { return HIWORD(wParam); }
 	auto GetLowWord(WPARAM wParam) noexcept -> WORD { return LOWORD(wParam); }
+	auto MakeWParam(WORD low, WORD high) noexcept -> WPARAM { return MAKEWPARAM(low, high); }
 	auto GetXParam(LPARAM lp) noexcept -> int { return GET_X_LPARAM(lp); }
 	auto GetYParam(LPARAM lp) noexcept -> int { return GET_Y_LPARAM(lp); }
 	auto MakeRgb(int r, int g, int b) noexcept -> COLORREF { return RGB(r, g, b); }

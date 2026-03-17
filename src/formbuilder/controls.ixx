@@ -1,14 +1,18 @@
 export module formbuilder:controls;
 import std;
 import :win32;
+import :events;
+import :errors;
 
 export namespace FormDesigner
 {
 	// Non-owning wrapper around any Win32 control HWND.
+	// When constructed with an EventMap*, supports event binding (OnClick, etc.).
 	struct ControlBase
 	{
 		ControlBase() = default;
 		explicit ControlBase(Win32::HWND h) : hwnd_{h} {}
+		ControlBase(Win32::HWND h, EventMap* e) : hwnd_{h}, events_{e} {}
 
 		auto Handle() const noexcept -> Win32::HWND { return hwnd_; }
 		explicit operator bool() const noexcept { return hwnd_ != nullptr; }
@@ -39,12 +43,46 @@ export namespace FormDesigner
 
 	protected:
 		Win32::HWND hwnd_ = nullptr;
+		EventMap* events_ = nullptr;
+
+		auto GetControlId() const -> int
+		{
+			return Win32::GetDlgCtrlID(hwnd_);
+		}
+
+		auto RequireEvents() -> EventMap&
+		{
+			if (!events_)
+				throw FormException(FormErrorCode::InvalidField,
+					"Event binding requires a wrapper obtained from FormWindow");
+			return *events_;
+		}
 	};
 
 	// Button control wrapper.
 	struct Button : ControlBase
 	{
 		using ControlBase::ControlBase;
+
+		void OnClick(std::function<void(const ClickEvent&)> handler)
+		{
+			RequireEvents().onClick(GetControlId(), std::move(handler));
+		}
+
+		void OnDoubleClick(std::function<void(const DoubleClickEvent&)> handler)
+		{
+			RequireEvents().onDoubleClick(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
+		}
 	};
 
 	// Label (STATIC) control wrapper.
@@ -78,6 +116,21 @@ export namespace FormDesigner
 		{
 			return Win32::GetWindowTextLengthW(hwnd_);
 		}
+
+		void OnChange(std::function<void(const ChangeEvent&)> handler)
+		{
+			RequireEvents().onChange(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
+		}
 	};
 
 	// RichEdit control wrapper.
@@ -99,6 +152,21 @@ export namespace FormDesigner
 		auto GetTextLength() const -> int
 		{
 			return Win32::GetWindowTextLengthW(hwnd_);
+		}
+
+		void OnChange(std::function<void(const ChangeEvent&)> handler)
+		{
+			RequireEvents().onChange(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
 		}
 	};
 
@@ -123,6 +191,26 @@ export namespace FormDesigner
 		{
 			SetChecked(!IsChecked());
 		}
+
+		void OnClick(std::function<void(const ClickEvent&)> handler)
+		{
+			RequireEvents().onClick(GetControlId(), std::move(handler));
+		}
+
+		void OnCheck(std::function<void(const CheckEvent&)> handler)
+		{
+			RequireEvents().onCheck(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
+		}
 	};
 
 	// RadioButton control wrapper.
@@ -140,6 +228,26 @@ export namespace FormDesigner
 		{
 			Win32::SendMessageW(hwnd_, Win32::Button::SetCheck,
 				selected ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+		}
+
+		void OnClick(std::function<void(const ClickEvent&)> handler)
+		{
+			RequireEvents().onClick(GetControlId(), std::move(handler));
+		}
+
+		void OnCheck(std::function<void(const CheckEvent&)> handler)
+		{
+			RequireEvents().onCheck(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
 		}
 	};
 
@@ -198,6 +306,26 @@ export namespace FormDesigner
 			buf.resize(static_cast<size_t>(len));
 			return buf;
 		}
+
+		void OnChange(std::function<void(const ChangeEvent&)> handler)
+		{
+			RequireEvents().onChange(GetControlId(), std::move(handler));
+		}
+
+		void OnSelectionChange(std::function<void(const SelectionChangeEvent&)> handler)
+		{
+			RequireEvents().onSelectionChange(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
+		}
 	};
 
 	// ListBox control wrapper.
@@ -254,6 +382,26 @@ export namespace FormDesigner
 				reinterpret_cast<Win32::LPARAM>(buf.data()));
 			buf.resize(static_cast<size_t>(len));
 			return buf;
+		}
+
+		void OnDoubleClick(std::function<void(const DoubleClickEvent&)> handler)
+		{
+			RequireEvents().onDoubleClick(GetControlId(), std::move(handler));
+		}
+
+		void OnSelectionChange(std::function<void(const SelectionChangeEvent&)> handler)
+		{
+			RequireEvents().onSelectionChange(GetControlId(), std::move(handler));
+		}
+
+		void OnFocus(std::function<void(const FocusEvent&)> handler)
+		{
+			RequireEvents().onFocus(GetControlId(), std::move(handler));
+		}
+
+		void OnBlur(std::function<void(const BlurEvent&)> handler)
+		{
+			RequireEvents().onBlur(GetControlId(), std::move(handler));
 		}
 	};
 
@@ -338,13 +486,25 @@ export namespace FormDesigner
 	struct DateTimePicker : ControlBase
 	{
 		using ControlBase::ControlBase;
+
+		void OnChange(std::function<void(const ChangeEvent&)> handler)
+		{
+			RequireEvents().onChange(GetControlId(), std::move(handler));
+		}
 	};
 
 	// FormWindow wraps the top-level form HWND returned by LoadForm.
 	struct FormWindow
 	{
 		FormWindow() = default;
-		explicit FormWindow(Win32::HWND h) : hwnd_{h} {}
+		explicit FormWindow(Win32::HWND h) : hwnd_{h}
+		{
+			// Retrieve EventMap from FormWindowData stored in window user data.
+			auto* ptr = reinterpret_cast<void**>(
+				Win32::GetWindowLongPtrW(h, Win32::Gwlp_UserData));
+			if (ptr)
+				events_ = static_cast<EventMap*>(*ptr);
+		}
 
 		auto Handle() const noexcept -> Win32::HWND { return hwnd_; }
 		explicit operator bool() const noexcept { return hwnd_ != nullptr; }
@@ -354,7 +514,7 @@ export namespace FormDesigner
 			requires std::derived_from<T, ControlBase>
 		auto Get(int id) const -> T
 		{
-			return T{Win32::GetDlgItem(hwnd_, id)};
+			return T{Win32::GetDlgItem(hwnd_, id), events_};
 		}
 
 		// Convenience accessors.
@@ -396,7 +556,44 @@ export namespace FormDesigner
 			return buf;
 		}
 
+		// Form-level event binding (by control ID).
+		void OnClick(int id, std::function<void(const ClickEvent&)> handler)
+		{
+			if (events_) events_->onClick(id, std::move(handler));
+		}
+
+		void OnChange(int id, std::function<void(const ChangeEvent&)> handler)
+		{
+			if (events_) events_->onChange(id, std::move(handler));
+		}
+
+		void OnDoubleClick(int id, std::function<void(const DoubleClickEvent&)> handler)
+		{
+			if (events_) events_->onDoubleClick(id, std::move(handler));
+		}
+
+		void OnSelectionChange(int id, std::function<void(const SelectionChangeEvent&)> handler)
+		{
+			if (events_) events_->onSelectionChange(id, std::move(handler));
+		}
+
+		void OnFocus(int id, std::function<void(const FocusEvent&)> handler)
+		{
+			if (events_) events_->onFocus(id, std::move(handler));
+		}
+
+		void OnBlur(int id, std::function<void(const BlurEvent&)> handler)
+		{
+			if (events_) events_->onBlur(id, std::move(handler));
+		}
+
+		void OnCheck(int id, std::function<void(const CheckEvent&)> handler)
+		{
+			if (events_) events_->onCheck(id, std::move(handler));
+		}
+
 	private:
 		Win32::HWND hwnd_ = nullptr;
+		EventMap* events_ = nullptr;
 	};
 }

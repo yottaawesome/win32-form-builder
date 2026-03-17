@@ -113,12 +113,12 @@ try
 		}
 	});
 
-	// Cancel button: close the form.
-	events.onClick(Controls::CancelButton, [](const FormDesigner::ClickEvent& e) {
+	// Cancel button: close the form (using wrapper-based event binding).
+	auto hwnd = FormDesigner::LoadForm(form, hInstance, events, formBasePath);
+	auto window = FormDesigner::FormWindow{hwnd};
+	window.GetButton(Controls::CancelButton).OnClick([](const FormDesigner::ClickEvent& e) {
 		Win32::DestroyWindow(e.formHwnd);
 	});
-
-	auto hwnd = FormDesigner::LoadForm(form, hInstance, events, formBasePath);
 
 	// Enable hot reload: the form will automatically update when the JSON file is saved.
 	FormDesigner::EnableHotReload(hwnd, path, formBasePath);
