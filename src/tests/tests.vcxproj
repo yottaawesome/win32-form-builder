@@ -158,6 +158,7 @@
     <ClCompile Include="test_disabled.cpp" />
     <ClCompile Include="test_form_visible_enabled.cpp" />
     <ClCompile Include="test_controls.cpp" />
+    <ClCompile Include="test_control_ids.cpp" />
     <ClCompile Include="test_accessibility.cpp" />
     <ClCompile Include="test_value.cpp" />
     <!-- Designer module partitions (compiled in-project for testing) -->

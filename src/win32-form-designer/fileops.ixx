@@ -315,4 +315,59 @@ namespace Designer
 			L"Export to RC", Win32::Mb_Ok | Win32::Mb_IconInformation);
 	}
 
+	auto ShowHeaderSaveDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
+	{
+		wchar_t filename[Win32::MaxPath] = {};
+		if (!outPath.empty())
+		{
+			auto str = outPath.wstring();
+			auto n = std::min(str.size(), static_cast<std::size_t>(Win32::MaxPath - 1));
+			std::copy_n(str.data(), n, filename);
+		}
+		else
+		{
+			auto def = std::wstring{L"controls.h"};
+			std::copy_n(def.data(), def.size(), filename);
+		}
+
+		Win32::OPENFILENAMEW ofn = {
+			.lStructSize = sizeof(Win32::OPENFILENAMEW),
+			.hwndOwner = owner,
+			.lpstrFilter = L"C++ Header Files (*.h)\0*.h\0All Files (*.*)\0*.*\0",
+			.lpstrFile = filename,
+			.nMaxFile = Win32::MaxPath,
+			.Flags = Win32::FileDialog::OverwritePrompt | Win32::FileDialog::PathMustExist,
+			.lpstrDefExt = L"h",
+		};
+
+		if (!Win32::GetSaveFileNameW(&ofn))
+			return false;
+
+		outPath = filename;
+		return true;
+	}
+
+	export void DoExportControlIds(DesignState& state)
+	{
+		auto path = std::filesystem::path{};
+		if (!ShowHeaderSaveDialog(state.surfaceHwnd, path))
+			return;
+
+		auto content = FormDesigner::GenerateControlIds(state.form);
+
+		auto file = std::ofstream{ path };
+		if (!file.is_open())
+		{
+			Win32::MessageBoxW(state.surfaceHwnd, L"Failed to write file.",
+				L"Export Error", Win32::Mb_Ok | Win32::Mb_IconError);
+			return;
+		}
+		file << content;
+		file.close();
+
+		Win32::MessageBoxW(state.surfaceHwnd,
+			L"Control IDs header exported successfully.",
+			L"Export Control IDs", Win32::Mb_Ok | Win32::Mb_IconInformation);
+	}
+
 }
