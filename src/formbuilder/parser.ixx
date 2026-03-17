@@ -181,6 +181,9 @@ export namespace FormDesigner
 			control.imagePath = std::wstring(narrow.begin(), narrow.end());
 		}
 
+		if (j.contains("bindField"))
+			control.bindField = j["bindField"].get<std::string>();
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));
@@ -253,6 +256,9 @@ export namespace FormDesigner
 			if (fj.contains("italic"))
 				form.font.italic = fj["italic"].get<bool>();
 		}
+
+		if (j.contains("bindStruct"))
+			form.bindStruct = j["bindStruct"].get<std::string>();
 
 		return form;
 	}

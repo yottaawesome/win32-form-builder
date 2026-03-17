@@ -163,6 +163,7 @@ export namespace FormDesigner
 		int selectedIndex = -1;
 		ValidationInfo validation;
 		std::wstring imagePath; // For Picture controls: relative path to BMP/ICO file.
+		std::string bindField; // Data binding: struct member name.
 		std::vector<Control> children;
 	};
 
@@ -195,6 +196,7 @@ export namespace FormDesigner
 		Win32::DWORD exStyle = 0;
 		int backgroundColor = -1; // -1 = system default; otherwise COLORREF
 		FontInfo font;
+		std::string bindStruct; // Data binding: C++ struct name for PopulateForm/ReadForm.
 		std::vector<Control> controls;
 		std::vector<DesignerGuide> guides;
 	};

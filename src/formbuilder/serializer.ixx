@@ -146,6 +146,9 @@ export namespace FormDesigner
 		if (!control.imagePath.empty())
 			j["imagePath"] = std::string(control.imagePath.begin(), control.imagePath.end());
 
+		if (!control.bindField.empty())
+			j["bindField"] = control.bindField;
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();
@@ -224,6 +227,9 @@ export namespace FormDesigner
 				fj["italic"] = true;
 			j["font"] = fj;
 		}
+
+		if (!form.bindStruct.empty())
+			j["bindStruct"] = form.bindStruct;
 
 		return j.dump(indent);
 	}

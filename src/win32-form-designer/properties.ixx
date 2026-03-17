@@ -66,14 +66,15 @@ namespace Designer
 			IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
 			IDC_PROP_FORM_HEIGHT, IDC_PROP_FORM_BGCOLOR,
 			IDC_PROP_FORM_CAPTION, IDC_PROP_FORM_SYSMENU,
-			IDC_PROP_FORM_RESIZABLE, IDC_PROP_FORM_MINIMIZE, IDC_PROP_FORM_MAXIMIZE
+			IDC_PROP_FORM_RESIZABLE, IDC_PROP_FORM_MINIMIZE, IDC_PROP_FORM_MAXIMIZE,
+			IDC_PROP_FORM_BINDSTRUCT
 		};
 
 		int ctrlShow = hasSel ? Win32::Sw_Show : Win32::Sw_Hide;
 		int formShow = hasSel ? Win32::Sw_Hide : Win32::Sw_Show;
 
 		SetPropertyGroupVisibility(panel, ctrlIds, 20, ctrlShow);
-		SetPropertyGroupVisibility(panel, formIds, 9, formShow);
+		SetPropertyGroupVisibility(panel, formIds, 10, formShow);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
 		if (bgBtn) Win32::ShowWindow(bgBtn, formShow);
@@ -147,6 +148,9 @@ namespace Designer
 		showId(IDC_PROP_IMAGEPATH, showImage);
 		auto imgBtn = Win32::GetDlgItem(panel, IDC_PROP_IMAGEPATH_BTN);
 		if (imgBtn) Win32::ShowWindow(imgBtn, showImage ? Win32::Sw_Show : Win32::Sw_Hide);
+
+		// Data binding field — visible for any selected control.
+		showId(IDC_PROP_BINDFIELD, hasSel);
 	}
 
 	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
@@ -239,13 +243,19 @@ namespace Designer
 		// Image path field (Picture only).
 		Win32::SetDlgItemTextW(panel, IDC_PROP_IMAGEPATH, ctrl.imagePath.c_str());
 
+		// Data binding field.
+		{
+			auto bindW = std::wstring(ctrl.bindField.begin(), ctrl.bindField.end());
+			Win32::SetDlgItemTextW(panel, IDC_PROP_BINDFIELD, bindW.c_str());
+		}
+
 		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
 			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX,
 			IDC_PROP_VAL_MINLEN, IDC_PROP_VAL_MAXLEN, IDC_PROP_VAL_PATTERN,
-			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_IMAGEPATH };
+			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_IMAGEPATH, IDC_PROP_BINDFIELD };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
 	}
@@ -276,6 +286,12 @@ namespace Designer
 
 		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_FONT_LABEL,
 			FormFontDisplayString(state.form.font).c_str());
+
+		// Data binding struct name.
+		{
+			auto bindW = std::wstring(state.form.bindStruct.begin(), state.form.bindStruct.end());
+			Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_BINDSTRUCT, bindW.c_str());
+		}
 	}
 
 	// Refreshes the items displayed in a design-time ComboBox/ListBox HWND.
@@ -618,6 +634,15 @@ namespace Designer
 			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
 			break;
 		}
+		case IDC_PROP_BINDFIELD:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_BINDFIELD, buf, 256);
+			auto narrow = std::string{};
+			for (auto* p = buf; *p; ++p) narrow += static_cast<char>(*p);
+			ctrl.bindField = narrow;
+			break;
+		}
 		default:
 			return;
 		}
@@ -660,6 +685,15 @@ namespace Designer
 			auto hex = std::wstring(buf);
 			state.form.backgroundColor = hex.empty() ? -1 : HexToColorRef(hex);
 			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
+			break;
+		}
+		case IDC_PROP_FORM_BINDSTRUCT:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_FORM_BINDSTRUCT, buf, 256);
+			auto narrow = std::string{};
+			for (auto* p = buf; *p; ++p) narrow += static_cast<char>(*p);
+			state.form.bindStruct = narrow;
 			break;
 		}
 		default:
@@ -930,6 +964,25 @@ namespace Designer
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
 
+		// Bind field row (control-level data binding).
+		y += rh;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Bind:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_BINDFIELD + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_BINDFIELD)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			Win32::EnableWindow(edit, false);
+		}
+
 		// Image path row (Picture only): label + edit + "..." browse button.
 		// Shares the same y slot as Items — they are mutually exclusive.
 		y += rh;
@@ -1168,6 +1221,24 @@ namespace Designer
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
 
+		// Form bind struct row.
+		y += rh;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Bind:",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_BINDSTRUCT + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_BINDSTRUCT)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+		}
+
 		// Create tooltip window for property panel buttons.
 		state.propTooltipHwnd = FormDesigner::CreateTooltipWindow(parent, hInst);
 		if (state.propTooltipHwnd)
@@ -1200,10 +1271,10 @@ namespace Designer
 	}
 
 	auto PropContentCtrl(const DpiInfo& d) -> int {
-		// header(30) + 26 rows*rh(26) + locked/visible(24) + val header+required(22*2) + padding(10)
-		return d.Scale(30) + 26 * d.Scale(26) + d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
+		// header(30) + 27 rows*rh(26) + locked/visible(24) + val header+required(22*2) + padding(10)
+		return d.Scale(30) + 27 * d.Scale(26) + d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
 	}
-	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(10); }
+	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
 
 	void UpdateScrollRange(DesignState& state)
@@ -1605,10 +1676,12 @@ namespace Designer
 			if (code == Win32::Notifications::EditKillFocus)
 			{
 				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
-					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX;
+					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX
+					|| id == IDC_PROP_BINDFIELD;
 				bool isValProp = (id >= IDC_PROP_VAL_MINLEN && id <= IDC_PROP_VAL_MAX);
 				bool isImageProp = (id == IDC_PROP_IMAGEPATH);
-				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR);
+				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
+					|| id == IDC_PROP_FORM_BINDSTRUCT;
 				if (isCtrlProp || isValProp || isImageProp || isFormProp)
 					ValidateAndApply(*state, hwnd, id, isFormProp);
 				return 0;

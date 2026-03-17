@@ -115,6 +115,46 @@ namespace FormDesigner
 		}
 	}
 
+	// Data binding type categories for code generation.
+	enum class BindType { Text, Bool, Int, Index, None };
+
+	auto BindTypeFor(ControlType type) -> BindType
+	{
+		switch (type)
+		{
+		case ControlType::TextBox:
+		case ControlType::RichEdit:
+		case ControlType::Label:
+		case ControlType::Button:
+		case ControlType::IPAddress:
+			return BindType::Text;
+		case ControlType::CheckBox:
+		case ControlType::RadioButton:
+			return BindType::Bool;
+		case ControlType::TrackBar:
+		case ControlType::UpDown:
+		case ControlType::ProgressBar:
+			return BindType::Int;
+		case ControlType::ComboBox:
+		case ControlType::ListBox:
+			return BindType::Index;
+		default:
+			return BindType::None;
+		}
+	}
+
+	auto BindTypeName(BindType bt) -> const char*
+	{
+		switch (bt)
+		{
+		case BindType::Text:  return "std::wstring";
+		case BindType::Bool:  return "bool";
+		case BindType::Int:   return "int";
+		case BindType::Index: return "int";
+		default:              return "/* unsupported */";
+		}
+	}
+
 	// Builds a human-readable style expression string (e.g. "WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX").
 	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool visible = true) -> std::string
 	{
@@ -622,6 +662,13 @@ export namespace FormDesigner
 		auto className = MakeClassName(form.title);
 		auto formStyleExpr = BuildFormStyleExpression(form.style);
 
+		// Check if data binding is needed.
+		auto hasBindings = false;
+		if (!form.bindStruct.empty())
+			for (auto& c : form.controls)
+				if (!c.bindField.empty() && BindTypeFor(c.type) != BindType::None)
+				{ hasBindings = true; break; }
+
 		// Collect all event dispatches.
 		auto dispatch = EventDispatch{};
 		for (auto& ctrl : form.controls)
@@ -693,6 +740,11 @@ export namespace FormDesigner
 		out << "// Forward declarations\n";
 		out << "LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);\n";
 		out << "void CreateFormControls(HWND hwnd, HINSTANCE hInstance);\n";
+		if (hasBindings)
+		{
+			out << "void PopulateForm(HWND hwnd, const " << form.bindStruct << "& data);\n";
+			out << "void ReadForm(HWND hwnd, " << form.bindStruct << "& data);\n";
+		}
 		out << "\n";
 
 		// ============================
@@ -768,6 +820,106 @@ export namespace FormDesigner
 		EmitControlCreation(out, form.controls, "hwnd", controlIndex, "    ", form.font, fontMap, hasTooltips);
 
 		out << "}\n\n";
+
+		// ============================
+		// 5b. Data binding helpers
+		// ============================
+		if (!form.bindStruct.empty())
+		{
+			// Collect bound controls.
+			struct BoundControl { const Control* ctrl; BindType bt; std::string idcName; };
+			auto bound = std::vector<BoundControl>{};
+			for (auto& ctrl : form.controls)
+			{
+				if (ctrl.bindField.empty()) continue;
+				auto bt = BindTypeFor(ctrl.type);
+				if (bt == BindType::None) continue;
+				bound.push_back({ &ctrl, bt, IdcConstantName(ctrl) });
+			}
+
+			if (!bound.empty())
+			{
+				// Struct skeleton comment.
+				out << "// Suggested struct definition:\n";
+				out << "// struct " << form.bindStruct << "\n// {\n";
+				for (auto& b : bound)
+					out << "//     " << BindTypeName(b.bt) << " " << b.ctrl->bindField << ";\n";
+				out << "// };\n\n";
+
+				// PopulateForm.
+				out << "void PopulateForm(HWND hwnd, const " << form.bindStruct << "& data)\n";
+				out << "{\n";
+				for (auto& b : bound)
+				{
+					switch (b.bt)
+					{
+					case BindType::Text:
+						out << "    SetDlgItemTextW(hwnd, " << b.idcName
+							<< ", data." << b.ctrl->bindField << ".c_str());\n";
+						break;
+					case BindType::Bool:
+						out << "    SendDlgItemMessageW(hwnd, " << b.idcName
+							<< ", BM_SETCHECK, data." << b.ctrl->bindField
+							<< " ? BST_CHECKED : BST_UNCHECKED, 0);\n";
+						break;
+					case BindType::Int:
+						out << "    SetDlgItemInt(hwnd, " << b.idcName
+							<< ", static_cast<UINT>(data." << b.ctrl->bindField << "), TRUE);\n";
+						break;
+					case BindType::Index:
+						if (b.ctrl->type == ControlType::ComboBox)
+							out << "    SendDlgItemMessageW(hwnd, " << b.idcName
+								<< ", CB_SETCURSEL, data." << b.ctrl->bindField << ", 0);\n";
+						else
+							out << "    SendDlgItemMessageW(hwnd, " << b.idcName
+								<< ", LB_SETCURSEL, data." << b.ctrl->bindField << ", 0);\n";
+						break;
+					default: break;
+					}
+				}
+				out << "}\n\n";
+
+				// ReadForm.
+				out << "void ReadForm(HWND hwnd, " << form.bindStruct << "& data)\n";
+				out << "{\n";
+				for (auto& b : bound)
+				{
+					switch (b.bt)
+					{
+					case BindType::Text:
+						out << "    {\n";
+						out << "        wchar_t buf[1024]{};\n";
+						out << "        GetDlgItemTextW(hwnd, " << b.idcName
+							<< ", buf, 1024);\n";
+						out << "        data." << b.ctrl->bindField << " = buf;\n";
+						out << "    }\n";
+						break;
+					case BindType::Bool:
+						out << "    data." << b.ctrl->bindField
+							<< " = (SendDlgItemMessageW(hwnd, " << b.idcName
+							<< ", BM_GETCHECK, 0, 0) == BST_CHECKED);\n";
+						break;
+					case BindType::Int:
+						out << "    data." << b.ctrl->bindField
+							<< " = static_cast<int>(GetDlgItemInt(hwnd, " << b.idcName
+							<< ", nullptr, TRUE));\n";
+						break;
+					case BindType::Index:
+						if (b.ctrl->type == ControlType::ComboBox)
+							out << "    data." << b.ctrl->bindField
+								<< " = static_cast<int>(SendDlgItemMessageW(hwnd, " << b.idcName
+								<< ", CB_GETCURSEL, 0, 0));\n";
+						else
+							out << "    data." << b.ctrl->bindField
+								<< " = static_cast<int>(SendDlgItemMessageW(hwnd, " << b.idcName
+								<< ", LB_GETCURSEL, 0, 0));\n";
+						break;
+					default: break;
+					}
+				}
+				out << "}\n\n";
+			}
+		}
 
 		// ============================
 		// 6. WndProc

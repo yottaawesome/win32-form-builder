@@ -111,6 +111,9 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_IMAGEPATH     = 51033;
 	constexpr Win32::UINT IDC_PROP_IMAGEPATH_BTN = 51034;
 
+	// Data binding property controls.
+	constexpr Win32::UINT IDC_PROP_BINDFIELD     = 51035;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;
@@ -127,6 +130,9 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_FORM_FONT_LABEL = 52011;
 	constexpr Win32::UINT IDC_PROP_FORM_FONT_BTN   = 52012;
 	constexpr Win32::UINT IDC_PROP_FORM_FONT_CLEAR = 52013;
+
+	// Form data binding property controls.
+	constexpr Win32::UINT IDC_PROP_FORM_BINDSTRUCT = 52014;
 
 	// Label IDs are offset from the corresponding edit IDs.
 	constexpr Win32::UINT IDL_OFFSET = 10000;
