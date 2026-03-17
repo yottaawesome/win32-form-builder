@@ -165,6 +165,7 @@
     <ClCompile Include="test_errors.cpp" />
     <ClCompile Include="test_hotreload.cpp" />
     <ClCompile Include="test_wrapper_events.cpp" />
+    <ClCompile Include="test_messagebox.cpp" />
     <!-- Designer module partitions (compiled in-project for testing) -->
     <ClCompile Include="..\win32-form-designer\state.ixx" />
     <ClCompile Include="..\win32-form-designer\hit_testing.ixx" />

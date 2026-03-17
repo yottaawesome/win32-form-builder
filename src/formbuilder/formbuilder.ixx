@@ -9,3 +9,4 @@ export import :loader;
 export import :win32;
 export import :accessibility;
 export import :controls;
+export import :messagebox;

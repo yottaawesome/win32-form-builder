@@ -142,6 +142,7 @@
     <ClCompile Include="codegen.ixx" />
     <ClCompile Include="accessibility.ixx" />
     <ClCompile Include="controls.ixx" />
+    <ClCompile Include="messagebox.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
