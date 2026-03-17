@@ -463,6 +463,25 @@ export namespace Win32
 		constexpr auto SetMaxTipWidth  = TTM_SETMAXTIPWIDTH;
 	}
 
+	namespace ProgressBarMsg
+	{
+		constexpr auto SetRange32 = PBM_SETRANGE32;
+		constexpr auto SetPos     = PBM_SETPOS;
+	}
+
+	namespace TrackBarMsg
+	{
+		constexpr auto SetPos      = TBM_SETPOS;
+		constexpr auto SetRangeMin = TBM_SETRANGEMIN;
+		constexpr auto SetRangeMax = TBM_SETRANGEMAX;
+	}
+
+	namespace UpDownMsg
+	{
+		constexpr auto SetRange32 = UDM_SETRANGE32;
+		constexpr auto SetPos32   = UDM_SETPOS32;
+	}
+
 	// ===================================================================
 	// Virtual keys
 	// ===================================================================

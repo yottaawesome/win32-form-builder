@@ -144,6 +144,10 @@ namespace Designer
 		showId(IDC_PROP_VAL_MIN, showRangeVal);
 		showId(IDC_PROP_VAL_MAX, showRangeVal);
 
+		// Value control — visible for ProgressBar, TrackBar, UpDown.
+		bool showValue = hasSel && FormDesigner::SupportsValue(ctype);
+		showId(IDC_PROP_VALUE, showValue);
+
 		// Image path controls — visible only for Picture type.
 		bool showImage = hasSel && ctype == FormDesigner::ControlType::Picture;
 		showId(IDC_PROP_IMAGEPATH, showImage);
@@ -254,6 +258,10 @@ namespace Designer
 		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MIN, ctrl.validation.min, true);
 		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MAX, ctrl.validation.max, true);
 
+		// Value field.
+		Win32::SetDlgItemInt(panel, IDC_PROP_VALUE,
+			static_cast<Win32::UINT>(ctrl.value), true);
+
 		// Image path field (Picture only).
 		Win32::SetDlgItemTextW(panel, IDC_PROP_IMAGEPATH, ctrl.imagePath.c_str());
 
@@ -281,7 +289,8 @@ namespace Designer
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
 			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX,
 			IDC_PROP_VAL_MINLEN, IDC_PROP_VAL_MAXLEN, IDC_PROP_VAL_PATTERN,
-			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_IMAGEPATH, IDC_PROP_BINDFIELD,
+			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_VALUE,
+			IDC_PROP_IMAGEPATH, IDC_PROP_BINDFIELD,
 			IDC_PROP_ACCESSNAME, IDC_PROP_ACCESSDESC };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
@@ -648,6 +657,13 @@ namespace Designer
 			Win32::BOOL ok = false;
 			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VAL_MAX, &ok, true));
 			if (ok) ctrl.validation.max = val;
+			break;
+		}
+		case IDC_PROP_VALUE:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VALUE, &ok, true));
+			if (ok) ctrl.value = val;
 			break;
 		}
 		case IDC_PROP_IMAGEPATH:
@@ -1230,6 +1246,24 @@ namespace Designer
 			y += rh;
 		}
 
+		// Value (ProgressBar, TrackBar, UpDown).
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Value:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_VALUE + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"0",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_VALUE)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			y += rh;
+		}
+
 		// Form property rows (visible when no control is selected).
 		PropRow formRows[] = {
 			{ L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -1379,8 +1413,8 @@ namespace Designer
 	}
 
 	auto PropContentCtrl(const DpiInfo& d) -> int {
-		// header(30) + 30 rows*rh(26) + locked/visible(24) + enabled(24) + tabstop/group(24) + val header+required(22*2) + padding(10)
-		return d.Scale(30) + 30 * d.Scale(26) + 3 * d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
+		// header(30) + 31 rows*rh(26) + locked/visible(24) + enabled(24) + tabstop/group(24) + val header+required(22*2) + padding(10)
+		return d.Scale(30) + 31 * d.Scale(26) + 3 * d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
 	}
 	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
@@ -1827,7 +1861,8 @@ namespace Designer
 					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX
 					|| id == IDC_PROP_BINDFIELD
 					|| id == IDC_PROP_ACCESSNAME || id == IDC_PROP_ACCESSDESC;
-				bool isValProp = (id >= IDC_PROP_VAL_MINLEN && id <= IDC_PROP_VAL_MAX);
+				bool isValProp = (id >= IDC_PROP_VAL_MINLEN && id <= IDC_PROP_VAL_MAX)
+					|| id == IDC_PROP_VALUE;
 				bool isImageProp = (id == IDC_PROP_IMAGEPATH);
 				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)
 					|| id == IDC_PROP_FORM_BINDSTRUCT;

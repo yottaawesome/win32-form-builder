@@ -128,6 +128,9 @@ export namespace FormDesigner
 		if (control.selectedIndex >= 0)
 			j["selectedIndex"] = control.selectedIndex;
 
+		if (control.value != 0)
+			j["value"] = control.value;
+
 		if (control.validation.isSet())
 		{
 			auto vj = nlohmann::json{};

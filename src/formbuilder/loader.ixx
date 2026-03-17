@@ -139,6 +139,46 @@ export namespace FormDesigner
 				}
 			}
 
+			// Set range and value for numeric controls.
+			if (SupportsValue(control.type))
+			{
+				if (control.validation.min != 0 || control.validation.max != 0)
+				{
+					switch (control.type)
+					{
+					case ControlType::ProgressBar:
+						Win32::SendMessageW(hwnd, Win32::ProgressBarMsg::SetRange32,
+							control.validation.min, control.validation.max);
+						break;
+					case ControlType::TrackBar:
+						Win32::SendMessageW(hwnd, Win32::TrackBarMsg::SetRangeMin, false, control.validation.min);
+						Win32::SendMessageW(hwnd, Win32::TrackBarMsg::SetRangeMax, true, control.validation.max);
+						break;
+					case ControlType::UpDown:
+						Win32::SendMessageW(hwnd, Win32::UpDownMsg::SetRange32,
+							control.validation.min, control.validation.max);
+						break;
+					default: break;
+					}
+				}
+				if (control.value != 0)
+				{
+					switch (control.type)
+					{
+					case ControlType::ProgressBar:
+						Win32::SendMessageW(hwnd, Win32::ProgressBarMsg::SetPos, control.value, 0);
+						break;
+					case ControlType::TrackBar:
+						Win32::SendMessageW(hwnd, Win32::TrackBarMsg::SetPos, true, control.value);
+						break;
+					case ControlType::UpDown:
+						Win32::SendMessageW(hwnd, Win32::UpDownMsg::SetPos32, 0, control.value);
+						break;
+					default: break;
+					}
+				}
+			}
+
 			if (not control.children.empty())
 				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, dpi, hTooltips, formBasePath);
 		}

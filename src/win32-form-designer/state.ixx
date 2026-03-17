@@ -133,6 +133,9 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_TABSTOP       = 51039;
 	constexpr Win32::UINT IDC_PROP_GROUPSTART    = 51040;
 
+	// Value property control (ProgressBar, TrackBar, UpDown).
+	constexpr Win32::UINT IDC_PROP_VALUE         = 51041;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;

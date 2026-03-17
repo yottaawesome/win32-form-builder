@@ -161,6 +161,9 @@ export namespace FormDesigner
 		if (j.contains("selectedIndex"))
 			control.selectedIndex = j["selectedIndex"].get<int>();
 
+		if (j.contains("value"))
+			control.value = j["value"].get<int>();
+
 		if (j.contains("validation"))
 		{
 			auto& vj = j["validation"];

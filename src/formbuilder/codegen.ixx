@@ -656,6 +656,51 @@ namespace FormDesigner
 				}
 			}
 
+			// Emit range and value initialization for numeric controls.
+			if (SupportsValue(ctrl.type))
+			{
+				if (ctrl.validation.min != 0 || ctrl.validation.max != 0)
+				{
+					switch (ctrl.type)
+					{
+					case ControlType::ProgressBar:
+						out << indent << "SendMessageW(" << varName << ", PBM_SETRANGE32, "
+							<< ctrl.validation.min << ", " << ctrl.validation.max << ");\n";
+						break;
+					case ControlType::TrackBar:
+						out << indent << "SendMessageW(" << varName << ", TBM_SETRANGEMIN, FALSE, "
+							<< ctrl.validation.min << ");\n";
+						out << indent << "SendMessageW(" << varName << ", TBM_SETRANGEMAX, TRUE, "
+							<< ctrl.validation.max << ");\n";
+						break;
+					case ControlType::UpDown:
+						out << indent << "SendMessageW(" << varName << ", UDM_SETRANGE32, "
+							<< ctrl.validation.min << ", " << ctrl.validation.max << ");\n";
+						break;
+					default: break;
+					}
+				}
+				if (ctrl.value != 0)
+				{
+					switch (ctrl.type)
+					{
+					case ControlType::ProgressBar:
+						out << indent << "SendMessageW(" << varName << ", PBM_SETPOS, "
+							<< ctrl.value << ", 0);\n";
+						break;
+					case ControlType::TrackBar:
+						out << indent << "SendMessageW(" << varName << ", TBM_SETPOS, TRUE, "
+							<< ctrl.value << ");\n";
+						break;
+					case ControlType::UpDown:
+						out << indent << "SendMessageW(" << varName << ", UDM_SETPOS32, 0, "
+							<< ctrl.value << ");\n";
+						break;
+					default: break;
+					}
+				}
+			}
+
 			if (!ctrl.children.empty())
 			{
 				out << "\n";

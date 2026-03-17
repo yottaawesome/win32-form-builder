@@ -128,6 +128,13 @@ export namespace FormDesigner
 			|| type == ControlType::ProgressBar;
 	}
 
+	// Returns true if the control type supports an initial value property.
+	constexpr auto SupportsValue(ControlType type) noexcept -> bool
+	{
+		return type == ControlType::ProgressBar || type == ControlType::TrackBar
+			|| type == ControlType::UpDown;
+	}
+
 	// Returns true if the control type supports the "required" validation field.
 	constexpr auto SupportsRequiredValidation(ControlType type) noexcept -> bool
 	{
@@ -162,6 +169,7 @@ export namespace FormDesigner
 		std::wstring tooltip;
 		std::vector<std::wstring> items;
 		int selectedIndex = -1;
+		int value = 0; // For ProgressBar, TrackBar, UpDown: initial position/value.
 		ValidationInfo validation;
 		std::wstring imagePath; // For Picture controls: relative path to BMP/ICO file.
 		std::string bindField; // Data binding: struct member name.
