@@ -2,7 +2,7 @@
 
 ## Introduction
 
-An experimental visual form designer and runtime for Win32 applications, built with C++20 modules, that uses JSON as its layout format. Design forms by dragging and dropping controls onto a canvas, configure properties and events, then save as JSON or export as standalone C++ source code. Load and run the forms with the included runtime. This project has been almost exclusively vibe coded as an experiment in AI-first development workflows.
+An experimental visual form designer and runtime for Win32 applications, built with C++20 modules, that uses JSON as its layout format. Design forms by dragging and dropping controls onto a canvas, configure properties and events, then save as JSON or export as standalone C++ source code or `.rc` dialog resources. Load and run the forms with the included runtime. This project has been almost exclusively vibe coded as an experiment in AI-first development workflows.
 
 ## Why a form builder?
 
@@ -18,10 +18,10 @@ This project has been pretty much written by Copilot with Claude Opus 4.6, with 
 
 | Project | Type | Description |
 |---------|------|-------------|
-| [formbuilder](src/formbuilder/README.md) | Static library | Core data model, JSON parser/serializer, runtime loader, C++ code generator |
-| [win32-form-designer](src/win32-form-designer/README.md) | Application | Visual drag-and-drop form designer with toolbox, property editor, and canvas |
-| [win32-form-runner](src/win32-form-runner/README.md) | Application | Lightweight runtime that loads and displays JSON forms |
-| [tests](src/tests/README.md) | Console app | 122 unit tests (437 assertions) using Catch2 |
+| [formbuilder](src/formbuilder/README.md) | Static library | Core data model, JSON parser/serializer, runtime loader, C++ code generator, RC export, accessibility audit |
+| [win32-form-designer](src/win32-form-designer/README.md) | Application | Visual drag-and-drop form designer with toolbox, property editor, alignment tools, templates, and canvas |
+| [win32-form-runner](src/win32-form-runner/README.md) | Application | Lightweight runtime that loads and displays JSON forms with DPI awareness |
+| [tests](src/tests/README.md) | Console app | 341 unit tests (955 assertions) using Catch2 |
 
 ## Quick Start
 
@@ -51,19 +51,41 @@ src\x64\Debug\tests.exe
 
 ## Features
 
-- **16 control types**: Button, CheckBox, RadioButton, Label, TextBox, GroupBox, ListBox, ComboBox, ProgressBar, TrackBar, DateTimePicker, TabControl, ListView, TreeView, UpDown, RichEdit
-- **Visual design**: Drag-and-drop placement, resize handles, snap guides, ruler guides, grid overlay
-- **Property editing**: Type, text, ID, position, size, alignment, anchoring, events, styles, locking
-- **Property validation**: Invalid values are highlighted with visual feedback and rejected on focus loss
-- **Control anchoring**: Configure how controls resize/reposition when the form is resized (Top, Bottom, Left, Right flags)
-- **Control grouping**: Group related controls (Ctrl+G) so they select and move together
-- **Tab order editor**: Visual click-to-assign tab index mode with numbered badges
-- **Dark mode**: Toggle between light and dark themes (persisted to settings)
-- **Recent files**: Quick access to recently opened/saved forms in the File menu
-- **Undo/Redo**, Cut/Copy/Paste/Duplicate, z-order management
-- **Export to C++**: Generate standalone Win32 apps (classic or C++20 module style)
-- **Live preview** (F5) within the designer
-- **JSON format** for form definitions
+### Controls
+- **23 control types**: Button, CheckBox, RadioButton, Label, TextBox, GroupBox, ListBox, ComboBox, ProgressBar, TrackBar, DateTimePicker, TabControl, ListView, TreeView, UpDown, RichEdit, MonthCalendar, Link, IPAddress, HotKey, Picture, Separator, Animation
+
+### Visual Design
+- Drag-and-drop placement with resize handles and snap-to-align guides
+- Grid overlay with configurable snap, ruler guides, form boundary
+- Keyboard nudge (arrow keys), multi-select with Ctrl+Click
+- **Alignment toolbar**: 6 align operations, 2 distribute, 3 match-size (Format menu, toolbar, context menu)
+- **Per-Monitor V2 DPI awareness**: scales UI and canvas correctly on high-DPI displays
+
+### Properties
+- Type, text, ID, position, size, alignment, anchoring, events, styles, locking
+- **Font properties**: per-control font family, size, bold, italic with inherited defaults
+- **Per-control tooltips**: tooltip text shown at runtime on hover
+- **Visible/Enabled**: per-control visibility and enabled/disabled state with designer overlays (hatching)
+- **Value, Min, Max**: initial value and range for ProgressBar, TrackBar, UpDown
+- **ComboBox/ListBox items**: edit items and selected index directly in the designer
+- **Picture image path**: browse for BMP/ICO images with runtime loading
+- **Data binding**: bind struct name on Form, bind field on each Control, with PopulateForm/ReadForm codegen
+- **Validation metadata**: required, min/max length, pattern, min/max range per control type
+- **Accessibility**: tab stop, group start, accessible name/description, with 7-rule audit (Tools menu)
+- Property validation with visual error highlighting
+
+### Editing
+- Undo/Redo, Cut/Copy/Paste/Duplicate, Select All, Delete
+- Control grouping (Ctrl+G) and locking
+- Tab order editor with visual click-to-assign badges
+- Z-Order panel with multi-select, inline rename, delete, keyboard shortcuts
+
+### Export & File
+- **Export to C++**: standalone Win32 apps (classic or C++20 module style) with event stubs, data binding helpers, and DPI scaling
+- **Export to .rc**: Win32 dialog resource files with pixel-to-DLU conversion and `resource.h` header
+- **Built-in templates**: Login, Settings, Data Entry, About, Search starter layouts
+- Recent files, JSON format, live preview (F5)
+- **Dark mode** with settings persistence (`designer.ini`)
 
 ## Technology
 

@@ -1,6 +1,6 @@
 # Win32 Form Runner
 
-A lightweight runtime that loads a JSON form definition and displays it as a native Win32 window. Use this to preview and test forms created with the [form designer](../win32-form-designer/README.md).
+A lightweight runtime that loads a JSON form definition and displays it as a native Win32 window with Per-Monitor V2 DPI awareness. Use this to preview and test forms created with the [form designer](../win32-form-designer/README.md).
 
 ## Usage
 
@@ -21,7 +21,15 @@ The runner is a thin host (~50 lines) that:
 4. Creates the window with `FormDesigner::LoadForm()`
 5. Runs the Win32 message loop
 
-Controls with anchoring flags are automatically repositioned and resized when the form window is resized at runtime.
+Controls with anchoring flags are automatically repositioned and resized when the form window is resized at runtime. The loader also applies:
+- **DPI scaling** — positions and sizes are scaled to the current monitor DPI
+- **Per-control fonts** — custom font overrides with form font inheritance
+- **Tooltips** — per-control tooltip text displayed on hover
+- **ComboBox/ListBox items** — pre-populated with selected index
+- **ProgressBar/TrackBar/UpDown** — range (min/max) and initial value applied via SendMessage
+- **Picture images** — BMP/ICO files loaded and displayed
+- **Tab stop and group** — WS_TABSTOP and WS_GROUP applied for keyboard navigation
+- **Visibility and enabled state** — WS_VISIBLE and WS_DISABLED applied per control
 
 ### Example: Adding Event Handlers
 

@@ -11,7 +11,17 @@ Unit tests for the [formbuilder](../formbuilder/README.md) library using [Catch2
 | `test_events.cpp` | 5 | `EventMap` registration and dispatch for all 7 event types |
 | `test_helpers.cpp` | 39 | Designer helpers — hit testing, resize handles, snap guides, control type display names, validation, tab order, grouping, recent files |
 | `test_codegen.cpp` | 29 | C++ code generation — preamble, styles, controls, events, IDC defines, RichEdit, escaping, anchoring |
-| **Total** | **122** | **437 assertions** |
+| `test_alignment.cpp` | 15 | Multi-control alignment (6 align, 2 distribute, 3 match size), minimum selection requirements |
+| `test_dpi.cpp` | 7 | DPI scaling calculations, control rect scaling, font size scaling, manifest configuration |
+| `test_rc.cpp` | 26 | `.rc` dialog export — keyword vs generic controls, styles, pixel-to-DLU, header generation, escaping |
+| `test_visible.cpp` | 14 | Per-control visible property — schema defaults, round-trip, codegen WS_VISIBLE, RC style flags, hatching overlay |
+| `test_validation.cpp` | 18 | Validation metadata — required, min/max length, pattern, min/max range, round-trip, codegen comments |
+| `test_picture.cpp` | 14 | Picture control — image path, BMP/ICO detection, round-trip, codegen (LoadImageW, STM_SETIMAGE) |
+| `test_databinding.cpp` | 18 | Data binding — bindStruct/bindField, round-trip, PopulateForm/ReadForm codegen, type inference |
+| `test_disabled.cpp` | 12 | Enabled/disabled property — schema defaults, round-trip, codegen WS_DISABLED, RC style flags |
+| `test_accessibility.cpp` | 32 | Accessibility — tabStop, groupStart, accessibleName/Description, round-trip, codegen, RC styles, 7 audit rules |
+| `test_value.cpp` | 18 | Value property — ProgressBar/TrackBar/UpDown, round-trip, codegen PBM/TBM/UDM messages, range emit |
+| **Total** | **296 + 45 designer** | **955 assertions across 341 test cases** |
 
 ## Running
 
@@ -28,6 +38,12 @@ src\x64\Debug\tests.exe --reporter compact
 ### Run a single test
 ```
 src\x64\Debug\tests.exe "ParseForm produces correct controls"
+```
+
+### Run tests by tag
+```
+src\x64\Debug\tests.exe [value]
+src\x64\Debug\tests.exe [accessibility]
 ```
 
 ### List all tests
