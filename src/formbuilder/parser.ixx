@@ -107,6 +107,9 @@ export namespace FormDesigner
 		if (j.contains("visible"))
 			control.visible = j["visible"].get<bool>();
 
+		if (j.contains("enabled"))
+			control.enabled = j["enabled"].get<bool>();
+
 		if (j.contains("locked"))
 			control.locked = j["locked"].get<bool>();
 

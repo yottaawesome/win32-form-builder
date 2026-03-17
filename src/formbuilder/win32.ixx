@@ -241,6 +241,7 @@ export namespace Win32
 		constexpr auto OverlappedWindow = WS_OVERLAPPEDWINDOW;
 		constexpr auto Child            = WS_CHILD;
 		constexpr auto Visible          = WS_VISIBLE;
+		constexpr auto Disabled         = WS_DISABLED;
 		constexpr auto Border           = WS_BORDER;
 		constexpr auto Caption          = WS_CAPTION;
 		constexpr auto SysMenu          = WS_SYSMENU;
@@ -583,7 +584,8 @@ export namespace Win32
 	constexpr auto NullBrush      = NULL_BRUSH;
 	constexpr auto NullPen        = NULL_PEN;
 	constexpr auto SrcCopy        = SRCCOPY;
-	constexpr auto HatchBDiagonal = HS_BDIAGONAL;
+	constexpr auto HatchBDiagonal  = HS_BDIAGONAL;
+	constexpr auto HatchHorizontal = HS_HORIZONTAL;
 
 	// ===================================================================
 	// Image constants

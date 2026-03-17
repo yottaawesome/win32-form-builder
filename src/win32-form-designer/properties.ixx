@@ -60,7 +60,7 @@ namespace Designer
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_VISIBLE, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP
+			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_VISIBLE, IDC_PROP_ENABLED, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP
 		};
 		constexpr Win32::UINT formIds[] = {
 			IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
@@ -73,7 +73,7 @@ namespace Designer
 		int ctrlShow = hasSel ? Win32::Sw_Show : Win32::Sw_Hide;
 		int formShow = hasSel ? Win32::Sw_Hide : Win32::Sw_Show;
 
-		SetPropertyGroupVisibility(panel, ctrlIds, 20, ctrlShow);
+		SetPropertyGroupVisibility(panel, ctrlIds, 21, ctrlShow);
 		SetPropertyGroupVisibility(panel, formIds, 10, formShow);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -196,6 +196,10 @@ namespace Designer
 		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_VISIBLE),
 			Win32::Button::SetCheck,
 			ctrl.visible ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_ENABLED),
+			Win32::Button::SetCheck,
+			ctrl.enabled ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
 
 		// Anchor dropdown.
 		{
@@ -899,6 +903,17 @@ namespace Designer
 			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
 		}
 
+		// Enabled checkbox (below Locked/Visible row).
+		y += d.Scale(24);
+		{
+			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Enabled",
+				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
+				d.Scale(15), y, d.Scale(90), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ENABLED)),
+				hInst, nullptr);
+			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+		}
+
 		// Anchor dropdown.
 		y += d.Scale(24);
 		{
@@ -1271,8 +1286,8 @@ namespace Designer
 	}
 
 	auto PropContentCtrl(const DpiInfo& d) -> int {
-		// header(30) + 27 rows*rh(26) + locked/visible(24) + val header+required(22*2) + padding(10)
-		return d.Scale(30) + 27 * d.Scale(26) + d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
+		// header(30) + 27 rows*rh(26) + locked/visible(24) + enabled(24) + val header+required(22*2) + padding(10)
+		return d.Scale(30) + 27 * d.Scale(26) + 2 * d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
 	}
 	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
@@ -1490,6 +1505,20 @@ namespace Designer
 				PushUndo(*state);
 				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_VISIBLE);
 				state->entries[sel].control->visible =
+					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+				MarkDirty(*state);
+				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+				return 0;
+			}
+
+			// Enabled checkbox for selected control.
+			if (id == IDC_PROP_ENABLED && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_ENABLED);
+				state->entries[sel].control->enabled =
 					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
 				MarkDirty(*state);
 				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);

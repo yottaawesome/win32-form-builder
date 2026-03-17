@@ -32,6 +32,8 @@ export namespace FormDesigner
 			};
 			if (control.visible)
 				childStyle |= Win32::Styles::Visible;
+			if (!control.enabled)
+				childStyle |= Win32::Styles::Disabled;
 
 			auto hwnd = Win32::CreateWindowExW(
 				control.exStyle,

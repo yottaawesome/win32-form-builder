@@ -156,11 +156,13 @@ namespace FormDesigner
 	}
 
 	// Builds a human-readable style expression string (e.g. "WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX").
-	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool visible = true) -> std::string
+	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool visible = true, bool enabled = true) -> std::string
 	{
 		auto parts = std::vector<std::string>{"WS_CHILD"};
 		if (visible)
 			parts.push_back("WS_VISIBLE");
+		if (!enabled)
+			parts.push_back("WS_DISABLED");
 
 		switch (type)
 		{
@@ -541,7 +543,7 @@ namespace FormDesigner
 		{
 			auto varName = ControlVarName(ctrl, controlIndex);
 			auto className = Win32ClassLiteral(ctrl.type);
-			auto styleExpr = BuildStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, ctrl.visible);
+			auto styleExpr = BuildStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, ctrl.visible, ctrl.enabled);
 			auto textLiteral = std::format("L\"{}\"", EscapeWString(ctrl.text));
 			auto menuExpr = ctrl.id != 0
 				? std::format("(HMENU){}", IdcConstantName(ctrl))
@@ -1208,7 +1210,7 @@ export namespace FormDesigner
 	}
 
 	// Builds a style expression for use in RC scripts.
-	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl, bool visible = true) -> std::string
+	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl, bool visible = true, bool enabled = true) -> std::string
 	{
 		auto parts = std::vector<std::string>{};
 
@@ -1222,6 +1224,9 @@ export namespace FormDesigner
 		// For generic controls, the visibility is handled via the numeric base style.
 		if (!visible && !forGenericControl)
 			parts.push_back("NOT WS_VISIBLE");
+
+		if (!enabled)
+			parts.push_back("WS_DISABLED");
 
 		switch (type)
 		{
@@ -1355,7 +1360,7 @@ export namespace FormDesigner
 
 		bool isDefPush = (ctrl.type == ControlType::Button && (ctrl.style & 0x1) != 0);
 
-		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false, ctrl.visible);
+		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false, ctrl.visible, ctrl.enabled);
 
 		switch (ctrl.type)
 		{
@@ -1426,7 +1431,7 @@ export namespace FormDesigner
 		{
 			// Generic CONTROL statement for common controls.
 			auto className = RcClassName(ctrl.type);
-			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true, ctrl.visible);
+			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true, ctrl.visible, ctrl.enabled);
 			out << "    CONTROL         \""
 				<< text << "\"," << idName << ",\""
 				<< className << "\"," << genStyle << ","

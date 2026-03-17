@@ -85,6 +85,9 @@ export namespace Designer
 	// Visible checkbox for control properties.
 	constexpr Win32::UINT IDC_PROP_VISIBLE = 51026;
 
+	// Enabled checkbox for control properties.
+	constexpr Win32::UINT IDC_PROP_ENABLED = 51036;
+
 	// Anchor combo for control properties.
 	constexpr Win32::UINT IDC_PROP_ANCHOR = 51018;
 

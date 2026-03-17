@@ -154,6 +154,7 @@ export namespace FormDesigner
 		int tabIndex = 0;
 		TextAlign textAlign = TextAlign::Left;
 		bool visible = true;
+		bool enabled = true;
 		bool locked = false;
 		int groupId = 0;
 		int anchor = Anchor::Default;

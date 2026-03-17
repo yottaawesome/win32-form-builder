@@ -108,6 +108,30 @@ namespace Designer
 		Win32::DeleteObject(hatch);
 	}
 
+	export void DrawDisabledOverlays(const DesignState& state, Win32::HDC hdc)
+	{
+		int offset = RulerOffset(state);
+		auto hatch = Win32::CreateHatchBrush(Win32::HatchHorizontal, Win32::MakeRgb(180, 180, 180));
+		auto oldBrush = Win32::SelectObject(hdc, hatch);
+		auto nullPen = static_cast<Win32::HPEN>(Win32::GetStockObject(Win32::NullPen));
+		auto oldPen = Win32::SelectObject(hdc, nullPen);
+		int oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+
+		for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+		{
+			auto& ctrl = *state.entries[i].control;
+			if (ctrl.enabled) continue;
+			int ox = ctrl.rect.x + offset;
+			int oy = ctrl.rect.y + offset;
+			Win32::Rectangle(hdc, ox, oy, ox + ctrl.rect.width, oy + ctrl.rect.height);
+		}
+
+		Win32::SetBkMode(hdc, oldMode);
+		Win32::SelectObject(hdc, oldPen);
+		Win32::SelectObject(hdc, oldBrush);
+		Win32::DeleteObject(hatch);
+	}
+
 	export void DrawPicturePlaceholders(const DesignState& state, Win32::HDC hdc)
 	{
 		int offset = RulerOffset(state);

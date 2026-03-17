@@ -95,6 +95,9 @@ export namespace FormDesigner
 		if (!control.visible)
 			j["visible"] = false;
 
+		if (!control.enabled)
+			j["enabled"] = false;
+
 		if (control.locked)
 			j["locked"] = true;
 
