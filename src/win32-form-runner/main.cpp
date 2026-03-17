@@ -119,6 +119,10 @@ try
 	});
 
 	auto hwnd = FormDesigner::LoadForm(form, hInstance, events, formBasePath);
+
+	// Enable hot reload: the form will automatically update when the JSON file is saved.
+	FormDesigner::EnableHotReload(hwnd, path, formBasePath);
+
 	return FormDesigner::RunMessageLoop();
 }
 catch (const std::exception& ex)

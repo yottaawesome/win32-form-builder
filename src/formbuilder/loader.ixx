@@ -4,6 +4,7 @@ import :win32;
 import :schema;
 import :events;
 import :errors;
+import :parser;
 
 export namespace FormDesigner
 {
@@ -219,7 +220,96 @@ export namespace FormDesigner
 		Win32::HWND hTooltips = nullptr;
 		bool isModal = false;
 		int dialogResult = 0;
+		Win32::HINSTANCE hInstance = nullptr;
+		std::filesystem::path hotReloadPath;
+		std::wstring hotReloadBasePath;
+		std::filesystem::file_time_type lastWriteTime;
+		Win32::UINT_PTR hotReloadTimerId = 0;
 	};
+
+	// Checks whether any control (recursively) has tooltip text.
+	auto HasTooltips(std::span<const Control> ctrls) -> bool
+	{
+		for (auto& c : ctrls)
+		{
+			if (!c.tooltip.empty()) return true;
+			if (!c.children.empty() && HasTooltips(c.children)) return true;
+		}
+		return false;
+	}
+
+	// Rebuilds the form window contents from a new Form definition.
+	// Destroys all child controls, cleans up resources, and recreates everything.
+	void ReloadFormContents(Win32::HWND hwnd, FormWindowData* data, const Form& form)
+	{
+		// Destroy all child windows.
+		while (auto child = Win32::GetWindow(hwnd, Win32::Gw_Child))
+			Win32::DestroyWindow(child);
+
+		// Clean up old fonts.
+		for (auto hFont : data->createdFonts)
+			Win32::DeleteObject(hFont);
+		data->createdFonts.clear();
+
+		// Clean up old tooltip window.
+		if (data->hTooltips)
+		{
+			Win32::DestroyWindow(data->hTooltips);
+			data->hTooltips = nullptr;
+		}
+
+		// Update background brush.
+		if (data->bgBrush)
+		{
+			Win32::DeleteObject(data->bgBrush);
+			data->bgBrush = nullptr;
+		}
+		if (form.backgroundColor != -1)
+			data->bgBrush = Win32::CreateSolidBrush(static_cast<Win32::DWORD>(form.backgroundColor));
+
+		// Update window title.
+		Win32::SetWindowTextW(hwnd, form.title.c_str());
+
+		// Resize window if dimensions changed.
+		auto dpi = static_cast<Win32::UINT>(Win32::GetDpiForSystem());
+		if (form.width != data->originalWidth || form.height != data->originalHeight)
+		{
+			auto rc = Win32::RECT{ 0, 0,
+				Win32::ScaleDpi(form.width, dpi),
+				Win32::ScaleDpi(form.height, dpi) };
+
+			auto style = static_cast<Win32::DWORD>(Win32::GetWindowLongPtrW(hwnd, Win32::Gwl_Style));
+			auto exStyle = static_cast<Win32::DWORD>(Win32::GetWindowLongPtrW(hwnd, Win32::Gwl_ExStyle));
+			Win32::AdjustWindowRectExForDpi(&rc, style, 0, exStyle, dpi);
+
+			Win32::SetWindowPos(hwnd, nullptr, 0, 0,
+				rc.right - rc.left, rc.bottom - rc.top,
+				Win32::Swp::NoMove | Win32::Swp::NoZOrder | Win32::Swp::NoActivate);
+
+			data->originalWidth = form.width;
+			data->originalHeight = form.height;
+		}
+
+		// Recreate tooltip window if needed.
+		if (HasTooltips(form.controls))
+			data->hTooltips = CreateTooltipWindow(hwnd, data->hInstance);
+
+		// Recreate child controls.
+		CreateChildren(hwnd, data->hInstance, form.controls, form.font, data->createdFonts,
+			static_cast<int>(dpi), data->hTooltips, data->hotReloadBasePath);
+
+		// Rebuild anchor list.
+		data->anchors.clear();
+		for (auto& c : form.controls)
+			if (c.id != 0)
+				data->anchors.push_back({ c.id, c.rect, c.anchor });
+
+		// Update enabled state.
+		Win32::EnableWindow(hwnd, form.enabled);
+
+		// Repaint.
+		Win32::InvalidateRect(hwnd, nullptr, true);
+	}
 
 	// Window procedure for designer-created forms.
 	auto __stdcall FormWndProc(Win32::HWND hwnd, Win32::UINT msg, Win32::WPARAM wParam, Win32::LPARAM lParam) -> Win32::LRESULT
@@ -412,6 +502,27 @@ export namespace FormDesigner
 			}
 			return 0;
 		}
+		case Win32::Messages::Timer:
+		{
+			if (data && data->hotReloadTimerId != 0
+				&& wParam == data->hotReloadTimerId)
+			{
+				try
+				{
+					auto currentTime = std::filesystem::last_write_time(data->hotReloadPath);
+					if (currentTime != data->lastWriteTime)
+					{
+						data->lastWriteTime = currentTime;
+						auto result = TryLoadFormFromFile(data->hotReloadPath);
+						if (result)
+							ReloadFormContents(hwnd, data, *result);
+					}
+				}
+				catch (...) {} // Ignore filesystem errors (file locked, etc.)
+				return 0;
+			}
+			return Win32::DefWindowProcW(hwnd, msg, wParam, lParam);
+		}
 		case Win32::Messages::Close:
 		{
 			// For modal windows, closing via X button or Escape returns Cancel.
@@ -429,6 +540,8 @@ export namespace FormDesigner
 			if (data)
 			{
 				modalResult = data->dialogResult;
+				if (data->hotReloadTimerId != 0)
+					Win32::KillTimer(hwnd, data->hotReloadTimerId);
 				if (data->bgBrush) Win32::DeleteObject(data->bgBrush);
 				for (auto hFont : data->createdFonts)
 					Win32::DeleteObject(hFont);
@@ -507,6 +620,7 @@ export namespace FormDesigner
 				: nullptr,
 			.originalWidth = form.width,
 			.originalHeight = form.height,
+			.hInstance = hInstance,
 		};
 		for (auto& c : form.controls)
 		{
@@ -515,15 +629,7 @@ export namespace FormDesigner
 		}
 
 		// Create shared tooltip window if any control has tooltip text.
-		auto hasTooltips = [](auto& self, std::span<const Control> ctrls) -> bool {
-			for (auto& c : ctrls)
-			{
-				if (!c.tooltip.empty()) return true;
-				if (!c.children.empty() && self(self, c.children)) return true;
-			}
-			return false;
-		};
-		if (hasTooltips(hasTooltips, form.controls))
+		if (HasTooltips(form.controls))
 			windowData->hTooltips = CreateTooltipWindow(hwnd, hInstance);
 
 		CreateChildren(hwnd, hInstance, form.controls, form.font, windowData->createdFonts,
@@ -628,5 +734,49 @@ export namespace FormDesigner
 		if (!result)
 			throw std::move(result.error());
 		return *result;
+	}
+
+	constexpr Win32::UINT_PTR HotReloadTimerId = 42001;
+
+	// Starts polling a form file for changes. When the file is modified,
+	// the form window rebuilds its contents automatically.
+	void EnableHotReload(Win32::HWND formHwnd, const std::filesystem::path& formPath,
+		const std::wstring& basePath = L"", unsigned int intervalMs = 500)
+	{
+		auto* data = reinterpret_cast<FormWindowData*>(
+			Win32::GetWindowLongPtrW(formHwnd, Win32::Gwlp_UserData));
+		if (!data) return;
+
+		// Stop existing timer if active.
+		if (data->hotReloadTimerId != 0)
+			Win32::KillTimer(formHwnd, data->hotReloadTimerId);
+
+		data->hotReloadPath = formPath;
+		data->hotReloadBasePath = basePath;
+
+		try
+		{
+			data->lastWriteTime = std::filesystem::last_write_time(formPath);
+		}
+		catch (...) {}
+
+		data->hotReloadTimerId = HotReloadTimerId;
+		Win32::SetTimer(formHwnd, HotReloadTimerId, intervalMs, nullptr);
+	}
+
+	// Stops watching the form file for changes.
+	void DisableHotReload(Win32::HWND formHwnd)
+	{
+		auto* data = reinterpret_cast<FormWindowData*>(
+			Win32::GetWindowLongPtrW(formHwnd, Win32::Gwlp_UserData));
+		if (!data) return;
+
+		if (data->hotReloadTimerId != 0)
+		{
+			Win32::KillTimer(formHwnd, data->hotReloadTimerId);
+			data->hotReloadTimerId = 0;
+		}
+		data->hotReloadPath.clear();
+		data->hotReloadBasePath.clear();
 	}
 }

@@ -113,6 +113,10 @@ export namespace Win32
 		::GetWindowPlacement,
 		::SetWindowPlacement,
 
+		// Timers.
+		::SetTimer,
+		::KillTimer,
+
 		// Dialog item helpers.
 		::GetDlgItem,
 		::GetDlgCtrlID,
@@ -339,6 +343,7 @@ export namespace Win32
 		constexpr auto DpiChanged    = WM_DPICHANGED;
 		constexpr auto GetMinMaxInfo = WM_GETMINMAXINFO;
 		constexpr auto Quit          = WM_QUIT;
+		constexpr auto Timer         = WM_TIMER;
 	}
 
 	// ===================================================================
@@ -784,6 +789,7 @@ export namespace Win32
 
 	constexpr auto Gwlp_UserData     = GWLP_USERDATA;
 	constexpr auto Gwl_Style         = GWL_STYLE;
+	constexpr auto Gwl_ExStyle       = GWL_EXSTYLE;
 	constexpr auto GclpHbrBackground = GCLP_HBRBACKGROUND;
 	constexpr auto Cw_UseDefault     = CW_USEDEFAULT;
 	constexpr auto DefaultGuiFont    = DEFAULT_GUI_FONT;
@@ -801,6 +807,7 @@ export namespace Win32
 
 	// GetWindow() relationship constants.
 	constexpr auto Gw_Owner = GW_OWNER;
+	constexpr auto Gw_Child = GW_CHILD;
 
 	// PeekMessage() removal flags.
 	constexpr auto Pm_Remove   = PM_REMOVE;
