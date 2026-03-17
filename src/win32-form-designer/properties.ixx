@@ -72,7 +72,7 @@ namespace Designer
 		int ctrlShow = hasSel ? Win32::Sw_Show : Win32::Sw_Hide;
 		int formShow = hasSel ? Win32::Sw_Hide : Win32::Sw_Show;
 
-		SetPropertyGroupVisibility(panel, ctrlIds, 19, ctrlShow);
+		SetPropertyGroupVisibility(panel, ctrlIds, 20, ctrlShow);
 		SetPropertyGroupVisibility(panel, formIds, 9, formShow);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -1199,7 +1199,10 @@ namespace Designer
 		}
 	}
 
-	auto PropContentCtrl(const DpiInfo& d) -> int { return d.Scale(30) + 21 * d.Scale(26) + d.Scale(10); }
+	auto PropContentCtrl(const DpiInfo& d) -> int {
+		// header(30) + 27 rows*rh(26) + locked/visible(24) + val header+required(22*2) + padding(10)
+		return d.Scale(30) + 27 * d.Scale(26) + d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
+	}
 	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
 
