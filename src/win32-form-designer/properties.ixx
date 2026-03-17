@@ -930,8 +930,33 @@ namespace Designer
 			Win32::SendMessageW(fontClear, Win32::Messages::SetFont, font, true);
 		}
 
-		// Items row: read-only label + "Edit..." button (ComboBox/ListBox only).
+		// Image path row (Picture only): label + edit + "..." browse button.
+		// Shares the same y slot as Items — they are mutually exclusive.
 		y += rh;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Image:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, d.Scale(105), ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+
+			auto btn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
+				Win32::Styles::Child | Win32::Styles::ButtonPush,
+				d.Scale(175), y, d.Scale(40), ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH_BTN)),
+				hInst, nullptr);
+			Win32::SendMessageW(btn, Win32::Messages::SetFont, font, true);
+		}
+
+		// Items row: read-only label + "Edit..." button (ComboBox/ListBox only).
 		{
 			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Items:",
 				Win32::Styles::Child | Win32::Styles::StaticRight,
@@ -1043,31 +1068,6 @@ namespace Designer
 			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
 			y += rh;
 		}
-
-		// Image path row (Picture only): label + edit + "..." browse button.
-		{
-			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Image:",
-				Win32::Styles::Child | Win32::Styles::StaticRight,
-				pad, y + 2, lw, lh, parent,
-				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH + IDL_OFFSET)),
-				hInst, nullptr);
-			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
-
-			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
-				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
-				ex, y, d.Scale(105), ch, parent,
-				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH)),
-				hInst, nullptr);
-			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
-
-			auto btn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
-				Win32::Styles::Child | Win32::Styles::ButtonPush,
-				d.Scale(175), y, d.Scale(40), ch, parent,
-				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH_BTN)),
-				hInst, nullptr);
-			Win32::SendMessageW(btn, Win32::Messages::SetFont, font, true);
-		}
-		y += rh;
 
 		// Form property rows (visible when no control is selected).
 		PropRow formRows[] = {
@@ -1200,8 +1200,8 @@ namespace Designer
 	}
 
 	auto PropContentCtrl(const DpiInfo& d) -> int {
-		// header(30) + 27 rows*rh(26) + locked/visible(24) + val header+required(22*2) + padding(10)
-		return d.Scale(30) + 27 * d.Scale(26) + d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
+		// header(30) + 26 rows*rh(26) + locked/visible(24) + val header+required(22*2) + padding(10)
+		return d.Scale(30) + 26 * d.Scale(26) + d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
 	}
 	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
