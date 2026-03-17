@@ -216,6 +216,12 @@ export namespace FormDesigner
 				cr & 0xFF, (cr >> 8) & 0xFF, (cr >> 16) & 0xFF);
 		}
 
+		if (!form.visible)
+			j["visible"] = false;
+
+		if (!form.enabled)
+			j["enabled"] = false;
+
 		j["controls"] = nlohmann::json::array();
 		for (auto& control : form.controls)
 			j["controls"].push_back(SerializeControl(control));

@@ -254,6 +254,12 @@ export namespace FormDesigner
 			}
 		}
 
+		if (j.contains("visible"))
+			form.visible = j["visible"].get<bool>();
+
+		if (j.contains("enabled"))
+			form.enabled = j["enabled"].get<bool>();
+
 		if (j.contains("controls"))
 			for (auto& control : j["controls"])
 				form.controls.push_back(ParseControl(control));

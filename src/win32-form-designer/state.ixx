@@ -156,6 +156,10 @@ export namespace Designer
 	// Form data binding property controls.
 	constexpr Win32::UINT IDC_PROP_FORM_BINDSTRUCT = 52014;
 
+	// Form visible/enabled property controls.
+	constexpr Win32::UINT IDC_PROP_FORM_VISIBLE = 52015;
+	constexpr Win32::UINT IDC_PROP_FORM_ENABLED = 52016;
+
 	// Label IDs are offset from the corresponding edit IDs.
 	constexpr Win32::UINT IDL_OFFSET = 10000;
 

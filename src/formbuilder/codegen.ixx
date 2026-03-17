@@ -229,9 +229,9 @@ namespace FormDesigner
 	}
 
 	// Builds a window style expression for the form (e.g. "WS_OVERLAPPEDWINDOW").
-	auto BuildFormStyleExpression(Win32::DWORD style) -> std::string
+	auto BuildFormStyleExpression(Win32::DWORD style, bool enabled = true) -> std::string
 	{
-		if (style == Win32::Styles::OverlappedWindow)
+		if (style == Win32::Styles::OverlappedWindow && enabled)
 			return "WS_OVERLAPPEDWINDOW";
 
 		auto parts = std::vector<std::string>{};
@@ -240,6 +240,8 @@ namespace FormDesigner
 		if (style & Win32::Styles::ThickFrame)  parts.push_back("WS_THICKFRAME");
 		if (style & Win32::Styles::MinimizeBox) parts.push_back("WS_MINIMIZEBOX");
 		if (style & Win32::Styles::MaximizeBox) parts.push_back("WS_MAXIMIZEBOX");
+		if (!enabled)
+			parts.push_back("WS_DISABLED");
 
 		if (parts.empty())
 			return std::format("0x{:X}UL", style);
@@ -723,7 +725,7 @@ export namespace FormDesigner
 		auto richEdit = NeedsRichEdit(form.controls);
 		auto hasTooltips = NeedsTooltips(form.controls);
 		auto className = MakeClassName(form.title);
-		auto formStyleExpr = BuildFormStyleExpression(form.style);
+		auto formStyleExpr = BuildFormStyleExpression(form.style, form.enabled);
 
 		// Check if data binding is needed.
 		auto hasBindings = false;
@@ -1198,8 +1200,15 @@ export namespace FormDesigner
 		out << "        rc.right - rc.left, rc.bottom - rc.top,\n";
 		out << "        NULL, NULL, hInstance, NULL);\n\n";
 
-		out << "    ShowWindow(hwnd, nCmdShow);\n";
-		out << "    UpdateWindow(hwnd);\n\n";
+		if (form.visible)
+		{
+			out << "    ShowWindow(hwnd, nCmdShow);\n";
+			out << "    UpdateWindow(hwnd);\n\n";
+		}
+		else
+		{
+			out << "    // Form starts hidden; call ShowWindow(hwnd, SW_SHOW) when ready.\n\n";
+		}
 
 		out << "    MSG msg;\n";
 		out << "    while (GetMessageW(&msg, NULL, 0, 0))\n";
@@ -1542,6 +1551,10 @@ export namespace FormDesigner
 
 		// STYLE
 		auto style = form.style != 0 ? form.style : 0x90C80080; // WS_OVERLAPPEDWINDOW | DS_SETFONT | WS_POPUP | DS_MODALFRAME
+		if (!form.enabled)
+			style |= 0x08000000; // WS_DISABLED
+		if (!form.visible)
+			style &= ~0x10000000; // Remove WS_VISIBLE if present
 		out << "STYLE " << std::format("0x{:08X}", style | 0x40) << "\n"; // Ensure DS_SETFONT
 
 		if (form.exStyle != 0)

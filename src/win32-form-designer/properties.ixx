@@ -383,6 +383,14 @@ namespace Designer
 		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_FONT_LABEL,
 			FormFontDisplayString(state.form.font).c_str());
 
+		// Form visible/enabled checkboxes.
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_FORM_VISIBLE),
+			Win32::Button::SetCheck,
+			state.form.visible ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_FORM_ENABLED),
+			Win32::Button::SetCheck,
+			state.form.enabled ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
 		// Data binding struct name.
 		{
 			auto bindW = std::wstring(state.form.bindStruct.begin(), state.form.bindStruct.end());
@@ -1391,6 +1399,25 @@ namespace Designer
 			y += ch;
 		}
 
+		// Form visible/enabled checkboxes.
+		{
+			auto chkVisible = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Visible",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::AutoCheckBox,
+				d.Scale(15), y, d.Scale(200), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_VISIBLE)),
+				hInst, nullptr);
+			Win32::SendMessageW(chkVisible, Win32::Messages::SetFont, font, true);
+			y += ch;
+
+			auto chkEnabled = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Enabled",
+				Win32::Styles::Child | Win32::Styles::Visible | Win32::Styles::AutoCheckBox,
+				d.Scale(15), y, d.Scale(200), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_FORM_ENABLED)),
+				hInst, nullptr);
+			Win32::SendMessageW(chkEnabled, Win32::Messages::SetFont, font, true);
+			y += ch;
+		}
+
 		// Form font row: label + "..." button + "Clear" button.
 		y += d.Scale(8);
 		{
@@ -1476,7 +1503,7 @@ namespace Designer
 		// header(30) + 31 rows*rh(26) + locked/visible(24) + enabled(24) + tabstop/group(24) + val header+required(22*2) + padding(10)
 		return d.Scale(30) + 31 * d.Scale(26) + 3 * d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
 	}
-	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(26) + d.Scale(10); }
+	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 7 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
 
 	void UpdateScrollRange(DesignState& state)
@@ -1778,6 +1805,28 @@ namespace Designer
 						break;
 					}
 				}
+				MarkDirty(*state);
+				return 0;
+			}
+
+			// Form visible checkbox.
+			if (id == IDC_PROP_FORM_VISIBLE && code == Win32::Notifications::ButtonClicked)
+			{
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_FORM_VISIBLE);
+				state->form.visible = Win32::SendMessageW(chk,
+					Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+				MarkDirty(*state);
+				return 0;
+			}
+
+			// Form enabled checkbox.
+			if (id == IDC_PROP_FORM_ENABLED && code == Win32::Notifications::ButtonClicked)
+			{
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_FORM_ENABLED);
+				state->form.enabled = Win32::SendMessageW(chk,
+					Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
 				MarkDirty(*state);
 				return 0;
 			}

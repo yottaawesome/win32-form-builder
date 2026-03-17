@@ -235,6 +235,8 @@ export namespace FormDesigner
 		Win32::DWORD style = Win32::Styles::OverlappedWindow;
 		Win32::DWORD exStyle = 0;
 		int backgroundColor = -1; // -1 = system default; otherwise COLORREF
+		bool visible = true;   // Whether the form starts visible (ShowWindow on creation).
+		bool enabled = true;   // Whether the form starts enabled (not WS_DISABLED).
 		FontInfo font;
 		std::string bindStruct; // Data binding: C++ struct name for PopulateForm/ReadForm.
 		std::vector<Control> controls;

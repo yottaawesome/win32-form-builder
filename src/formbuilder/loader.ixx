@@ -513,8 +513,14 @@ export namespace FormDesigner
 
 		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 
-		Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);
-		Win32::UpdateWindow(hwnd);
+		if (!form.enabled)
+			Win32::EnableWindow(hwnd, false);
+
+		if (form.visible)
+		{
+			Win32::ShowWindow(hwnd, Win32::Sw_ShowDefault);
+			Win32::UpdateWindow(hwnd);
+		}
 
 		return hwnd;
 	}
