@@ -255,6 +255,8 @@ export namespace FormDesigner
 				if (auto* handler = data->events->findClickHandler(controlId))
 				{
 					(*handler)({ controlId, controlHwnd, hwnd });
+					// Handler may have destroyed this window (e.g. EndModal, DestroyWindow).
+					if (!Win32::IsWindow(hwnd)) return 0;
 				}
 				// onCheck: query check state after BN_CLICKED on checkable controls
 				if (auto* handler = data->events->findCheckHandler(controlId))
