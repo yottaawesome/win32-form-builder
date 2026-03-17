@@ -21,7 +21,9 @@ Unit tests for the [formbuilder](../formbuilder/README.md) library using [Catch2
 | `test_disabled.cpp` | 12 | Enabled/disabled property — schema defaults, round-trip, codegen WS_DISABLED, RC style flags |
 | `test_accessibility.cpp` | 32 | Accessibility — tabStop, groupStart, accessibleName/Description, round-trip, codegen, RC styles, 7 audit rules |
 | `test_value.cpp` | 18 | Value property — ProgressBar/TrackBar/UpDown, round-trip, codegen PBM/TBM/UDM messages, range emit |
-| **Total** | **296 + 45 designer** | **955 assertions across 341 test cases** |
+| `test_form_visible_enabled.cpp` | 18 | Form-level visible/enabled — schema defaults, round-trip, codegen WS_DISABLED/ShowWindow, RC/loader |
+| `test_controls.cpp` | 35 | Typed control wrappers — compile-time type traits, FormWindow access, live TextBox/CheckBox/RadioButton/ComboBox/ListBox/ProgressBar/TrackBar/UpDown operations |
+| **Total** | **349 + 45 designer** | **1039 assertions across 394 test cases** |
 
 ## Running
 

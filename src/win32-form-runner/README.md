@@ -49,6 +49,23 @@ auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
 
 Event handlers are registered by control ID. The `sample-form.json` ships with two buttons wired up: **Submit** (ID 301) shows a message box and **Cancel** (ID 302) closes the window.
 
+### Example: Using Typed Control Wrappers
+
+Wrap the returned HWND in a `FormWindow` for ergonomic, type-safe control access:
+
+```cpp
+auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
+auto window = FormDesigner::FormWindow{hwnd};
+
+auto nameBox = window.GetTextBox(101);
+auto name = nameBox.GetText();
+
+auto agree = window.GetCheckBox(103);
+if (agree.IsChecked()) { /* ... */ }
+
+window.SetTitle(L"Updated Title");
+```
+
 ## Sample Form
 
 The included `sample-form.json` demonstrates:

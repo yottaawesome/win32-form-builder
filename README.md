@@ -18,10 +18,10 @@ This project has been pretty much written by Copilot with Claude Opus 4.6, with 
 
 | Project | Type | Description |
 |---------|------|-------------|
-| [formbuilder](src/formbuilder/README.md) | Static library | Core data model, JSON parser/serializer, runtime loader, C++ code generator, RC export, accessibility audit |
+| [formbuilder](src/formbuilder/README.md) | Static library | Core data model, JSON parser/serializer, runtime loader, C++ code generator, RC export, accessibility audit, typed control wrappers |
 | [win32-form-designer](src/win32-form-designer/README.md) | Application | Visual drag-and-drop form designer with toolbox, property editor, alignment tools, templates, and canvas |
 | [win32-form-runner](src/win32-form-runner/README.md) | Application | Lightweight runtime that loads and displays JSON forms with DPI awareness |
-| [tests](src/tests/README.md) | Console app | 341 unit tests (955 assertions) using Catch2 |
+| [tests](src/tests/README.md) | Console app | 394 unit tests (1039 assertions) using Catch2 |
 
 ## Quick Start
 
@@ -79,6 +79,12 @@ src\x64\Debug\tests.exe
 - Control grouping (Ctrl+G) and locking
 - Tab order editor with visual click-to-assign badges
 - Z-Order panel with multi-select, inline rename, delete, keyboard shortcuts
+
+### Typed Control Wrappers
+- **Zero-overhead** non-owning HWND wrappers for improved developer ergonomics
+- **`FormWindow`**: wraps the form HWND with `Get<T>(id)` template access to child controls
+- **12 typed wrappers**: Button, TextBox, CheckBox, RadioButton, Label, ComboBox, ListBox, ProgressBar, TrackBar, UpDown, DateTimePicker, RichEdit — each with type-specific methods
+- **`ControlBase`**: common API for all controls — GetText, SetText, Show, Hide, Enable, Disable, Focus, IsVisible, IsEnabled
 
 ### Export & File
 - **Export to C++**: standalone Win32 apps (classic or C++20 module style) with event stubs, data binding helpers, and DPI scaling

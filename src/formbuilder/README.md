@@ -13,6 +13,7 @@ The formbuilder library provides the core data model and operations used by both
 - **Generate .rc dialog resources** — exports Win32 dialog templates with pixel-to-DLU conversion and `resource.h` header
 - **Accessibility audit** — checks forms for 7 common accessibility issues (missing labels, access keys, tab stops, etc.)
 - **Event routing** — type-safe event dispatch (click, change, focus, blur, check, double-click, selection change)
+- **Typed control wrappers** — zero-overhead `FormWindow` and 12 typed HWND wrappers (Button, TextBox, CheckBox, etc.) for ergonomic control access after `LoadForm()`
 
 ## Module Partitions
 
@@ -29,6 +30,7 @@ The library is a single C++20 module (`formbuilder`) split into partitions:
 | `:codegen` | `codegen.ixx` | `GenerateCode(Form, useModules)` → standalone C++ source; `GenerateRcDialog(Form)` and `GenerateRcHeader(Form)` → `.rc` / `.h` files |
 | `:loader` | `loader.ixx` | `LoadForm()`, `LoadFormFromFile()` — creates Win32 windows at runtime with anchor-based resize, DPI scaling, range/value initialization |
 | `:accessibility` | `accessibility.ixx` | `CheckAccessibility(Form)` — 7-rule audit returning warnings/errors |
+| `:controls` | `controls.ixx` | `ControlBase`, 12 typed wrappers (`Button`, `TextBox`, `CheckBox`, etc.), `FormWindow` — non-owning HWND wrappers |
 
 The facade (`formbuilder.ixx`) re-exports all partitions.
 
@@ -50,6 +52,54 @@ events.onClick(101, [](const FormDesigner::ClickEvent& e) { /* ... */ });
 auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
 FormDesigner::RunMessageLoop();
 ```
+
+### Typed Control Wrappers
+
+After `LoadForm()`, wrap the returned HWND in a `FormWindow` to access controls with type-safe wrappers instead of raw Win32 API calls:
+
+```cpp
+auto window = FormDesigner::FormWindow{hwnd};
+
+// Get typed wrappers by control ID
+auto nameBox  = window.GetTextBox(101);
+auto okButton = window.GetButton(102);
+auto agree    = window.GetCheckBox(103);
+auto items    = window.GetComboBox(104);
+
+// Type-specific methods
+nameBox.SetText(L"Hello");
+auto name = nameBox.GetText();       // std::wstring
+auto len  = nameBox.GetTextLength(); // int
+
+agree.Toggle();
+if (agree.IsChecked()) { /* ... */ }
+
+items.AddItem(L"Option A");
+items.SetSelectedIndex(0);
+auto count = items.GetCount();
+
+// Common methods on all controls (via ControlBase)
+okButton.Enable();
+okButton.Disable();
+okButton.Show();
+okButton.Hide();
+okButton.Focus();
+auto visible = okButton.IsVisible();  // bool
+
+// Form-level operations
+window.SetTitle(L"New Title");
+window.Close();
+```
+
+All wrappers are **non-owning** (just an HWND, freely copyable, zero overhead). The `Get<T>(id)` template is constrained to types derived from `ControlBase`:
+
+```cpp
+auto ctrl = window.Get<FormDesigner::ProgressBar>(105);
+ctrl.SetRange(0, 100);
+ctrl.SetValue(42);
+```
+
+Available wrappers: `Button`, `Label`, `TextBox`, `RichEdit`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `ProgressBar`, `TrackBar`, `UpDown`, `DateTimePicker`.
 
 ### Parsing and Serializing
 ```cpp
@@ -163,4 +213,6 @@ Forms are described as JSON objects. See `sample-form.json` in the runner projec
 | `style` | int | | Win32 window style flags |
 | `bindStruct` | string | `""` | Data binding: C++ struct name for codegen |
 | `font` | object | | Default form font `{ "family", "size", "bold", "italic" }` |
+| `visible` | bool | `true` | Whether form is shown on load (WS_VISIBLE) |
+| `enabled` | bool | `true` | Whether form is enabled (WS_DISABLED when false) |
 | `guides` | array | `[]` | Designer guide lines `{ "horizontal", "position" }` |
