@@ -143,6 +143,9 @@ export namespace FormDesigner
 			j["validation"] = vj;
 		}
 
+		if (!control.imagePath.empty())
+			j["imagePath"] = std::string(control.imagePath.begin(), control.imagePath.end());
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

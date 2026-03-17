@@ -574,6 +574,30 @@ namespace FormDesigner
 				}
 			}
 
+			// Emit image loading for Picture controls.
+			if (ctrl.type == ControlType::Picture && !ctrl.imagePath.empty())
+			{
+				auto imgType = ImageTypeFromPath(ctrl.imagePath);
+				if (imgType > 0)
+				{
+					auto pathLiteral = std::format("L\"{}\"",
+						std::string(ctrl.imagePath.begin(), ctrl.imagePath.end()));
+					auto imageTypeName = (imgType == 1) ? "IMAGE_BITMAP" : "IMAGE_ICON";
+					auto styleName = (imgType == 1) ? "SS_BITMAP" : "SS_ICON";
+					out << indent << "{\n";
+					out << indent << "    HANDLE hImg = LoadImageW(NULL, " << pathLiteral
+						<< ", " << imageTypeName << ", 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);\n";
+					out << indent << "    if (hImg) {\n";
+					out << indent << "        LONG_PTR style = GetWindowLongPtrW(" << varName << ", GWL_STYLE);\n";
+					out << indent << "        style = (style & ~SS_ETCHEDFRAME) | " << styleName << " | SS_CENTERIMAGE;\n";
+					out << indent << "        SetWindowLongPtrW(" << varName << ", GWL_STYLE, style);\n";
+					out << indent << "        SendMessageW(" << varName << ", STM_SETIMAGE, "
+						<< imageTypeName << ", (LPARAM)hImg);\n";
+					out << indent << "    }\n";
+					out << indent << "}\n";
+				}
+			}
+
 			if (!ctrl.children.empty())
 			{
 				out << "\n";
@@ -1160,6 +1184,13 @@ export namespace FormDesigner
 	void EmitRcControl(std::ostringstream& out, const Control& ctrl,
 		const DluMetrics& metrics)
 	{
+		// Emit image path comment for Picture controls.
+		if (ctrl.type == ControlType::Picture && !ctrl.imagePath.empty())
+		{
+			auto narrow = std::string(ctrl.imagePath.begin(), ctrl.imagePath.end());
+			out << "    // Image: " << narrow << "\n";
+		}
+
 		int x = PixelToDluX(ctrl.rect.x, metrics);
 		int y = PixelToDluY(ctrl.rect.y, metrics);
 		int w = PixelToDluX(ctrl.rect.width, metrics);

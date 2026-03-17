@@ -108,6 +108,35 @@ namespace Designer
 		Win32::DeleteObject(hatch);
 	}
 
+	export void DrawPicturePlaceholders(const DesignState& state, Win32::HDC hdc)
+	{
+		int offset = RulerOffset(state);
+		int oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+		auto oldColor = Win32::SetTextColor(hdc, Win32::MakeRgb(128, 128, 128));
+		auto font = Win32::CreateFontW(
+			state.dpiInfo.Scale(14), 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, L"Segoe UI");
+		auto oldFont = Win32::SelectObject(hdc, font);
+
+		for (auto& entry : state.entries)
+		{
+			if (entry.control->type != FormDesigner::ControlType::Picture) continue;
+			if (entry.control->imagePath.empty())
+			{
+				auto& r = entry.control->rect;
+				Win32::RECT rc = { r.x + offset, r.y + offset,
+					r.x + offset + r.width, r.y + offset + r.height };
+				Win32::DrawTextW(hdc, L"[Picture]", -1, &rc,
+					Win32::DrawTextFlags::Center | Win32::DrawTextFlags::VCenter
+					| Win32::DrawTextFlags::SingleLine);
+			}
+		}
+
+		Win32::SelectObject(hdc, oldFont);
+		Win32::DeleteObject(font);
+		Win32::SetTextColor(hdc, oldColor);
+		Win32::SetBkMode(hdc, oldMode);
+	}
+
 	// Paints ruler contents into a memory DC (called by DrawRulers).
 	void PaintRulersToBuffer(const DesignState& state, Win32::HDC memDC, int canvasW, int canvasH)
 	{

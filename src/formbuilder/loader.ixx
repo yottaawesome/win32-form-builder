@@ -14,7 +14,8 @@ export namespace FormDesigner
 		const FontInfo& formFont,
 		std::vector<Win32::HFONT>& createdFonts,
 		int dpi,
-		Win32::HWND hTooltips = nullptr)
+		Win32::HWND hTooltips = nullptr,
+		const std::wstring& formBasePath = L"")
 	{
 		for (auto& control : controls)
 		{
@@ -101,8 +102,39 @@ export namespace FormDesigner
 				}
 			}
 
+			// Load image for Picture controls.
+			if (control.type == ControlType::Picture && !control.imagePath.empty())
+			{
+				auto imgType = ImageTypeFromPath(control.imagePath);
+				if (imgType > 0)
+				{
+					// Resolve relative path against form base directory.
+					auto fullPath = control.imagePath;
+					if (!formBasePath.empty() && control.imagePath.size() > 1
+						&& control.imagePath[1] != L':' && control.imagePath[0] != L'\\')
+						fullPath = formBasePath + L"\\" + control.imagePath;
+
+					auto winType = (imgType == 1) ? Win32::ImageBitmap : Win32::ImageIcon;
+					auto flags = Win32::LoadFromFile | Win32::LoadDefaultSize;
+					auto hImg = Win32::LoadImageW(nullptr, fullPath.c_str(),
+						static_cast<Win32::UINT>(winType), 0, 0, flags);
+					if (hImg)
+					{
+						// Switch style from SS_ETCHEDFRAME to SS_BITMAP/SS_ICON.
+						auto curStyle = static_cast<Win32::DWORD>(Win32::GetWindowLongPtrW(hwnd, Win32::Gwl_Style));
+						curStyle &= ~Win32::Styles::StaticEtchedFrame;
+						curStyle |= (imgType == 1) ? Win32::Styles::StaticBitmap : Win32::Styles::StaticIcon;
+						curStyle |= Win32::Styles::StaticCenterImage;
+						Win32::SetWindowLongPtrW(hwnd, Win32::Gwl_Style, curStyle);
+						Win32::SendMessageW(hwnd, Win32::StaticMessages::SetImage,
+							static_cast<Win32::WPARAM>(winType),
+							reinterpret_cast<Win32::LPARAM>(hImg));
+					}
+				}
+			}
+
 			if (not control.children.empty())
-				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, dpi, hTooltips);
+				CreateChildren(hwnd, hInstance, control.children, formFont, createdFonts, dpi, hTooltips, formBasePath);
 		}
 	}
 
@@ -347,8 +379,10 @@ export namespace FormDesigner
 	}
 
 	// Creates and shows a top-level window from a Form definition.
+	// formBasePath is the directory containing the form file, used for resolving relative image paths.
 	// Returns the HWND of the created window, or nullptr on failure.
-	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events) -> Win32::HWND
+	auto LoadForm(const Form& form, Win32::HINSTANCE hInstance, const EventMap& events,
+		const std::wstring& formBasePath = L"") -> Win32::HWND
 	{
 		static constexpr auto ClassName = L"FormDesignerWindow";
 		static auto registered = false;
@@ -429,7 +463,7 @@ export namespace FormDesigner
 			windowData->hTooltips = CreateTooltipWindow(hwnd, hInstance);
 
 		CreateChildren(hwnd, hInstance, form.controls, form.font, windowData->createdFonts,
-			static_cast<int>(dpi), windowData->hTooltips);
+			static_cast<int>(dpi), windowData->hTooltips, formBasePath);
 
 		Win32::SetWindowLongPtrW(hwnd, Win32::Gwlp_UserData, reinterpret_cast<Win32::LONG_PTR>(windowData));
 

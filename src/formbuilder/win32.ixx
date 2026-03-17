@@ -62,7 +62,8 @@ export namespace Win32
 		::TTTOOLINFOW,
 		::TBBUTTON,
 		::NMTBGETINFOTIPW,
-		::WINDOWPLACEMENT
+		::WINDOWPLACEMENT,
+		::HANDLE
 		;
 
 	// ===================================================================
@@ -197,6 +198,7 @@ export namespace Win32
 		::GetSysColor,
 		::EnumChildWindows,
 		::GetModuleFileNameW,
+		::LoadImageW,
 
 		// DPI awareness.
 		::SetProcessDpiAwarenessContext,
@@ -270,6 +272,9 @@ export namespace Win32
 		constexpr auto StaticRight       = SS_RIGHT;
 		constexpr auto StaticEtchedFrame = SS_ETCHEDFRAME;
 		constexpr auto StaticEtchedHorz  = SS_ETCHEDHORZ;
+		constexpr auto StaticBitmap      = SS_BITMAP;
+		constexpr auto StaticIcon        = SS_ICON;
+		constexpr auto StaticCenterImage = SS_CENTERIMAGE;
 
 		// ListBox / ComboBox styles.
 		constexpr auto ListBoxStandard          = LBS_STANDARD;
@@ -563,6 +568,20 @@ export namespace Win32
 	constexpr auto HatchBDiagonal = HS_BDIAGONAL;
 
 	// ===================================================================
+	// Image constants
+	// ===================================================================
+
+	constexpr auto ImageBitmap     = IMAGE_BITMAP;
+	constexpr auto ImageIcon       = IMAGE_ICON;
+	constexpr auto LoadFromFile    = LR_LOADFROMFILE;
+	constexpr auto LoadDefaultSize = LR_DEFAULTSIZE;
+
+	namespace StaticMessages
+	{
+		constexpr auto SetImage = STM_SETIMAGE;
+	}
+
+	// ===================================================================
 	// Dialog constants
 	// ===================================================================
 
@@ -703,6 +722,7 @@ export namespace Win32
 	// ===================================================================
 
 	constexpr auto Gwlp_UserData     = GWLP_USERDATA;
+	constexpr auto Gwl_Style         = GWL_STYLE;
 	constexpr auto GclpHbrBackground = GCLP_HBRBACKGROUND;
 	constexpr auto Cw_UseDefault     = CW_USEDEFAULT;
 	constexpr auto DefaultGuiFont    = DEFAULT_GUI_FONT;

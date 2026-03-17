@@ -107,6 +107,10 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_VAL_MIN      = 51031;
 	constexpr Win32::UINT IDC_PROP_VAL_MAX      = 51032;
 
+	// Image path property controls (Picture only).
+	constexpr Win32::UINT IDC_PROP_IMAGEPATH     = 51033;
+	constexpr Win32::UINT IDC_PROP_IMAGEPATH_BTN = 51034;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;

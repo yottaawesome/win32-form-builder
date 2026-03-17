@@ -175,6 +175,12 @@ export namespace FormDesigner
 				control.validation.max = vj["max"].get<int>();
 		}
 
+		if (j.contains("imagePath"))
+		{
+			auto narrow = j["imagePath"].get<std::string>();
+			control.imagePath = std::wstring(narrow.begin(), narrow.end());
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

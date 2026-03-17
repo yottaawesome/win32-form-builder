@@ -141,6 +141,12 @@ namespace Designer
 		showId(IDC_PROP_VAL_PATTERN, showTextVal);
 		showId(IDC_PROP_VAL_MIN, showRangeVal);
 		showId(IDC_PROP_VAL_MAX, showRangeVal);
+
+		// Image path controls — visible only for Picture type.
+		bool showImage = hasSel && ctype == FormDesigner::ControlType::Picture;
+		showId(IDC_PROP_IMAGEPATH, showImage);
+		auto imgBtn = Win32::GetDlgItem(panel, IDC_PROP_IMAGEPATH_BTN);
+		if (imgBtn) Win32::ShowWindow(imgBtn, showImage ? Win32::Sw_Show : Win32::Sw_Hide);
 	}
 
 	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
@@ -230,13 +236,16 @@ namespace Designer
 		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MIN, ctrl.validation.min, true);
 		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MAX, ctrl.validation.max, true);
 
+		// Image path field (Picture only).
+		Win32::SetDlgItemTextW(panel, IDC_PROP_IMAGEPATH, ctrl.imagePath.c_str());
+
 		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
 			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX,
 			IDC_PROP_VAL_MINLEN, IDC_PROP_VAL_MAXLEN, IDC_PROP_VAL_PATTERN,
-			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX };
+			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_IMAGEPATH };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
 	}
@@ -596,6 +605,17 @@ namespace Designer
 			Win32::BOOL ok = false;
 			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VAL_MAX, &ok, true));
 			if (ok) ctrl.validation.max = val;
+			break;
+		}
+		case IDC_PROP_IMAGEPATH:
+		{
+			wchar_t buf[Win32::MaxPath] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_IMAGEPATH, buf, Win32::MaxPath);
+			ctrl.imagePath = buf;
+			// Update designer preview text.
+			Win32::SetWindowTextW(entry.hwnd,
+				ctrl.imagePath.empty() ? L"[Picture]" : ctrl.imagePath.c_str());
+			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
 			break;
 		}
 		default:
@@ -1024,6 +1044,31 @@ namespace Designer
 			y += rh;
 		}
 
+		// Image path row (Picture only): label + edit + "..." browse button.
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"Image:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, d.Scale(105), ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+
+			auto btn = Win32::CreateWindowExW(0, L"BUTTON", L"...",
+				Win32::Styles::Child | Win32::Styles::ButtonPush,
+				d.Scale(175), y, d.Scale(40), ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_IMAGEPATH_BTN)),
+				hInst, nullptr);
+			Win32::SendMessageW(btn, Win32::Messages::SetFont, font, true);
+		}
+		y += rh;
+
 		// Form property rows (visible when no control is selected).
 		PropRow formRows[] = {
 			{ L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -1132,6 +1177,7 @@ namespace Designer
 				{ IDC_PROP_FONT_BTN,          L"Choose control font" },
 				{ IDC_PROP_FONT_CLEAR,        L"Clear custom font (use inherited)" },
 				{ IDC_PROP_ITEMS_BTN,         L"Edit items (one per line)" },
+				{ IDC_PROP_IMAGEPATH_BTN,     L"Browse for image file (BMP/ICO)" },
 				{ IDC_PROP_FORM_BGCOLOR_BTN,  L"Choose background color" },
 				{ IDC_PROP_FORM_FONT_BTN,     L"Choose form font" },
 				{ IDC_PROP_FORM_FONT_CLEAR,   L"Clear form font (use default)" },
@@ -1510,14 +1556,57 @@ namespace Designer
 				return 0;
 			}
 
+			// Image path "..." browse button.
+			if (id == IDC_PROP_IMAGEPATH_BTN && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+
+				wchar_t fileBuf[Win32::MaxPath] = {};
+				Win32::OPENFILENAMEW ofn = {};
+				ofn.lStructSize = sizeof(Win32::OPENFILENAMEW);
+				ofn.hwndOwner = state->surfaceHwnd;
+				ofn.lpstrFilter = L"Images (*.bmp;*.ico)\0*.bmp;*.ico\0Bitmaps (*.bmp)\0*.bmp\0Icons (*.ico)\0*.ico\0All Files (*.*)\0*.*\0";
+				ofn.lpstrFile = fileBuf;
+				ofn.nMaxFile = Win32::MaxPath;
+				ofn.Flags = Win32::FileDialog::FileMustExist | Win32::FileDialog::PathMustExist;
+
+				if (Win32::GetOpenFileNameW(&ofn))
+				{
+					PushUndo(*state);
+					// Make path relative to form file if possible.
+					auto fullPath = std::wstring(fileBuf);
+					if (!state->currentFile.empty())
+					{
+						auto formDir = state->currentFile.parent_path().wstring();
+						if (!formDir.empty())
+						{
+							auto dirPrefix = formDir + L"\\";
+							if (fullPath.size() > dirPrefix.size()
+								&& fullPath.substr(0, dirPrefix.size()) == dirPrefix)
+								fullPath = fullPath.substr(dirPrefix.size());
+						}
+					}
+					state->entries[sel].control->imagePath = fullPath;
+					// Update designer preview text.
+					Win32::SetWindowTextW(state->entries[sel].hwnd,
+						fullPath.empty() ? L"[Picture]" : fullPath.c_str());
+					Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+					UpdatePropertyPanel(*state);
+					MarkDirty(*state);
+				}
+				return 0;
+			}
+
 			// Property edits (validate then apply on focus loss).
 			if (code == Win32::Notifications::EditKillFocus)
 			{
 				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
 					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX;
 				bool isValProp = (id >= IDC_PROP_VAL_MINLEN && id <= IDC_PROP_VAL_MAX);
+				bool isImageProp = (id == IDC_PROP_IMAGEPATH);
 				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR);
-				if (isCtrlProp || isValProp || isFormProp)
+				if (isCtrlProp || isValProp || isImageProp || isFormProp)
 					ValidateAndApply(*state, hwnd, id, isFormProp);
 				return 0;
 			}

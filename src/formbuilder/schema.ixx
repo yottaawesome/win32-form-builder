@@ -162,8 +162,21 @@ export namespace FormDesigner
 		std::vector<std::wstring> items;
 		int selectedIndex = -1;
 		ValidationInfo validation;
+		std::wstring imagePath; // For Picture controls: relative path to BMP/ICO file.
 		std::vector<Control> children;
 	};
+
+	// Returns 0 for unknown, 1 for BMP (IMAGE_BITMAP), 2 for ICO (IMAGE_ICON).
+	inline auto ImageTypeFromPath(const std::wstring& path) noexcept -> int
+	{
+		if (path.size() < 4) return 0;
+		auto ext = path.substr(path.size() - 4);
+		// Case-insensitive comparison.
+		for (auto& c : ext) c = (c >= L'A' && c <= L'Z') ? (c + 32) : c;
+		if (ext == L".bmp") return 1;
+		if (ext == L".ico") return 2;
+		return 0;
+	}
 
 	// A designer guide line (persisted with the form).
 	struct DesignerGuide

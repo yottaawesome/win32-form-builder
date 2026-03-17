@@ -31,6 +31,15 @@ try
 
 	auto form = FormDesigner::LoadFormFromFile(path);
 
+	// Extract directory from form file path for resolving relative image paths.
+	auto formBasePath = std::wstring{};
+	{
+		auto wpath = std::wstring(path);
+		auto sep = wpath.find_last_of(L"\\/");
+		if (sep != std::wstring::npos)
+			formBasePath = wpath.substr(0, sep);
+	}
+
 	auto events = FormDesigner::EventMap{};
 	events.onClick(301, [](const FormDesigner::ClickEvent& e) {
 		Win32::MessageBoxW(e.formHwnd, L"Form submitted!", L"Submit", Win32::Mb_Ok | Win32::Mb_IconInformation);
@@ -39,7 +48,7 @@ try
 		Win32::DestroyWindow(e.formHwnd);
 	});
 
-	auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
+	auto hwnd = FormDesigner::LoadForm(form, hInstance, events, formBasePath);
 	if (not hwnd)
 		return 1;
 
