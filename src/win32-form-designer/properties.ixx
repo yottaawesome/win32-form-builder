@@ -362,7 +362,7 @@ namespace Designer
 		Win32::SetDlgItemInt(panel, IDC_PROP_FORM_WIDTH, state.form.width, false);
 		Win32::SetDlgItemInt(panel, IDC_PROP_FORM_HEIGHT, state.form.height, false);
 		Win32::SetDlgItemTextW(panel, IDC_PROP_FORM_BGCOLOR,
-			ColorRefToHex(state.form.backgroundColor).c_str());
+			ColorRefToHexW(state.form.backgroundColor).c_str());
 
 		struct StyleBit { Win32::UINT id; Win32::DWORD flag; };
 		StyleBit bits[] = {
@@ -808,7 +808,7 @@ namespace Designer
 			wchar_t buf[16] = {};
 			Win32::GetDlgItemTextW(panel, IDC_PROP_FORM_BGCOLOR, buf, 16);
 			auto hex = std::wstring(buf);
-			state.form.backgroundColor = hex.empty() ? -1 : HexToColorRef(hex);
+			state.form.backgroundColor = hex.empty() ? -1 : HexToColorRefW(hex);
 			Win32::InvalidateRect(state.canvasHwnd, nullptr, true);
 			break;
 		}

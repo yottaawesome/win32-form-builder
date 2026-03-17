@@ -199,25 +199,16 @@ namespace Designer
 		}
 	}
 
-	export auto ColorRefToHex(int colorRef) -> std::wstring
+	export auto ColorRefToHexW(int colorRef) -> std::wstring
 	{
 		if (colorRef == -1) return {};
-		auto cr = static_cast<unsigned int>(colorRef);
-		auto r = cr & 0xFF;
-		auto g = (cr >> 8) & 0xFF;
-		auto b = (cr >> 16) & 0xFF;
-		auto s = std::format("#{:02X}{:02X}{:02X}", r, g, b);
-		return std::wstring(s.begin(), s.end());
+		return FormDesigner::ToWide(FormDesigner::ColorRefToHex(colorRef));
 	}
 
-	export auto HexToColorRef(const std::wstring& hex) -> int
+	export auto HexToColorRefW(const std::wstring& hex) -> int
 	{
 		if (hex.size() != 7 || hex[0] != L'#') return -1;
-		auto s = std::string(hex.begin(), hex.end());
-		unsigned int r = std::stoul(s.substr(1, 2), nullptr, 16);
-		unsigned int g = std::stoul(s.substr(3, 2), nullptr, 16);
-		unsigned int b = std::stoul(s.substr(5, 2), nullptr, 16);
-		return static_cast<int>(r | (g << 8) | (b << 16));
+		return FormDesigner::HexToColorRef(FormDesigner::ToNarrow(hex));
 	}
 
 	export auto NextControlId(const DesignState& state) -> int

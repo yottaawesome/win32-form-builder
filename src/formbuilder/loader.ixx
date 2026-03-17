@@ -59,7 +59,7 @@ export namespace FormDesigner
 			if (not hwnd)
 			{
 				std::println(std::cerr, "Failed to create control '{}': error {}",
-					std::string(control.text.begin(), control.text.end()),
+					ToNarrow(control.text),
 					Win32::GetLastError());
 				continue;
 			}
@@ -196,7 +196,7 @@ export namespace FormDesigner
 			parent, nullptr, hInstance, nullptr);
 
 		if (hTooltips)
-			Win32::SendMessageW(hTooltips, Win32::TooltipMessages::SetMaxTipWidth, 0, 300);
+			Win32::SendMessageW(hTooltips, Win32::TooltipMessages::SetMaxTipWidth, 0, DefaultTooltipWidth);
 
 		return hTooltips;
 	}
@@ -528,7 +528,7 @@ export namespace FormDesigner
 			// For modal windows, closing via X button or Escape returns Cancel.
 			if (data && data->isModal)
 			{
-				data->dialogResult = 2; // DialogResult::Cancel
+				data->dialogResult = static_cast<int>(DialogResult::Cancel);
 				Win32::DestroyWindow(hwnd);
 				return 0;
 			}

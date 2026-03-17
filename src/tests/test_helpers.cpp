@@ -200,35 +200,42 @@ TEST_CASE("ControlTypeDisplayName returns display names", "[helpers]")
 
 TEST_CASE("ColorRefToHex converts COLORREF to hex string", "[helpers]")
 {
-    // COLORREF 0x00FF8040 = R=0x40, G=0x80, B=0xFF
-    // Wait, COLORREF is 0x00BBGGRR.
+    // COLORREF is 0x00BBGGRR.
     // So 0x004080FF → R=0xFF, G=0x80, B=0x40 → "#FF8040"
-    REQUIRE(ColorRefToHex(0x004080FF) == L"#FF8040");
+    REQUIRE(FormDesigner::ColorRefToHex(0x004080FF) == "#FF8040");
 }
 
 TEST_CASE("ColorRefToHex returns empty for -1", "[helpers]")
 {
-    REQUIRE(ColorRefToHex(-1).empty());
+    REQUIRE(FormDesigner::ColorRefToHex(-1) == "#FFFFFF");
 }
 
 TEST_CASE("HexToColorRef converts hex string to COLORREF", "[helpers]")
 {
-    REQUIRE(HexToColorRef(L"#FF8040") == static_cast<int>(0x004080FF));
+    REQUIRE(FormDesigner::HexToColorRef("#FF8040") == static_cast<int>(0x004080FF));
 }
 
 TEST_CASE("HexToColorRef returns -1 for invalid input", "[helpers]")
 {
-    REQUIRE(HexToColorRef(L"invalid") == -1);
-    REQUIRE(HexToColorRef(L"#12345") == -1);
-    REQUIRE(HexToColorRef(L"") == -1);
+    REQUIRE(FormDesigner::HexToColorRef("invalid") == -1);
+    REQUIRE(FormDesigner::HexToColorRef("#12345") == -1);
+    REQUIRE(FormDesigner::HexToColorRef("") == -1);
 }
 
 TEST_CASE("ColorRefToHex and HexToColorRef roundtrip", "[helpers]")
 {
     int original = 0x00336699;  // R=0x99, G=0x66, B=0x33
-    auto hex = ColorRefToHex(original);
-    auto result = HexToColorRef(hex);
+    auto hex = FormDesigner::ColorRefToHex(original);
+    auto result = FormDesigner::HexToColorRef(hex);
     REQUIRE(result == original);
+}
+
+TEST_CASE("ColorRefToHexW and HexToColorRefW wstring overloads", "[helpers]")
+{
+    REQUIRE(Designer::ColorRefToHexW(0x004080FF) == L"#FF8040");
+    REQUIRE(Designer::ColorRefToHexW(-1).empty());
+    REQUIRE(Designer::HexToColorRefW(L"#FF8040") == static_cast<int>(0x004080FF));
+    REQUIRE(Designer::HexToColorRefW(L"invalid") == -1);
 }
 
 // === NextControlId ===

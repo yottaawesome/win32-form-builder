@@ -303,6 +303,75 @@ export namespace FormDesigner
 		}
 	}
 
+	// Converts a wide string to a narrow (ASCII-range) string.
+	inline auto ToNarrow(const std::wstring& s) -> std::string
+	{
+		return std::string(s.begin(), s.end());
+	}
+
+	// Converts a narrow (ASCII-range) string to a wide string.
+	inline auto ToWide(const std::string& s) -> std::wstring
+	{
+		return std::wstring(s.begin(), s.end());
+	}
+
+	// Returns the human-readable type name for a ControlType.
+	constexpr auto ControlTypeName(ControlType type) noexcept -> const char*
+	{
+		switch (type)
+		{
+		case ControlType::Window:          return "Window";
+		case ControlType::Button:          return "Button";
+		case ControlType::CheckBox:        return "CheckBox";
+		case ControlType::RadioButton:     return "RadioButton";
+		case ControlType::Label:           return "Label";
+		case ControlType::TextBox:         return "TextBox";
+		case ControlType::GroupBox:        return "GroupBox";
+		case ControlType::ListBox:         return "ListBox";
+		case ControlType::ComboBox:        return "ComboBox";
+		case ControlType::ProgressBar:     return "ProgressBar";
+		case ControlType::TrackBar:        return "TrackBar";
+		case ControlType::DateTimePicker:  return "DateTimePicker";
+		case ControlType::TabControl:      return "TabControl";
+		case ControlType::ListView:        return "ListView";
+		case ControlType::TreeView:        return "TreeView";
+		case ControlType::UpDown:          return "UpDown";
+		case ControlType::RichEdit:        return "RichEdit";
+		case ControlType::MonthCalendar:   return "MonthCalendar";
+		case ControlType::Link:            return "Link";
+		case ControlType::IPAddress:       return "IPAddress";
+		case ControlType::HotKey:          return "HotKey";
+		case ControlType::Picture:         return "Picture";
+		case ControlType::Separator:       return "Separator";
+		case ControlType::Animation:       return "Animation";
+		default:                           return "Control";
+		}
+	}
+
+	// Converts a COLORREF (stored as int) to a hex string like "#RRGGBB".
+	inline auto ColorRefToHex(int colorRef) -> std::string
+	{
+		auto cr = static_cast<unsigned int>(colorRef);
+		return std::format("#{:02X}{:02X}{:02X}",
+			cr & 0xFF, (cr >> 8) & 0xFF, (cr >> 16) & 0xFF);
+	}
+
+	// Parses a hex color string "#RRGGBB" to a COLORREF (stored as int). Returns -1 on invalid input.
+	inline auto HexToColorRef(const std::string& hex) -> int
+	{
+		if (hex.size() == 7 && hex[0] == '#')
+		{
+			unsigned int r = std::stoul(hex.substr(1, 2), nullptr, 16);
+			unsigned int g = std::stoul(hex.substr(3, 2), nullptr, 16);
+			unsigned int b = std::stoul(hex.substr(5, 2), nullptr, 16);
+			return static_cast<int>(r | (g << 8) | (b << 16));
+		}
+		return -1;
+	}
+
+	// Default maximum width for tooltip windows (pixels).
+	constexpr int DefaultTooltipWidth = 300;
+
 	// Returns the Win32 style bits for text alignment on a given control type.
 	export constexpr auto AlignmentStyleFor(ControlType type, TextAlign align) noexcept -> Win32::DWORD
 	{

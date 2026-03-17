@@ -52,7 +52,7 @@ export namespace FormDesigner
 		if (j.contains("text"))
 		{
 			auto narrow = j["text"].get<std::string>();
-			control.text = std::wstring(narrow.begin(), narrow.end());
+			control.text = ToWide(narrow);
 		}
 
 		if (j.contains("rect"))
@@ -135,10 +135,7 @@ export namespace FormDesigner
 		{
 			auto& fj = j["font"];
 			if (fj.contains("family"))
-			{
-				auto narrow = fj["family"].get<std::string>();
-				control.font.family = std::wstring(narrow.begin(), narrow.end());
-			}
+				control.font.family = ToWide(fj["family"].get<std::string>());
 			if (fj.contains("size"))
 				control.font.size = fj["size"].get<int>();
 			if (fj.contains("bold"))
@@ -148,17 +145,11 @@ export namespace FormDesigner
 		}
 
 		if (j.contains("tooltip"))
-		{
-			auto narrow = j["tooltip"].get<std::string>();
-			control.tooltip = std::wstring(narrow.begin(), narrow.end());
-		}
+			control.tooltip = ToWide(j["tooltip"].get<std::string>());
 
 		if (j.contains("items"))
 			for (auto& item : j["items"])
-			{
-				auto narrow = item.get<std::string>();
-				control.items.emplace_back(narrow.begin(), narrow.end());
-			}
+				control.items.push_back(ToWide(item.get<std::string>()));
 
 		if (j.contains("selectedIndex"))
 			control.selectedIndex = j["selectedIndex"].get<int>();
@@ -184,10 +175,7 @@ export namespace FormDesigner
 		}
 
 		if (j.contains("imagePath"))
-		{
-			auto narrow = j["imagePath"].get<std::string>();
-			control.imagePath = std::wstring(narrow.begin(), narrow.end());
-		}
+			control.imagePath = ToWide(j["imagePath"].get<std::string>());
 
 		if (j.contains("bindField"))
 			control.bindField = j["bindField"].get<std::string>();
@@ -199,16 +187,10 @@ export namespace FormDesigner
 			control.groupStart = j["groupStart"].get<bool>();
 
 		if (j.contains("accessibleName"))
-		{
-			auto narrow = j["accessibleName"].get<std::string>();
-			control.accessibleName = std::wstring(narrow.begin(), narrow.end());
-		}
+			control.accessibleName = ToWide(j["accessibleName"].get<std::string>());
 
 		if (j.contains("accessibleDescription"))
-		{
-			auto narrow = j["accessibleDescription"].get<std::string>();
-			control.accessibleDescription = std::wstring(narrow.begin(), narrow.end());
-		}
+			control.accessibleDescription = ToWide(j["accessibleDescription"].get<std::string>());
 
 		if (j.contains("children"))
 			for (auto& child : j["children"])
@@ -239,10 +221,7 @@ export namespace FormDesigner
 			auto form = Form{};
 
 			if (j.contains("title"))
-			{
-				auto narrow = j["title"].get<std::string>();
-				form.title = std::wstring(narrow.begin(), narrow.end());
-			}
+				form.title = ToWide(j["title"].get<std::string>());
 
 			if (j.contains("width"))
 				form.width = j["width"].get<int>();
@@ -259,13 +238,7 @@ export namespace FormDesigner
 			if (j.contains("backgroundColor"))
 			{
 				auto hex = j["backgroundColor"].get<std::string>();
-				if (hex.size() == 7 && hex[0] == '#')
-				{
-					unsigned int r = std::stoul(hex.substr(1, 2), nullptr, 16);
-					unsigned int g = std::stoul(hex.substr(3, 2), nullptr, 16);
-					unsigned int b = std::stoul(hex.substr(5, 2), nullptr, 16);
-					form.backgroundColor = static_cast<int>(r | (g << 8) | (b << 16));
-				}
+				form.backgroundColor = HexToColorRef(hex);
 			}
 
 			if (j.contains("visible"))
@@ -289,10 +262,7 @@ export namespace FormDesigner
 			{
 				auto& fj = j["font"];
 				if (fj.contains("family"))
-				{
-					auto narrow = fj["family"].get<std::string>();
-					form.font.family = std::wstring(narrow.begin(), narrow.end());
-				}
+					form.font.family = ToWide(fj["family"].get<std::string>());
 				if (fj.contains("size"))
 					form.font.size = fj["size"].get<int>();
 				if (fj.contains("bold"))

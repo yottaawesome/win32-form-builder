@@ -19,37 +19,10 @@ export namespace FormDesigner
 		auto warnings = std::vector<AccessibilityWarning>{};
 
 		auto descFor = [](const Control& ctrl) -> std::string {
-			auto typeStr = std::string{};
-			switch (ctrl.type)
-			{
-			case ControlType::Button:          typeStr = "Button"; break;
-			case ControlType::CheckBox:        typeStr = "CheckBox"; break;
-			case ControlType::RadioButton:     typeStr = "RadioButton"; break;
-			case ControlType::Label:           typeStr = "Label"; break;
-			case ControlType::TextBox:         typeStr = "TextBox"; break;
-			case ControlType::GroupBox:        typeStr = "GroupBox"; break;
-			case ControlType::ListBox:         typeStr = "ListBox"; break;
-			case ControlType::ComboBox:        typeStr = "ComboBox"; break;
-			case ControlType::ProgressBar:     typeStr = "ProgressBar"; break;
-			case ControlType::TrackBar:        typeStr = "TrackBar"; break;
-			case ControlType::DateTimePicker:  typeStr = "DateTimePicker"; break;
-			case ControlType::TabControl:      typeStr = "TabControl"; break;
-			case ControlType::ListView:        typeStr = "ListView"; break;
-			case ControlType::TreeView:        typeStr = "TreeView"; break;
-			case ControlType::UpDown:          typeStr = "UpDown"; break;
-			case ControlType::RichEdit:        typeStr = "RichEdit"; break;
-			case ControlType::MonthCalendar:   typeStr = "MonthCalendar"; break;
-			case ControlType::Link:            typeStr = "Link"; break;
-			case ControlType::IPAddress:       typeStr = "IPAddress"; break;
-			case ControlType::HotKey:          typeStr = "HotKey"; break;
-			case ControlType::Picture:         typeStr = "Picture"; break;
-			case ControlType::Separator:       typeStr = "Separator"; break;
-			case ControlType::Animation:       typeStr = "Animation"; break;
-			default:                           typeStr = "Control"; break;
-			}
+			auto typeStr = std::string{ControlTypeName(ctrl.type)};
 			if (ctrl.id > 0)
 				return typeStr + " #" + std::to_string(ctrl.id);
-			auto narrowText = std::string(ctrl.text.begin(), ctrl.text.end());
+			auto narrowText = ToNarrow(ctrl.text);
 			if (!narrowText.empty())
 				return typeStr + " \"" + narrowText + "\"";
 			return typeStr;

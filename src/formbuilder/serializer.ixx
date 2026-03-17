@@ -7,38 +7,6 @@ import :errors;
 
 export namespace FormDesigner
 {
-	auto ControlTypeName(ControlType type) -> std::string
-	{
-		switch (type)
-		{
-		case ControlType::Window:      return "Window";
-		case ControlType::Button:      return "Button";
-		case ControlType::CheckBox:    return "CheckBox";
-		case ControlType::RadioButton: return "RadioButton";
-		case ControlType::Label:       return "Label";
-		case ControlType::TextBox:     return "TextBox";
-		case ControlType::GroupBox:    return "GroupBox";
-		case ControlType::ListBox:     return "ListBox";
-		case ControlType::ComboBox:    return "ComboBox";
-		case ControlType::ProgressBar:     return "ProgressBar";
-		case ControlType::TrackBar:        return "TrackBar";
-		case ControlType::DateTimePicker:  return "DateTimePicker";
-		case ControlType::TabControl:      return "TabControl";
-		case ControlType::ListView:        return "ListView";
-		case ControlType::TreeView:        return "TreeView";
-		case ControlType::UpDown:          return "UpDown";
-		case ControlType::RichEdit:        return "RichEdit";
-		case ControlType::MonthCalendar:   return "MonthCalendar";
-		case ControlType::Link:            return "Link";
-		case ControlType::IPAddress:       return "IPAddress";
-		case ControlType::HotKey:          return "HotKey";
-		case ControlType::Picture:         return "Picture";
-		case ControlType::Separator:       return "Separator";
-		case ControlType::Animation:       return "Animation";
-		default:                    return "Window";
-		}
-	}
-
 	auto SerializeControl(const Control& control) -> nlohmann::json
 	{
 		auto j = nlohmann::json{};
@@ -46,7 +14,7 @@ export namespace FormDesigner
 		j["type"] = ControlTypeName(control.type);
 
 		if (not control.text.empty())
-			j["text"] = std::string(control.text.begin(), control.text.end());
+			j["text"] = ToNarrow(control.text);
 
 		j["rect"] = { control.rect.x, control.rect.y, control.rect.width, control.rect.height };
 
@@ -116,13 +84,13 @@ export namespace FormDesigner
 		}
 
 		if (not control.tooltip.empty())
-			j["tooltip"] = std::string(control.tooltip.begin(), control.tooltip.end());
+			j["tooltip"] = ToNarrow(control.tooltip);
 
 		if (!control.items.empty())
 		{
 			auto arr = nlohmann::json::array();
 			for (auto& item : control.items)
-				arr.push_back(std::string(item.begin(), item.end()));
+				arr.push_back(ToNarrow(item));
 			j["items"] = arr;
 		}
 
@@ -151,7 +119,7 @@ export namespace FormDesigner
 		}
 
 		if (!control.imagePath.empty())
-			j["imagePath"] = std::string(control.imagePath.begin(), control.imagePath.end());
+			j["imagePath"] = ToNarrow(control.imagePath);
 
 		if (!control.bindField.empty())
 			j["bindField"] = control.bindField;
@@ -163,10 +131,10 @@ export namespace FormDesigner
 			j["groupStart"] = true;
 
 		if (!control.accessibleName.empty())
-			j["accessibleName"] = std::string(control.accessibleName.begin(), control.accessibleName.end());
+			j["accessibleName"] = ToNarrow(control.accessibleName);
 
 		if (!control.accessibleDescription.empty())
-			j["accessibleDescription"] = std::string(control.accessibleDescription.begin(), control.accessibleDescription.end());
+			j["accessibleDescription"] = ToNarrow(control.accessibleDescription);
 
 		if (not control.children.empty())
 		{
@@ -179,7 +147,7 @@ export namespace FormDesigner
 		{
 			auto fj = nlohmann::json{};
 			if (!control.font.family.empty())
-				fj["family"] = std::string(control.font.family.begin(), control.font.family.end());
+				fj["family"] = ToNarrow(control.font.family);
 			if (control.font.size != 0)
 				fj["size"] = control.font.size;
 			if (control.font.bold)
@@ -200,7 +168,7 @@ export namespace FormDesigner
 	{
 		auto j = nlohmann::json{};
 
-		j["title"] = std::string(form.title.begin(), form.title.end());
+		j["title"] = ToNarrow(form.title);
 		j["width"] = form.width;
 		j["height"] = form.height;
 
@@ -211,11 +179,7 @@ export namespace FormDesigner
 			j["exStyle"] = form.exStyle;
 
 		if (form.backgroundColor != -1)
-		{
-			auto cr = static_cast<unsigned int>(form.backgroundColor);
-			j["backgroundColor"] = std::format("#{:02X}{:02X}{:02X}",
-				cr & 0xFF, (cr >> 8) & 0xFF, (cr >> 16) & 0xFF);
-		}
+			j["backgroundColor"] = ColorRefToHex(form.backgroundColor);
 
 		if (!form.visible)
 			j["visible"] = false;
