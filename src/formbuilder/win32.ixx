@@ -99,6 +99,8 @@ export namespace Win32
 		::SetWindowPos,
 		::MoveWindow,
 		::EnableWindow,
+		::IsWindowVisible,
+		::IsWindowEnabled,
 		::SetFocus,
 		::SetForegroundWindow,
 		::GetWindowRect,
@@ -201,6 +203,7 @@ export namespace Win32
 		::GetSysColor,
 		::EnumChildWindows,
 		::GetModuleFileNameW,
+		::GetModuleHandleW,
 		::LoadImageW,
 
 		// DPI awareness.
@@ -386,19 +389,28 @@ export namespace Win32
 	namespace ComboBox
 	{
 		constexpr auto AddString    = CB_ADDSTRING;
+		constexpr auto InsertString = CB_INSERTSTRING;
+		constexpr auto DeleteString = CB_DELETESTRING;
 		constexpr auto SetCurSel    = CB_SETCURSEL;
 		constexpr auto GetCurSel    = CB_GETCURSEL;
+		constexpr auto GetCount     = CB_GETCOUNT;
+		constexpr auto GetLBTextLen = CB_GETLBTEXTLEN;
+		constexpr auto GetLBText    = CB_GETLBTEXT;
 		constexpr auto ResetContent = CB_RESETCONTENT;
 	}
 
 	namespace ListBox
 	{
 		constexpr auto AddString    = LB_ADDSTRING;
+		constexpr auto InsertString = LB_INSERTSTRING;
+		constexpr auto DeleteString = LB_DELETESTRING;
 		constexpr auto SetCurSel    = LB_SETCURSEL;
 		constexpr auto GetCurSel    = LB_GETCURSEL;
+		constexpr auto GetCount     = LB_GETCOUNT;
+		constexpr auto GetTextLen   = LB_GETTEXTLEN;
+		constexpr auto GetText      = LB_GETTEXT;
 		constexpr auto ResetContent = LB_RESETCONTENT;
 		constexpr auto GetItemRect  = LB_GETITEMRECT;
-		constexpr auto GetCount     = LB_GETCOUNT;
 		constexpr auto GetSel       = LB_GETSEL;
 		constexpr auto SetSel       = LB_SETSEL;
 		constexpr auto GetSelCount  = LB_GETSELCOUNT;
@@ -407,7 +419,8 @@ export namespace Win32
 
 	namespace EditControl
 	{
-		constexpr auto SetSel = EM_SETSEL;
+		constexpr auto SetSel      = EM_SETSEL;
+		constexpr auto SetReadOnly = EM_SETREADONLY;
 	}
 
 	// ===================================================================
@@ -467,11 +480,15 @@ export namespace Win32
 	{
 		constexpr auto SetRange32 = PBM_SETRANGE32;
 		constexpr auto SetPos     = PBM_SETPOS;
+		constexpr auto GetPos     = PBM_GETPOS;
+		constexpr auto StepIt     = PBM_STEPIT;
+		constexpr auto SetStep    = PBM_SETSTEP;
 	}
 
 	namespace TrackBarMsg
 	{
 		constexpr auto SetPos      = TBM_SETPOS;
+		constexpr auto GetPos      = TBM_GETPOS;
 		constexpr auto SetRangeMin = TBM_SETRANGEMIN;
 		constexpr auto SetRangeMax = TBM_SETRANGEMAX;
 	}
@@ -480,6 +497,7 @@ export namespace Win32
 	{
 		constexpr auto SetRange32 = UDM_SETRANGE32;
 		constexpr auto SetPos32   = UDM_SETPOS32;
+		constexpr auto GetPos32   = UDM_GETPOS32;
 	}
 
 	// ===================================================================

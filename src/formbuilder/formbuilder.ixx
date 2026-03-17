@@ -7,3 +7,4 @@ export import :codegen;
 export import :loader;
 export import :win32;
 export import :accessibility;
+export import :controls;
