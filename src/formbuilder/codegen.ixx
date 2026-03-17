@@ -517,6 +517,25 @@ namespace FormDesigner
 				out << " (ID: " << ctrl.id << ")";
 			out << "\n";
 
+			// Emit validation metadata as comments.
+			if (ctrl.validation.isSet())
+			{
+				out << indent << "// Validation:";
+				if (ctrl.validation.required)
+					out << " required";
+				if (ctrl.validation.minLength != 0)
+					out << " minLength=" << ctrl.validation.minLength;
+				if (ctrl.validation.maxLength != 0)
+					out << " maxLength=" << ctrl.validation.maxLength;
+				if (!ctrl.validation.pattern.empty())
+					out << " pattern=\"" << ctrl.validation.pattern << "\"";
+				if (ctrl.validation.min != 0)
+					out << " min=" << ctrl.validation.min;
+				if (ctrl.validation.max != 0)
+					out << " max=" << ctrl.validation.max;
+				out << "\n";
+			}
+
 			out << indent << "HWND " << varName << " = CreateWindowExW(\n";
 			out << indent << "    " << (ctrl.exStyle != 0 ? std::format("0x{:X}", ctrl.exStyle) : "0") << ",\n";
 			out << indent << "    " << className << ", " << textLiteral << ",\n";

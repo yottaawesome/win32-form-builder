@@ -98,6 +98,44 @@ export namespace FormDesigner
 		constexpr int Default = Top | Left;
 	}
 
+	// Validation metadata for controls (used by code generators, not enforced at runtime).
+	struct ValidationInfo
+	{
+		bool required = false;
+		int minLength = 0;   // 0 = unset
+		int maxLength = 0;   // 0 = unset
+		std::string pattern; // regex pattern, empty = unset
+		int min = 0;         // 0 = unset (for numeric range)
+		int max = 0;         // 0 = unset (for numeric range)
+
+		auto isSet() const noexcept -> bool
+		{
+			return required || minLength != 0 || maxLength != 0
+				|| !pattern.empty() || min != 0 || max != 0;
+		}
+	};
+
+	// Returns true if the control type supports text-length validation fields.
+	constexpr auto SupportsTextValidation(ControlType type) noexcept -> bool
+	{
+		return type == ControlType::TextBox || type == ControlType::RichEdit;
+	}
+
+	// Returns true if the control type supports numeric range validation fields.
+	constexpr auto SupportsRangeValidation(ControlType type) noexcept -> bool
+	{
+		return type == ControlType::TrackBar || type == ControlType::UpDown
+			|| type == ControlType::ProgressBar;
+	}
+
+	// Returns true if the control type supports the "required" validation field.
+	constexpr auto SupportsRequiredValidation(ControlType type) noexcept -> bool
+	{
+		return type == ControlType::TextBox || type == ControlType::ComboBox
+			|| type == ControlType::ListBox || type == ControlType::RichEdit
+			|| type == ControlType::DateTimePicker;
+	}
+
 	struct Control
 	{
 		ControlType type = ControlType::Window;
@@ -123,6 +161,7 @@ export namespace FormDesigner
 		std::wstring tooltip;
 		std::vector<std::wstring> items;
 		int selectedIndex = -1;
+		ValidationInfo validation;
 		std::vector<Control> children;
 	};
 

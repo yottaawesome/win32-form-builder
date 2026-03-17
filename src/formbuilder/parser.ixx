@@ -158,6 +158,23 @@ export namespace FormDesigner
 		if (j.contains("selectedIndex"))
 			control.selectedIndex = j["selectedIndex"].get<int>();
 
+		if (j.contains("validation"))
+		{
+			auto& vj = j["validation"];
+			if (vj.contains("required"))
+				control.validation.required = vj["required"].get<bool>();
+			if (vj.contains("minLength"))
+				control.validation.minLength = vj["minLength"].get<int>();
+			if (vj.contains("maxLength"))
+				control.validation.maxLength = vj["maxLength"].get<int>();
+			if (vj.contains("pattern"))
+				control.validation.pattern = vj["pattern"].get<std::string>();
+			if (vj.contains("min"))
+				control.validation.min = vj["min"].get<int>();
+			if (vj.contains("max"))
+				control.validation.max = vj["max"].get<int>();
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

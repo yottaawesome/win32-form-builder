@@ -125,6 +125,24 @@ export namespace FormDesigner
 		if (control.selectedIndex >= 0)
 			j["selectedIndex"] = control.selectedIndex;
 
+		if (control.validation.isSet())
+		{
+			auto vj = nlohmann::json{};
+			if (control.validation.required)
+				vj["required"] = true;
+			if (control.validation.minLength != 0)
+				vj["minLength"] = control.validation.minLength;
+			if (control.validation.maxLength != 0)
+				vj["maxLength"] = control.validation.maxLength;
+			if (!control.validation.pattern.empty())
+				vj["pattern"] = control.validation.pattern;
+			if (control.validation.min != 0)
+				vj["min"] = control.validation.min;
+			if (control.validation.max != 0)
+				vj["max"] = control.validation.max;
+			j["validation"] = vj;
+		}
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

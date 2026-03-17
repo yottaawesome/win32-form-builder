@@ -118,6 +118,29 @@ namespace Designer
 			auto lbl = Win32::GetDlgItem(panel, id + IDL_OFFSET);
 			if (lbl) Win32::ShowWindow(lbl, itemsShow);
 		}
+
+		// Validation controls — show relevant fields by control type.
+		auto ctype = FormDesigner::ControlType::Window;
+		if (hasSel && sel >= 0 && sel < static_cast<int>(state.entries.size()))
+			ctype = state.entries[sel].control->type;
+
+		bool showRequired = hasSel && FormDesigner::SupportsRequiredValidation(ctype);
+		bool showTextVal  = hasSel && FormDesigner::SupportsTextValidation(ctype);
+		bool showRangeVal = hasSel && FormDesigner::SupportsRangeValidation(ctype);
+
+		auto showId = [&](Win32::UINT id, bool show) {
+			auto h = Win32::GetDlgItem(panel, id);
+			if (h) Win32::ShowWindow(h, show ? Win32::Sw_Show : Win32::Sw_Hide);
+			auto lbl = Win32::GetDlgItem(panel, id + IDL_OFFSET);
+			if (lbl) Win32::ShowWindow(lbl, show ? Win32::Sw_Show : Win32::Sw_Hide);
+		};
+
+		showId(IDC_PROP_VAL_REQUIRED, showRequired);
+		showId(IDC_PROP_VAL_MINLEN, showTextVal);
+		showId(IDC_PROP_VAL_MAXLEN, showTextVal);
+		showId(IDC_PROP_VAL_PATTERN, showTextVal);
+		showId(IDC_PROP_VAL_MIN, showRangeVal);
+		showId(IDC_PROP_VAL_MAX, showRangeVal);
 	}
 
 	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
@@ -192,11 +215,28 @@ namespace Designer
 		Win32::SetDlgItemInt(panel, IDC_PROP_SELINDEX,
 			static_cast<Win32::UINT>(ctrl.selectedIndex < 0 ? -1 : ctrl.selectedIndex), true);
 
+		// Validation fields.
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_VAL_REQUIRED),
+			Win32::Button::SetCheck,
+			ctrl.validation.required ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MINLEN,
+			static_cast<Win32::UINT>(ctrl.validation.minLength), false);
+		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MAXLEN,
+			static_cast<Win32::UINT>(ctrl.validation.maxLength), false);
+		{
+			auto patW = std::wstring(ctrl.validation.pattern.begin(), ctrl.validation.pattern.end());
+			Win32::SetDlgItemTextW(panel, IDC_PROP_VAL_PATTERN, patW.c_str());
+		}
+		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MIN, ctrl.validation.min, true);
+		Win32::SetDlgItemInt(panel, IDC_PROP_VAL_MAX, ctrl.validation.max, true);
+
 		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX };
+			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX,
+			IDC_PROP_VAL_MINLEN, IDC_PROP_VAL_MAXLEN, IDC_PROP_VAL_PATTERN,
+			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
 	}
@@ -520,6 +560,42 @@ namespace Designer
 				ctrl.selectedIndex = (val < 0) ? -1 : std::min(val, maxIdx);
 				RefreshDesignTimeItems(state, entry);
 			}
+			break;
+		}
+		case IDC_PROP_VAL_MINLEN:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VAL_MINLEN, &ok, false));
+			if (ok) ctrl.validation.minLength = val;
+			break;
+		}
+		case IDC_PROP_VAL_MAXLEN:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VAL_MAXLEN, &ok, false));
+			if (ok) ctrl.validation.maxLength = val;
+			break;
+		}
+		case IDC_PROP_VAL_PATTERN:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_VAL_PATTERN, buf, 256);
+			auto wide = std::wstring(buf);
+			ctrl.validation.pattern = std::string(wide.begin(), wide.end());
+			break;
+		}
+		case IDC_PROP_VAL_MIN:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VAL_MIN, &ok, true));
+			if (ok) ctrl.validation.min = val;
+			break;
+		}
+		case IDC_PROP_VAL_MAX:
+		{
+			Win32::BOOL ok = false;
+			auto val = static_cast<int>(Win32::GetDlgItemInt(panel, IDC_PROP_VAL_MAX, &ok, true));
+			if (ok) ctrl.validation.max = val;
 			break;
 		}
 		default:
@@ -878,6 +954,76 @@ namespace Designer
 			Win32::EnableWindow(edit, false);
 		}
 
+		// Validation section header.
+		y += rh;
+		{
+			auto hdr = Win32::CreateWindowExW(0, L"STATIC", L"Validation",
+				Win32::Styles::Child,
+				pad, y + 2, d.Scale(210), lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_VAL_REQUIRED + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(hdr, Win32::Messages::SetFont, font, true);
+		}
+		y += ch;
+
+		// Required checkbox.
+		{
+			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Required",
+				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
+				d.Scale(15), y, d.Scale(200), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_VAL_REQUIRED)),
+				hInst, nullptr);
+			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+		}
+		y += ch;
+
+		// MinLength / MaxLength / Pattern (text validation).
+		PropRow textValRows[] = {
+			{ L"MinLen:", IDC_PROP_VAL_MINLEN, Win32::Styles::EditAutoHScroll },
+			{ L"MaxLen:", IDC_PROP_VAL_MAXLEN, Win32::Styles::EditAutoHScroll },
+			{ L"Pattern:", IDC_PROP_VAL_PATTERN, Win32::Styles::EditAutoHScroll },
+		};
+		for (auto& row : textValRows)
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", row.label,
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | row.extraStyle,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			y += rh;
+		}
+
+		// Min / Max (range validation).
+		PropRow rangeValRows[] = {
+			{ L"Min:", IDC_PROP_VAL_MIN, Win32::Styles::EditAutoHScroll },
+			{ L"Max:", IDC_PROP_VAL_MAX, Win32::Styles::EditAutoHScroll },
+		};
+		for (auto& row : rangeValRows)
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", row.label,
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | row.extraStyle,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(row.editId)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			y += rh;
+		}
+
 		// Form property rows (visible when no control is selected).
 		PropRow formRows[] = {
 			{ L"Title:",   IDC_PROP_FORM_TITLE,  Win32::Styles::EditAutoHScroll },
@@ -1230,6 +1376,19 @@ namespace Designer
 				return 0;
 			}
 
+			// Required validation checkbox.
+			if (id == IDC_PROP_VAL_REQUIRED && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_VAL_REQUIRED);
+				state->entries[sel].control->validation.required =
+					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+				MarkDirty(*state);
+				return 0;
+			}
+
 			// Window style checkboxes.
 			if (code == Win32::Notifications::ButtonClicked &&
 				id >= IDC_PROP_FORM_CAPTION && id <= IDC_PROP_FORM_MAXIMIZE)
@@ -1356,8 +1515,9 @@ namespace Designer
 			{
 				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
 					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX;
+				bool isValProp = (id >= IDC_PROP_VAL_MINLEN && id <= IDC_PROP_VAL_MAX);
 				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR);
-				if (isCtrlProp || isFormProp)
+				if (isCtrlProp || isValProp || isFormProp)
 					ValidateAndApply(*state, hwnd, id, isFormProp);
 				return 0;
 			}

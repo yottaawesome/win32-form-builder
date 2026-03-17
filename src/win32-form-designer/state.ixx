@@ -99,6 +99,14 @@ export namespace Designer
 	constexpr Win32::UINT IDC_PROP_ITEMS_BTN   = 51024;
 	constexpr Win32::UINT IDC_PROP_SELINDEX    = 51025;
 
+	// Validation property controls.
+	constexpr Win32::UINT IDC_PROP_VAL_REQUIRED = 51027;
+	constexpr Win32::UINT IDC_PROP_VAL_MINLEN   = 51028;
+	constexpr Win32::UINT IDC_PROP_VAL_MAXLEN   = 51029;
+	constexpr Win32::UINT IDC_PROP_VAL_PATTERN  = 51030;
+	constexpr Win32::UINT IDC_PROP_VAL_MIN      = 51031;
+	constexpr Win32::UINT IDC_PROP_VAL_MAX      = 51032;
+
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;
 	constexpr Win32::UINT IDC_PROP_FORM_WIDTH      = 52002;
