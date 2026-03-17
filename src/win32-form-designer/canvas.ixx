@@ -1179,6 +1179,7 @@ namespace Designer
 				}
 
 				DrawUserGuides(*state, hdc);
+				DrawHiddenOverlays(*state, hdc);
 				DrawSelection(*state, hdc);
 				DrawAlignGuides(*state, hdc);
 				DrawRulers(*state, hdc);

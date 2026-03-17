@@ -104,6 +104,9 @@ export namespace FormDesigner
 			else if (align == "right") control.textAlign = TextAlign::Right;
 		}
 
+		if (j.contains("visible"))
+			control.visible = j["visible"].get<bool>();
+
 		if (j.contains("locked"))
 			control.locked = j["locked"].get<bool>();
 

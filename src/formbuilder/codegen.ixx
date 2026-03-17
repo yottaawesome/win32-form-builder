@@ -116,9 +116,11 @@ namespace FormDesigner
 	}
 
 	// Builds a human-readable style expression string (e.g. "WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX").
-	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle) -> std::string
+	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool visible = true) -> std::string
 	{
-		auto parts = std::vector<std::string>{"WS_CHILD", "WS_VISIBLE"};
+		auto parts = std::vector<std::string>{"WS_CHILD"};
+		if (visible)
+			parts.push_back("WS_VISIBLE");
 
 		switch (type)
 		{
@@ -499,7 +501,7 @@ namespace FormDesigner
 		{
 			auto varName = ControlVarName(ctrl, controlIndex);
 			auto className = Win32ClassLiteral(ctrl.type);
-			auto styleExpr = BuildStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style);
+			auto styleExpr = BuildStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, ctrl.visible);
 			auto textLiteral = std::format("L\"{}\"", EscapeWString(ctrl.text));
 			auto menuExpr = ctrl.id != 0
 				? std::format("(HMENU){}", IdcConstantName(ctrl))
@@ -1011,7 +1013,7 @@ export namespace FormDesigner
 	}
 
 	// Builds a style expression for use in RC scripts.
-	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl) -> std::string
+	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl, bool visible = true) -> std::string
 	{
 		auto parts = std::vector<std::string>{};
 
@@ -1020,6 +1022,11 @@ export namespace FormDesigner
 			// Generic CONTROL statements need WS_CHILD | WS_VISIBLE | WS_TABSTOP explicitly.
 			// The resource compiler doesn't add them automatically for CONTROL.
 		}
+
+		// For keyword controls (non-generic), use NOT WS_VISIBLE to suppress visibility.
+		// For generic controls, the visibility is handled via the numeric base style.
+		if (!visible && !forGenericControl)
+			parts.push_back("NOT WS_VISIBLE");
 
 		switch (type)
 		{
@@ -1068,7 +1075,12 @@ export namespace FormDesigner
 			parts.push_back(std::format("0x{:X}", customStyle));
 
 		if (parts.empty())
-			return forGenericControl ? "0x50010000" : "";  // WS_CHILD | WS_VISIBLE | WS_TABSTOP
+		{
+			if (!forGenericControl) return "";
+			// WS_CHILD | WS_VISIBLE | WS_TABSTOP = 0x50010000
+			// WS_CHILD | WS_TABSTOP (no visible) = 0x40010000
+			return visible ? "0x50010000" : "0x40010000";
+		}
 
 		auto result = std::string{};
 		for (size_t i = 0; i < parts.size(); ++i)
@@ -1141,7 +1153,7 @@ export namespace FormDesigner
 
 		bool isDefPush = (ctrl.type == ControlType::Button && (ctrl.style & 0x1) != 0);
 
-		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false);
+		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false, ctrl.visible);
 
 		switch (ctrl.type)
 		{
@@ -1212,7 +1224,7 @@ export namespace FormDesigner
 		{
 			// Generic CONTROL statement for common controls.
 			auto className = RcClassName(ctrl.type);
-			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true);
+			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true, ctrl.visible);
 			out << "    CONTROL         \""
 				<< text << "\"," << idName << ",\""
 				<< className << "\"," << genStyle << ","

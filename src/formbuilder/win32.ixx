@@ -25,6 +25,7 @@ export namespace Win32
 		::HINSTANCE,
 		::HMENU,
 		::HBRUSH,
+		::HPEN,
 		::HCURSOR,
 		::HFONT,
 		::HDC,
@@ -116,6 +117,7 @@ export namespace Win32
 		::EndPaint,
 		::CreatePen,
 		::CreateSolidBrush,
+		::CreateHatchBrush,
 		::CreateFontW,
 		::SelectObject,
 		::DeleteObject,
@@ -553,7 +555,9 @@ export namespace Win32
 
 	constexpr auto Bk_Transparent = TRANSPARENT;
 	constexpr auto NullBrush      = NULL_BRUSH;
+	constexpr auto NullPen        = NULL_PEN;
 	constexpr auto SrcCopy        = SRCCOPY;
+	constexpr auto HatchBDiagonal = HS_BDIAGONAL;
 
 	// ===================================================================
 	// Dialog constants

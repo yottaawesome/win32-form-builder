@@ -115,6 +115,7 @@ export namespace FormDesigner
 		std::string onCheck;
 		int tabIndex = 0;
 		TextAlign textAlign = TextAlign::Left;
+		bool visible = true;
 		bool locked = false;
 		int groupId = 0;
 		int anchor = Anchor::Default;

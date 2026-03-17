@@ -26,9 +26,11 @@ export namespace FormDesigner
 			}
 
 			auto childStyle = Win32::DWORD{
-				Win32::Styles::Child | Win32::Styles::Visible | ImpliedStyleFor(control.type)
+				Win32::Styles::Child | ImpliedStyleFor(control.type)
 				| AlignmentStyleFor(control.type, control.textAlign) | control.style
 			};
+			if (control.visible)
+				childStyle |= Win32::Styles::Visible;
 
 			auto hwnd = Win32::CreateWindowExW(
 				control.exStyle,

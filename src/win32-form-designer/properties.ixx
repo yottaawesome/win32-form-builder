@@ -60,7 +60,7 @@ namespace Designer
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP
+			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_VISIBLE, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP
 		};
 		constexpr Win32::UINT formIds[] = {
 			IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
@@ -159,6 +159,10 @@ namespace Designer
 		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_LOCKED),
 			Win32::Button::SetCheck,
 			ctrl.locked ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_VISIBLE),
+			Win32::Button::SetCheck,
+			ctrl.visible ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
 
 		// Anchor dropdown.
 		{
@@ -749,8 +753,18 @@ namespace Designer
 		{
 			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Locked",
 				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
-				d.Scale(15), y, d.Scale(200), hdrH, parent,
+				d.Scale(15), y, d.Scale(90), hdrH, parent,
 				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_LOCKED)),
+				hInst, nullptr);
+			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+		}
+
+		// Visible checkbox (next to Locked on the same row).
+		{
+			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Visible",
+				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
+				d.Scale(110), y, d.Scale(90), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_VISIBLE)),
 				hInst, nullptr);
 			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
 		}
@@ -1196,6 +1210,20 @@ namespace Designer
 				PushUndo(*state);
 				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_LOCKED);
 				state->entries[sel].control->locked =
+					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+				MarkDirty(*state);
+				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);
+				return 0;
+			}
+
+			// Visible checkbox for selected control.
+			if (id == IDC_PROP_VISIBLE && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_VISIBLE);
+				state->entries[sel].control->visible =
 					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
 				MarkDirty(*state);
 				Win32::InvalidateRect(state->canvasHwnd, nullptr, true);

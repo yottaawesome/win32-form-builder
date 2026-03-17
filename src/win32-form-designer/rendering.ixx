@@ -84,6 +84,30 @@ namespace Designer
 		Win32::DeleteObject(groupPen);
 	}
 
+	export void DrawHiddenOverlays(const DesignState& state, Win32::HDC hdc)
+	{
+		int offset = RulerOffset(state);
+		auto hatch = Win32::CreateHatchBrush(Win32::HatchBDiagonal, state.theme.lockedHighlight);
+		auto oldBrush = Win32::SelectObject(hdc, hatch);
+		auto nullPen = static_cast<Win32::HPEN>(Win32::GetStockObject(Win32::NullPen));
+		auto oldPen = Win32::SelectObject(hdc, nullPen);
+		int oldMode = Win32::SetBkMode(hdc, Win32::Bk_Transparent);
+
+		for (int i = 0; i < static_cast<int>(state.entries.size()); ++i)
+		{
+			auto& ctrl = *state.entries[i].control;
+			if (ctrl.visible) continue;
+			int ox = ctrl.rect.x + offset;
+			int oy = ctrl.rect.y + offset;
+			Win32::Rectangle(hdc, ox, oy, ox + ctrl.rect.width, oy + ctrl.rect.height);
+		}
+
+		Win32::SetBkMode(hdc, oldMode);
+		Win32::SelectObject(hdc, oldPen);
+		Win32::SelectObject(hdc, oldBrush);
+		Win32::DeleteObject(hatch);
+	}
+
 	// Paints ruler contents into a memory DC (called by DrawRulers).
 	void PaintRulersToBuffer(const DesignState& state, Win32::HDC memDC, int canvasW, int canvasH)
 	{
