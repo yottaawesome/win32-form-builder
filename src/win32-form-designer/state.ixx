@@ -137,6 +137,8 @@ export namespace Designer
 	constexpr Win32::UINT IDC_ZORDER_DOWN   = 53003;
 	constexpr Win32::UINT IDC_ZORDER_TOP    = 53004;
 	constexpr Win32::UINT IDC_ZORDER_BOTTOM = 53005;
+	constexpr Win32::UINT IDC_ZORDER_DELETE = 53006;
+	constexpr Win32::UINT IDC_ZORDER_EDIT   = 53007;  // inline rename edit
 
 	struct ControlEntry
 	{

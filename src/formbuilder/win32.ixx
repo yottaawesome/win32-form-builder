@@ -63,7 +63,8 @@ export namespace Win32
 		::TBBUTTON,
 		::NMTBGETINFOTIPW,
 		::WINDOWPLACEMENT,
-		::HANDLE
+		::HANDLE,
+		::MINMAXINFO
 		;
 
 	// ===================================================================
@@ -102,6 +103,8 @@ export namespace Win32
 		::SetForegroundWindow,
 		::GetWindowRect,
 		::GetClientRect,
+		::GetParent,
+		::MapWindowPoints,
 		::InvalidateRect,
 		::GetWindowPlacement,
 		::SetWindowPlacement,
@@ -280,6 +283,7 @@ export namespace Win32
 		constexpr auto ListBoxStandard          = LBS_STANDARD;
 		constexpr auto ListBoxNotify            = LBS_NOTIFY;
 		constexpr auto ListBoxNoIntegralHeight  = LBS_NOINTEGRALHEIGHT;
+		constexpr auto ListBoxExtendedSel       = LBS_EXTENDEDSEL;
 		constexpr auto ComboBoxDropDownList      = CBS_DROPDOWNLIST;
 
 		// ListView / TreeView styles.
@@ -326,6 +330,7 @@ export namespace Win32
 		constexpr auto CtlColorEdit = WM_CTLCOLOREDIT;
 		constexpr auto InitMenuPopup = WM_INITMENUPOPUP;
 		constexpr auto DpiChanged    = WM_DPICHANGED;
+		constexpr auto GetMinMaxInfo = WM_GETMINMAXINFO;
 	}
 
 	// ===================================================================
@@ -390,6 +395,17 @@ export namespace Win32
 		constexpr auto SetCurSel    = LB_SETCURSEL;
 		constexpr auto GetCurSel    = LB_GETCURSEL;
 		constexpr auto ResetContent = LB_RESETCONTENT;
+		constexpr auto GetItemRect  = LB_GETITEMRECT;
+		constexpr auto GetCount     = LB_GETCOUNT;
+		constexpr auto GetSel       = LB_GETSEL;
+		constexpr auto SetSel       = LB_SETSEL;
+		constexpr auto GetSelCount  = LB_GETSELCOUNT;
+		constexpr auto GetSelItems  = LB_GETSELITEMS;
+	}
+
+	namespace EditControl
+	{
+		constexpr auto SetSel = EM_SETSEL;
 	}
 
 	// ===================================================================
@@ -460,6 +476,8 @@ export namespace Win32
 		constexpr auto Up      = VK_UP;
 		constexpr auto Down    = VK_DOWN;
 		constexpr auto F5      = VK_F5;
+		constexpr auto F2      = VK_F2;
+		constexpr auto Return  = VK_RETURN;
 	}
 
 	// ===================================================================

@@ -417,16 +417,25 @@ namespace Designer
 		auto list = Win32::GetDlgItem(state.zorderHwnd, IDC_ZORDER_LIST);
 		if (!list) return;
 
+		// Save current selection set before rebuild.
+		auto savedSel = state.selection;
+
 		Win32::SendMessageW(list, Win32::ListBox::ResetContent, 0, 0);
 		for (int i = 0; i < static_cast<int>(state.form.controls.size()); ++i)
 		{
 			auto& ctrl = state.form.controls[i];
 			auto name = ControlTypeDisplayName(ctrl.type);
-			auto label = std::format(L"{}: {} - {} (tab: {})", i, name,
-				ctrl.text.empty() ? L"(no text)" : ctrl.text, ctrl.tabIndex);
+			auto text = ctrl.text.empty() ? L"(no text)" : ctrl.text;
+			auto label = std::format(L"{} #{} \u2014 {}", name, ctrl.id, text);
 			Win32::SendMessageW(list, Win32::ListBox::AddString, 0,
 				reinterpret_cast<Win32::LPARAM>(label.c_str()));
 		}
+
+		// Restore selection in multi-sel listbox.
+		for (int s : savedSel)
+			if (s >= 0 && s < static_cast<int>(state.form.controls.size()))
+				Win32::SendMessageW(list, Win32::ListBox::SetSel, true,
+					static_cast<Win32::LPARAM>(s));
 	}
 
 	export void CopySelected(DesignState& state)
