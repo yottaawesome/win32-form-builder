@@ -40,6 +40,7 @@ export namespace Designer
 	// File menu IDs (continued).
 	constexpr Win32::UINT IDM_FILE_PREVIEW = 40018;
 	constexpr Win32::UINT IDM_FILE_EXPORT_CPP = 40021;
+	constexpr Win32::UINT IDM_FILE_EXPORT_RC = 40026;
 
 	constexpr Win32::UINT IDM_FILE_RECENT_BASE = 40200;
 	constexpr int MAX_RECENT_FILES = 10;

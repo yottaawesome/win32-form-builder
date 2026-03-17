@@ -726,6 +726,7 @@ export namespace Win32
 	constexpr auto Mb_Ok              = MB_OK;
 	constexpr auto Mb_IconInformation = MB_ICONINFORMATION;
 	constexpr auto Mb_IconError       = MB_ICONERROR;
+	constexpr auto Mb_IconWarning     = MB_ICONWARNING;
 	constexpr auto Mb_YesNoCancel     = MB_YESNOCANCEL;
 	constexpr auto Mb_IconQuestion    = MB_ICONQUESTION;
 	constexpr auto Id_Cancel          = IDCANCEL;

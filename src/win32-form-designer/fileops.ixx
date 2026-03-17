@@ -236,4 +236,69 @@ namespace Designer
 			L"Export to C++", Win32::Mb_Ok | Win32::Mb_IconInformation);
 	}
 
+	auto ShowRcSaveDialog(Win32::HWND owner, std::filesystem::path& outPath) -> bool
+	{
+		wchar_t filename[Win32::MaxPath] = {};
+		if (!outPath.empty())
+		{
+			auto str = outPath.wstring();
+			auto n = std::min(str.size(), static_cast<std::size_t>(Win32::MaxPath - 1));
+			std::copy_n(str.data(), n, filename);
+		}
+
+		Win32::OPENFILENAMEW ofn = {
+			.lStructSize = sizeof(Win32::OPENFILENAMEW),
+			.hwndOwner = owner,
+			.lpstrFilter = L"Resource Files (*.rc)\0*.rc\0All Files (*.*)\0*.*\0",
+			.lpstrFile = filename,
+			.nMaxFile = Win32::MaxPath,
+			.Flags = Win32::FileDialog::OverwritePrompt | Win32::FileDialog::PathMustExist,
+			.lpstrDefExt = L"rc",
+		};
+
+		if (!Win32::GetSaveFileNameW(&ofn))
+			return false;
+
+		outPath = filename;
+		return true;
+	}
+
+	export void DoExportRc(DesignState& state)
+	{
+		auto path = std::filesystem::path{};
+		if (!ShowRcSaveDialog(state.surfaceHwnd, path))
+			return;
+
+		// Generate RC dialog content.
+		auto rcContent = FormDesigner::GenerateRcDialog(state.form);
+		auto headerContent = FormDesigner::GenerateRcHeader(state.form);
+
+		// Write .rc file.
+		auto rcFile = std::ofstream{ path };
+		if (!rcFile.is_open())
+		{
+			Win32::MessageBoxW(state.surfaceHwnd, L"Failed to write .rc file.",
+				L"Export Error", Win32::Mb_Ok | Win32::Mb_IconError);
+			return;
+		}
+		rcFile << rcContent;
+		rcFile.close();
+
+		// Write resource.h alongside the .rc file.
+		auto headerPath = path.parent_path() / "resource.h";
+		auto hdrFile = std::ofstream{ headerPath };
+		if (!hdrFile.is_open())
+		{
+			Win32::MessageBoxW(state.surfaceHwnd, L"RC file written but failed to write resource.h.",
+				L"Export Warning", Win32::Mb_Ok | Win32::Mb_IconWarning);
+			return;
+		}
+		hdrFile << headerContent;
+		hdrFile.close();
+
+		Win32::MessageBoxW(state.surfaceHwnd,
+			L"RC dialog exported successfully.\n\nFiles written:\n- .rc dialog template\n- resource.h header",
+			L"Export to RC", Win32::Mb_Ok | Win32::Mb_IconInformation);
+	}
+
 }

@@ -30,6 +30,7 @@ namespace Designer
 		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_PREVIEW, L"&Preview\tF5");
 		Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXPORT_CPP, L"E&xport to C++...");
+		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXPORT_RC, L"Export to &RC...");
 		Win32::AppendMenuW(fileMenu, Win32::Menu::Separator, 0, nullptr);
 		Win32::AppendMenuW(fileMenu, Win32::Menu::String, IDM_FILE_EXIT,    L"E&xit\tAlt+F4");
 
@@ -429,6 +430,7 @@ namespace Designer
 			case IDM_FILE_EXIT:    Win32::SendMessageW(hwnd, Win32::Messages::Close, 0, 0); return 0;
 			case IDM_FILE_PREVIEW: PreviewForm(*state); return 0;
 			case IDM_FILE_EXPORT_CPP: DoExportCpp(*state); return 0;
+			case IDM_FILE_EXPORT_RC:  DoExportRc(*state);  return 0;
 			default:
 			{
 				auto id = Win32::GetLowWord(wParam);

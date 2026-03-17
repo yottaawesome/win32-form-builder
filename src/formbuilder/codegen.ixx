@@ -952,4 +952,330 @@ export namespace FormDesigner
 
 		return out.str();
 	}
+
+	// =========================================================================
+	// RC Dialog Export
+	// =========================================================================
+
+	// Pixel-to-DLU conversion using font-aware base unit estimation.
+	struct DluMetrics
+	{
+		int baseX = 7;   // Horizontal base unit (avg char width)
+		int baseY = 14;  // Vertical base unit (char height)
+	};
+
+	auto EstimateDluMetrics(const FontInfo& font) -> DluMetrics
+	{
+		if (font.family.empty() || font.size == 0)
+			return { 7, 14 }; // MS Shell Dlg 2, 8pt defaults
+
+		// Approximate base units proportional to font size.
+		// At 8pt: baseX~7, baseY~14. Scale linearly.
+		int baseX = std::max(1, static_cast<int>(font.size * 0.875 + 0.5));
+		int baseY = std::max(1, static_cast<int>(font.size * 1.75 + 0.5));
+		return { baseX, baseY };
+	}
+
+	auto PixelToDluX(int px, const DluMetrics& m) -> int
+	{
+		return ::MulDiv(px, 4, m.baseX);
+	}
+
+	auto PixelToDluY(int py, const DluMetrics& m) -> int
+	{
+		return ::MulDiv(py, 8, m.baseY);
+	}
+
+	// Returns the Win32 class name string literal for use in RC CONTROL statements.
+	auto RcClassName(ControlType type) -> const char*
+	{
+		switch (type)
+		{
+		case ControlType::ProgressBar:       return "msctls_progress32";
+		case ControlType::TrackBar:          return "msctls_trackbar32";
+		case ControlType::DateTimePicker:    return "SysDateTimePick32";
+		case ControlType::TabControl:        return "SysTabControl32";
+		case ControlType::ListView:          return "SysListView32";
+		case ControlType::TreeView:          return "SysTreeView32";
+		case ControlType::UpDown:            return "msctls_updown32";
+		case ControlType::RichEdit:          return "RICHEDIT50W";
+		case ControlType::MonthCalendar:     return "SysMonthCal32";
+		case ControlType::Link:              return "SysLink";
+		case ControlType::IPAddress:         return "SysIPAddress32";
+		case ControlType::HotKey:            return "msctls_hotkey32";
+		case ControlType::Picture:           return "Static";
+		case ControlType::Separator:         return "Static";
+		case ControlType::Animation:         return "SysAnimate32";
+		default:                             return "Static";
+		}
+	}
+
+	// Builds a style expression for use in RC scripts.
+	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl) -> std::string
+	{
+		auto parts = std::vector<std::string>{};
+
+		if (forGenericControl)
+		{
+			// Generic CONTROL statements need WS_CHILD | WS_VISIBLE | WS_TABSTOP explicitly.
+			// The resource compiler doesn't add them automatically for CONTROL.
+		}
+
+		switch (type)
+		{
+		case ControlType::TextBox:     parts.push_back("ES_AUTOHSCROLL"); break;
+		case ControlType::ListBox:     parts.push_back("LBS_STANDARD"); break;
+		case ControlType::ComboBox:    parts.push_back("CBS_DROPDOWNLIST"); parts.push_back("WS_VSCROLL"); break;
+		case ControlType::ListView:    parts.push_back("LVS_REPORT"); parts.push_back("LVS_SHOWSELALWAYS"); break;
+		case ControlType::TreeView:    parts.push_back("TVS_HASBUTTONS"); parts.push_back("TVS_HASLINES"); parts.push_back("TVS_LINESATROOT"); break;
+		case ControlType::RichEdit:    parts.push_back("ES_MULTILINE"); parts.push_back("ES_AUTOVSCROLL"); parts.push_back("WS_BORDER"); break;
+		case ControlType::Picture:     parts.push_back("SS_ETCHEDFRAME"); break;
+		case ControlType::Separator:   parts.push_back("SS_ETCHEDHORZ"); break;
+		default: break;
+		}
+
+		switch (type)
+		{
+		case ControlType::Label:
+			switch (align)
+			{
+			case TextAlign::Center: parts.push_back("SS_CENTER"); break;
+			case TextAlign::Right:  parts.push_back("SS_RIGHT"); break;
+			default: break;
+			}
+			break;
+		case ControlType::TextBox:
+		case ControlType::RichEdit:
+			switch (align)
+			{
+			case TextAlign::Center: parts.push_back("ES_CENTER"); break;
+			case TextAlign::Right:  parts.push_back("ES_RIGHT"); break;
+			default: break;
+			}
+			break;
+		case ControlType::Button:
+			switch (align)
+			{
+			case TextAlign::Left:   parts.push_back("BS_LEFT"); break;
+			case TextAlign::Center: parts.push_back("BS_CENTER"); break;
+			case TextAlign::Right:  parts.push_back("BS_RIGHT"); break;
+			}
+			break;
+		default: break;
+		}
+
+		if (customStyle != 0)
+			parts.push_back(std::format("0x{:X}", customStyle));
+
+		if (parts.empty())
+			return forGenericControl ? "0x50010000" : "";  // WS_CHILD | WS_VISIBLE | WS_TABSTOP
+
+		auto result = std::string{};
+		for (size_t i = 0; i < parts.size(); ++i)
+		{
+			if (i > 0) result += " | ";
+			result += parts[i];
+		}
+		return result;
+	}
+
+	// Escapes a wide string to narrow for use in RC string literals.
+	auto EscapeRcString(const std::wstring& s) -> std::string
+	{
+		auto result = std::string{};
+		for (auto ch : s)
+		{
+			if (ch == L'"') result += "\"\"";
+			else if (ch < 128) result += static_cast<char>(ch);
+			else result += std::format("\\x{:04X}", static_cast<unsigned int>(ch));
+		}
+		return result;
+	}
+
+	// Generates a resource.h header with IDD and IDC defines.
+	auto GenerateRcHeader(const Form& form) -> std::string
+	{
+		auto out = std::ostringstream{};
+
+		out << "//{{NO_DEPENDENCIES}}\n";
+		out << "// Resource header generated by Win32 Form Builder\n";
+		out << "#ifndef RESOURCE_H\n";
+		out << "#define RESOURCE_H\n\n";
+
+		out << "#define IDD_DIALOG  101\n\n";
+
+		// Collect all controls with IDs.
+		auto emitDefines = [&](auto& self, std::span<const Control> controls) -> void
+		{
+			for (auto& ctrl : controls)
+			{
+				if (ctrl.id > 0)
+				{
+					auto prefix = TypePrefixUpper(ctrl.type);
+					out << "#define IDC_" << prefix << "_" << ctrl.id
+						<< "  " << ctrl.id << "\n";
+				}
+				if (!ctrl.children.empty())
+					self(self, ctrl.children);
+			}
+		};
+		emitDefines(emitDefines, form.controls);
+
+		out << "\n#endif // RESOURCE_H\n";
+		return out.str();
+	}
+
+	// Emits a single control line in RC DIALOGEX format.
+	void EmitRcControl(std::ostringstream& out, const Control& ctrl,
+		const DluMetrics& metrics)
+	{
+		int x = PixelToDluX(ctrl.rect.x, metrics);
+		int y = PixelToDluY(ctrl.rect.y, metrics);
+		int w = PixelToDluX(ctrl.rect.width, metrics);
+		int h = PixelToDluY(ctrl.rect.height, metrics);
+
+		auto text = EscapeRcString(ctrl.text);
+		auto idName = ctrl.id > 0
+			? std::format("IDC_{}_{}", TypePrefixUpper(ctrl.type), ctrl.id)
+			: std::string{"IDC_STATIC"};
+
+		bool isDefPush = (ctrl.type == ControlType::Button && (ctrl.style & 0x1) != 0);
+
+		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false);
+
+		switch (ctrl.type)
+		{
+		case ControlType::Label:
+		{
+			auto keyword = "LTEXT";
+			if (ctrl.textAlign == TextAlign::Center) keyword = "CTEXT";
+			else if (ctrl.textAlign == TextAlign::Right) keyword = "RTEXT";
+			out << "    " << keyword << "           \""
+				<< text << "\"," << idName << ","
+				<< x << "," << y << "," << w << "," << h << "\n";
+			break;
+		}
+		case ControlType::Button:
+			out << "    " << (isDefPush ? "DEFPUSHBUTTON" : "PUSHBUTTON")
+				<< "      \"" << text << "\"," << idName << ","
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
+			break;
+		case ControlType::CheckBox:
+			out << "    AUTOCHECKBOX    \""
+				<< text << "\"," << idName << ","
+				<< x << "," << y << "," << w << "," << h << "\n";
+			break;
+		case ControlType::RadioButton:
+			out << "    AUTORADIOBUTTON \""
+				<< text << "\"," << idName << ","
+				<< x << "," << y << "," << w << "," << h << "\n";
+			break;
+		case ControlType::GroupBox:
+			out << "    GROUPBOX        \""
+				<< text << "\"," << idName << ","
+				<< x << "," << y << "," << w << "," << h << "\n";
+			break;
+		case ControlType::TextBox:
+		{
+			out << "    EDITTEXT        "
+				<< idName << ","
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
+			break;
+		}
+		case ControlType::ComboBox:
+		{
+			// ComboBox height in RC is the dropdown height.
+			int dropH = PixelToDluY(200, metrics);
+			out << "    COMBOBOX        "
+				<< idName << ","
+				<< x << "," << y << "," << w << "," << dropH;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
+			break;
+		}
+		case ControlType::ListBox:
+			out << "    LISTBOX         "
+				<< idName << ","
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
+			break;
+		default:
+		{
+			// Generic CONTROL statement for common controls.
+			auto className = RcClassName(ctrl.type);
+			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true);
+			out << "    CONTROL         \""
+				<< text << "\"," << idName << ",\""
+				<< className << "\"," << genStyle << ","
+				<< x << "," << y << "," << w << "," << h << "\n";
+			break;
+		}
+		}
+	}
+
+	// Generates a complete .rc DIALOGEX resource from a Form definition.
+	auto GenerateRcDialog(const Form& form) -> std::string
+	{
+		auto out = std::ostringstream{};
+
+		auto metrics = EstimateDluMetrics(form.font);
+		int dlgW = PixelToDluX(form.width, metrics);
+		int dlgH = PixelToDluY(form.height, metrics);
+
+		out << "// Resource script generated by Win32 Form Builder\n";
+		out << "#include <windows.h>\n";
+		out << "#include <commctrl.h>\n";
+		out << "#include \"resource.h\"\n\n";
+
+		out << "IDD_DIALOG DIALOGEX 0, 0, " << dlgW << ", " << dlgH << "\n";
+
+		// STYLE
+		auto style = form.style != 0 ? form.style : 0x90C80080; // WS_OVERLAPPEDWINDOW | DS_SETFONT | WS_POPUP | DS_MODALFRAME
+		out << "STYLE " << std::format("0x{:08X}", style | 0x40) << "\n"; // Ensure DS_SETFONT
+
+		if (form.exStyle != 0)
+			out << "EXSTYLE " << std::format("0x{:08X}", form.exStyle) << "\n";
+
+		out << "CAPTION \"" << EscapeRcString(form.title) << "\"\n";
+
+		// FONT statement
+		if (!form.font.family.empty() && form.font.size > 0)
+		{
+			int weight = form.font.bold ? 700 : 400;
+			int italic = form.font.italic ? 1 : 0;
+			out << "FONT " << form.font.size << ", \""
+				<< EscapeRcString(form.font.family) << "\", "
+				<< weight << ", " << italic << ", 0x1\n";
+		}
+		else
+		{
+			out << "FONT 8, \"MS Shell Dlg 2\", 400, 0, 0x1\n";
+		}
+
+		out << "BEGIN\n";
+
+		auto emitControls = [&](auto& self, std::span<const Control> controls) -> void
+		{
+			for (auto& ctrl : controls)
+			{
+				EmitRcControl(out, ctrl, metrics);
+				if (!ctrl.children.empty())
+					self(self, ctrl.children);
+			}
+		};
+		emitControls(emitControls, form.controls);
+
+		out << "END\n";
+
+		return out.str();
+	}
 }
