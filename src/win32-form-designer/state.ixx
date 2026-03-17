@@ -58,6 +58,9 @@ export namespace Designer
 	constexpr Win32::UINT IDM_FORMAT_SAME_HEIGHT     = 40310;
 	constexpr Win32::UINT IDM_FORMAT_SAME_SIZE       = 40311;
 
+	// Tools menu IDs.
+	constexpr Win32::UINT IDM_TOOLS_CHECKA11Y = 40501;
+
 	// Template menu IDs.
 	constexpr Win32::UINT IDM_TEMPLATE_LOGIN      = 40401;
 	constexpr Win32::UINT IDM_TEMPLATE_SETTINGS   = 40402;
@@ -123,6 +126,12 @@ export namespace Designer
 
 	// Data binding property controls.
 	constexpr Win32::UINT IDC_PROP_BINDFIELD     = 51035;
+
+	// Accessibility property controls.
+	constexpr Win32::UINT IDC_PROP_ACCESSNAME    = 51037;
+	constexpr Win32::UINT IDC_PROP_ACCESSDESC    = 51038;
+	constexpr Win32::UINT IDC_PROP_TABSTOP       = 51039;
+	constexpr Win32::UINT IDC_PROP_GROUPSTART    = 51040;
 
 	// Form property edit IDs.
 	constexpr Win32::UINT IDC_PROP_FORM_TITLE      = 52001;

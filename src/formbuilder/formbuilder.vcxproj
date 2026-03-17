@@ -139,6 +139,7 @@
     <ClCompile Include="json.ixx" />
     <ClCompile Include="serializer.ixx" />
     <ClCompile Include="codegen.ixx" />
+    <ClCompile Include="accessibility.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

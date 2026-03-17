@@ -34,6 +34,10 @@ export namespace FormDesigner
 				childStyle |= Win32::Styles::Visible;
 			if (!control.enabled)
 				childStyle |= Win32::Styles::Disabled;
+			if (control.tabStop && IsInteractiveControl(control.type))
+				childStyle |= Win32::Styles::TabStop;
+			if (control.groupStart)
+				childStyle |= Win32::Styles::Group;
 
 			auto hwnd = Win32::CreateWindowExW(
 				control.exStyle,

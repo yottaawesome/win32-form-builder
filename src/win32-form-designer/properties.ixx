@@ -60,7 +60,8 @@ namespace Designer
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
-			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_VISIBLE, IDC_PROP_ENABLED, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP
+			IDC_PROP_TEXTALIGN, IDC_PROP_LOCKED, IDC_PROP_VISIBLE, IDC_PROP_ENABLED, IDC_PROP_ANCHOR, IDC_PROP_TOOLTIP,
+			IDC_PROP_ACCESSNAME, IDC_PROP_ACCESSDESC
 		};
 		constexpr Win32::UINT formIds[] = {
 			IDC_PROP_FORM_TITLE, IDC_PROP_FORM_WIDTH,
@@ -73,7 +74,7 @@ namespace Designer
 		int ctrlShow = hasSel ? Win32::Sw_Show : Win32::Sw_Hide;
 		int formShow = hasSel ? Win32::Sw_Hide : Win32::Sw_Show;
 
-		SetPropertyGroupVisibility(panel, ctrlIds, 21, ctrlShow);
+		SetPropertyGroupVisibility(panel, ctrlIds, 23, ctrlShow);
 		SetPropertyGroupVisibility(panel, formIds, 10, formShow);
 
 		auto bgBtn = Win32::GetDlgItem(panel, IDC_PROP_FORM_BGCOLOR_BTN);
@@ -151,6 +152,15 @@ namespace Designer
 
 		// Data binding field — visible for any selected control.
 		showId(IDC_PROP_BINDFIELD, hasSel);
+
+		// Accessibility fields — visible for any selected control.
+		showId(IDC_PROP_ACCESSNAME, hasSel);
+		showId(IDC_PROP_ACCESSDESC, hasSel);
+		// TabStop/GroupStart checkboxes — no labels via IDL_OFFSET, just show/hide directly.
+		auto tabStopChk = Win32::GetDlgItem(panel, IDC_PROP_TABSTOP);
+		if (tabStopChk) Win32::ShowWindow(tabStopChk, ctrlShow);
+		auto groupStartChk = Win32::GetDlgItem(panel, IDC_PROP_GROUPSTART);
+		if (groupStartChk) Win32::ShowWindow(groupStartChk, ctrlShow);
 	}
 
 	void UpdateControlProperties(DesignState& state, Win32::HWND panel, int sel)
@@ -253,13 +263,26 @@ namespace Designer
 			Win32::SetDlgItemTextW(panel, IDC_PROP_BINDFIELD, bindW.c_str());
 		}
 
+		// Accessibility fields.
+		Win32::SetDlgItemTextW(panel, IDC_PROP_ACCESSNAME, ctrl.accessibleName.c_str());
+		Win32::SetDlgItemTextW(panel, IDC_PROP_ACCESSDESC, ctrl.accessibleDescription.c_str());
+
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_TABSTOP),
+			Win32::Button::SetCheck,
+			ctrl.tabStop ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
+		Win32::SendMessageW(Win32::GetDlgItem(panel, IDC_PROP_GROUPSTART),
+			Win32::Button::SetCheck,
+			ctrl.groupStart ? Win32::Button::Checked : Win32::Button::Unchecked, 0);
+
 		Win32::UINT editableIds[] = { IDC_PROP_TEXT, IDC_PROP_ID,
 			IDC_PROP_X, IDC_PROP_Y, IDC_PROP_W, IDC_PROP_H,
 			IDC_PROP_ONCLICK, IDC_PROP_ONCHANGE, IDC_PROP_ONDBLCLICK, IDC_PROP_ONSELCHANGE,
 			IDC_PROP_ONFOCUS, IDC_PROP_ONBLUR, IDC_PROP_ONCHECK, IDC_PROP_TABINDEX,
 			IDC_PROP_TOOLTIP, IDC_PROP_SELINDEX,
 			IDC_PROP_VAL_MINLEN, IDC_PROP_VAL_MAXLEN, IDC_PROP_VAL_PATTERN,
-			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_IMAGEPATH, IDC_PROP_BINDFIELD };
+			IDC_PROP_VAL_MIN, IDC_PROP_VAL_MAX, IDC_PROP_IMAGEPATH, IDC_PROP_BINDFIELD,
+			IDC_PROP_ACCESSNAME, IDC_PROP_ACCESSDESC };
 		for (auto id : editableIds)
 			Win32::EnableWindow(Win32::GetDlgItem(panel, id), true);
 	}
@@ -647,6 +670,20 @@ namespace Designer
 			ctrl.bindField = narrow;
 			break;
 		}
+		case IDC_PROP_ACCESSNAME:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_ACCESSNAME, buf, 256);
+			ctrl.accessibleName = buf;
+			break;
+		}
+		case IDC_PROP_ACCESSDESC:
+		{
+			wchar_t buf[256] = {};
+			Win32::GetDlgItemTextW(panel, IDC_PROP_ACCESSDESC, buf, 256);
+			ctrl.accessibleDescription = buf;
+			break;
+		}
 		default:
 			return;
 		}
@@ -998,6 +1035,62 @@ namespace Designer
 			Win32::EnableWindow(edit, false);
 		}
 
+		// Accessibility: AccessName row.
+		y += rh;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"AccName:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ACCESSNAME + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ACCESSNAME)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			Win32::EnableWindow(edit, false);
+		}
+
+		// Accessibility: AccessDesc row.
+		y += rh;
+		{
+			auto lbl = Win32::CreateWindowExW(0, L"STATIC", L"AccDesc:",
+				Win32::Styles::Child | Win32::Styles::StaticRight,
+				pad, y + 2, lw, lh, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ACCESSDESC + IDL_OFFSET)),
+				hInst, nullptr);
+			Win32::SendMessageW(lbl, Win32::Messages::SetFont, font, true);
+
+			auto edit = Win32::CreateWindowExW(Win32::ExStyles::ClientEdge, L"EDIT", L"",
+				Win32::Styles::Child | Win32::Styles::TabStop | Win32::Styles::EditAutoHScroll,
+				ex, y, ew, ch, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_ACCESSDESC)),
+				hInst, nullptr);
+			Win32::SendMessageW(edit, Win32::Messages::SetFont, font, true);
+			Win32::EnableWindow(edit, false);
+		}
+
+		// Accessibility: TabStop checkbox.
+		y += rh;
+		{
+			auto chk = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Tab Stop",
+				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
+				d.Scale(15), y, d.Scale(95), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_TABSTOP)),
+				hInst, nullptr);
+			Win32::SendMessageW(chk, Win32::Messages::SetFont, font, true);
+
+			auto chk2 = Win32::CreateWindowExW(0, Win32::Controls::Button, L"Group Start",
+				Win32::Styles::Child | Win32::Styles::AutoCheckBox,
+				d.Scale(115), y, d.Scale(100), hdrH, parent,
+				reinterpret_cast<Win32::HMENU>(static_cast<Win32::UINT_PTR>(IDC_PROP_GROUPSTART)),
+				hInst, nullptr);
+			Win32::SendMessageW(chk2, Win32::Messages::SetFont, font, true);
+		}
+
 		// Image path row (Picture only): label + edit + "..." browse button.
 		// Shares the same y slot as Items — they are mutually exclusive.
 		y += rh;
@@ -1286,8 +1379,8 @@ namespace Designer
 	}
 
 	auto PropContentCtrl(const DpiInfo& d) -> int {
-		// header(30) + 27 rows*rh(26) + locked/visible(24) + enabled(24) + val header+required(22*2) + padding(10)
-		return d.Scale(30) + 27 * d.Scale(26) + 2 * d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
+		// header(30) + 30 rows*rh(26) + locked/visible(24) + enabled(24) + tabstop/group(24) + val header+required(22*2) + padding(10)
+		return d.Scale(30) + 30 * d.Scale(26) + 3 * d.Scale(24) + 2 * d.Scale(22) + d.Scale(10);
 	}
 	auto PropContentForm(const DpiInfo& d) -> int { return d.Scale(30) + 4 * d.Scale(26) + d.Scale(10) + d.Scale(22) + 5 * d.Scale(22) + d.Scale(8) + d.Scale(26) + d.Scale(26) + d.Scale(10); }
 	auto PropScrollLine(const DpiInfo& d) -> int { return d.Scale(26); }
@@ -1525,6 +1618,32 @@ namespace Designer
 				return 0;
 			}
 
+			// TabStop checkbox for selected control.
+			if (id == IDC_PROP_TABSTOP && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_TABSTOP);
+				state->entries[sel].control->tabStop =
+					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+				MarkDirty(*state);
+				return 0;
+			}
+
+			// GroupStart checkbox for selected control.
+			if (id == IDC_PROP_GROUPSTART && code == Win32::Notifications::ButtonClicked)
+			{
+				int sel = SingleSelection(*state);
+				if (sel < 0 || sel >= static_cast<int>(state->entries.size())) return 0;
+				PushUndo(*state);
+				auto chk = Win32::GetDlgItem(hwnd, IDC_PROP_GROUPSTART);
+				state->entries[sel].control->groupStart =
+					Win32::SendMessageW(chk, Win32::Button::GetCheck, 0, 0) == Win32::Button::Checked;
+				MarkDirty(*state);
+				return 0;
+			}
+
 			// Required validation checkbox.
 			if (id == IDC_PROP_VAL_REQUIRED && code == Win32::Notifications::ButtonClicked)
 			{
@@ -1706,7 +1825,8 @@ namespace Designer
 			{
 				bool isCtrlProp = (id >= IDC_PROP_TYPE && id <= IDC_PROP_TABINDEX)
 					|| id == IDC_PROP_TOOLTIP || id == IDC_PROP_SELINDEX
-					|| id == IDC_PROP_BINDFIELD;
+					|| id == IDC_PROP_BINDFIELD
+					|| id == IDC_PROP_ACCESSNAME || id == IDC_PROP_ACCESSDESC;
 				bool isValProp = (id >= IDC_PROP_VAL_MINLEN && id <= IDC_PROP_VAL_MAX);
 				bool isImageProp = (id == IDC_PROP_IMAGEPATH);
 				bool isFormProp = (id >= IDC_PROP_FORM_TITLE && id <= IDC_PROP_FORM_BGCOLOR)

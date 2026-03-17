@@ -163,6 +163,7 @@ TEST_CASE("RC generic CONTROL uses non-visible style for hidden control", "[visi
 	form.controls.push_back(ctrl);
 
 	auto rc = GenerateRcDialog(form);
-	// Generic CONTROL should use style without WS_VISIBLE (0x40010000 instead of 0x50010000)
-	REQUIRE(contains(rc, "0x40010000"));
+	// Generic CONTROL should use style without WS_VISIBLE.
+	// ProgressBar is non-interactive, so no WS_TABSTOP: WS_CHILD only = 0x40000000
+	REQUIRE(contains(rc, "0x40000000"));
 }

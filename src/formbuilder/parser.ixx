@@ -187,6 +187,24 @@ export namespace FormDesigner
 		if (j.contains("bindField"))
 			control.bindField = j["bindField"].get<std::string>();
 
+		if (j.contains("tabStop"))
+			control.tabStop = j["tabStop"].get<bool>();
+
+		if (j.contains("groupStart"))
+			control.groupStart = j["groupStart"].get<bool>();
+
+		if (j.contains("accessibleName"))
+		{
+			auto narrow = j["accessibleName"].get<std::string>();
+			control.accessibleName = std::wstring(narrow.begin(), narrow.end());
+		}
+
+		if (j.contains("accessibleDescription"))
+		{
+			auto narrow = j["accessibleDescription"].get<std::string>();
+			control.accessibleDescription = std::wstring(narrow.begin(), narrow.end());
+		}
+
 		if (j.contains("children"))
 			for (auto& child : j["children"])
 				control.children.push_back(ParseControl(child));

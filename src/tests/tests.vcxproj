@@ -156,6 +156,7 @@
     <ClCompile Include="test_picture.cpp" />
     <ClCompile Include="test_databinding.cpp" />
     <ClCompile Include="test_disabled.cpp" />
+    <ClCompile Include="test_accessibility.cpp" />
     <!-- Designer module partitions (compiled in-project for testing) -->
     <ClCompile Include="..\win32-form-designer\state.ixx" />
     <ClCompile Include="..\win32-form-designer\hit_testing.ixx" />

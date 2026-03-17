@@ -96,6 +96,11 @@ namespace Designer
 		Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
 			reinterpret_cast<Win32::UINT_PTR>(formatMenu), L"F&ormat");
 
+		auto toolsMenu = Win32::CreatePopupMenu();
+		Win32::AppendMenuW(toolsMenu, Win32::Menu::String, IDM_TOOLS_CHECKA11Y, L"Check &Accessibility...");
+		Win32::AppendMenuW(menuBar, Win32::Menu::Popup,
+			reinterpret_cast<Win32::UINT_PTR>(toolsMenu), L"&Tools");
+
 		auto viewMenu = Win32::CreatePopupMenu();
 		Win32::AppendMenuW(viewMenu, Win32::Menu::String | Win32::Menu::Checked,
 			IDM_VIEW_SHOWGRID, L"Show &Grid");
@@ -749,6 +754,34 @@ namespace Designer
 			case IDM_TEMPLATE_DATAENTRY: ApplyTemplate(*state, TemplateDataEntryForm()); return 0;
 			case IDM_TEMPLATE_ABOUT:     ApplyTemplate(*state, TemplateAboutDialog()); return 0;
 			case IDM_TEMPLATE_SEARCH:    ApplyTemplate(*state, TemplateSearchForm()); return 0;
+			case IDM_TOOLS_CHECKA11Y:
+			{
+				auto warnings = FormDesigner::CheckAccessibility(state->form);
+				if (warnings.empty())
+				{
+					Win32::MessageBoxW(hwnd, L"No accessibility issues found.",
+						L"Accessibility Check", Win32::Mb_IconInformation);
+				}
+				else
+				{
+					auto msg = std::wstring{};
+					msg += std::to_wstring(warnings.size());
+					msg += L" issue(s) found:\n\n";
+					for (size_t i = 0; i < warnings.size() && i < 20; ++i)
+					{
+						auto& w = warnings[i];
+						auto desc = std::wstring(w.controlDesc.begin(), w.controlDesc.end());
+						auto wmsg = std::wstring(w.message.begin(), w.message.end());
+						msg += (w.level == FormDesigner::AccessibilityLevel::Error ? L"\x2718 " : L"\x26A0 ");
+						msg += desc + L": " + wmsg + L"\n";
+					}
+					if (warnings.size() > 20)
+						msg += L"\n... and " + std::to_wstring(warnings.size() - 20) + L" more.";
+					Win32::MessageBoxW(hwnd, msg.c_str(),
+						L"Accessibility Check", Win32::Mb_IconWarning);
+				}
+				return 0;
+			}
 			default:
 			{
 				auto id = Win32::GetLowWord(wParam);

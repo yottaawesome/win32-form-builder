@@ -6,3 +6,4 @@ export import :serializer;
 export import :codegen;
 export import :loader;
 export import :win32;
+export import :accessibility;

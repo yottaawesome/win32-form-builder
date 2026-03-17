@@ -152,6 +152,18 @@ export namespace FormDesigner
 		if (!control.bindField.empty())
 			j["bindField"] = control.bindField;
 
+		if (!control.tabStop)
+			j["tabStop"] = false;
+
+		if (control.groupStart)
+			j["groupStart"] = true;
+
+		if (!control.accessibleName.empty())
+			j["accessibleName"] = std::string(control.accessibleName.begin(), control.accessibleName.end());
+
+		if (!control.accessibleDescription.empty())
+			j["accessibleDescription"] = std::string(control.accessibleDescription.begin(), control.accessibleDescription.end());
+
 		if (not control.children.empty())
 		{
 			j["children"] = nlohmann::json::array();

@@ -165,8 +165,39 @@ export namespace FormDesigner
 		ValidationInfo validation;
 		std::wstring imagePath; // For Picture controls: relative path to BMP/ICO file.
 		std::string bindField; // Data binding: struct member name.
+		bool tabStop = true;     // Whether control receives WS_TABSTOP (interactive controls only).
+		bool groupStart = false; // Whether control starts a new WS_GROUP.
+		std::wstring accessibleName;        // Explicit accessible name for screen readers.
+		std::wstring accessibleDescription; // Accessible description/help text.
 		std::vector<Control> children;
 	};
+
+	// Returns true if the control type is interactive (receives keyboard focus/input).
+	constexpr auto IsInteractiveControl(ControlType type) noexcept -> bool
+	{
+		switch (type)
+		{
+		case ControlType::Button:
+		case ControlType::CheckBox:
+		case ControlType::RadioButton:
+		case ControlType::TextBox:
+		case ControlType::ListBox:
+		case ControlType::ComboBox:
+		case ControlType::TreeView:
+		case ControlType::ListView:
+		case ControlType::DateTimePicker:
+		case ControlType::MonthCalendar:
+		case ControlType::HotKey:
+		case ControlType::IPAddress:
+		case ControlType::RichEdit:
+		case ControlType::TrackBar:
+		case ControlType::UpDown:
+		case ControlType::TabControl:
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	// Returns 0 for unknown, 1 for BMP (IMAGE_BITMAP), 2 for ICO (IMAGE_ICON).
 	inline auto ImageTypeFromPath(const std::wstring& path) noexcept -> int

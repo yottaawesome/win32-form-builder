@@ -249,6 +249,7 @@ export namespace Win32
 		constexpr auto MinimizeBox      = WS_MINIMIZEBOX;
 		constexpr auto MaximizeBox      = WS_MAXIMIZEBOX;
 		constexpr auto TabStop          = WS_TABSTOP;
+		constexpr auto Group            = WS_GROUP;
 		constexpr auto VScroll          = WS_VSCROLL;
 
 		// Button styles.

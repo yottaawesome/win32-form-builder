@@ -156,13 +156,17 @@ namespace FormDesigner
 	}
 
 	// Builds a human-readable style expression string (e.g. "WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX").
-	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool visible = true, bool enabled = true) -> std::string
+	auto BuildStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool visible = true, bool enabled = true, bool tabStop = true, bool groupStart = false) -> std::string
 	{
 		auto parts = std::vector<std::string>{"WS_CHILD"};
 		if (visible)
 			parts.push_back("WS_VISIBLE");
 		if (!enabled)
 			parts.push_back("WS_DISABLED");
+		if (tabStop && IsInteractiveControl(type))
+			parts.push_back("WS_TABSTOP");
+		if (groupStart)
+			parts.push_back("WS_GROUP");
 
 		switch (type)
 		{
@@ -543,7 +547,7 @@ namespace FormDesigner
 		{
 			auto varName = ControlVarName(ctrl, controlIndex);
 			auto className = Win32ClassLiteral(ctrl.type);
-			auto styleExpr = BuildStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, ctrl.visible, ctrl.enabled);
+			auto styleExpr = BuildStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, ctrl.visible, ctrl.enabled, ctrl.tabStop, ctrl.groupStart);
 			auto textLiteral = std::format("L\"{}\"", EscapeWString(ctrl.text));
 			auto menuExpr = ctrl.id != 0
 				? std::format("(HMENU){}", IdcConstantName(ctrl))
@@ -576,6 +580,18 @@ namespace FormDesigner
 				if (ctrl.validation.max != 0)
 					out << " max=" << ctrl.validation.max;
 				out << "\n";
+			}
+
+			// Emit accessibility metadata as comments.
+			if (!ctrl.accessibleName.empty())
+			{
+				auto narrowName = std::string(ctrl.accessibleName.begin(), ctrl.accessibleName.end());
+				out << indent << "// Accessible name: \"" << narrowName << "\"\n";
+			}
+			if (!ctrl.accessibleDescription.empty())
+			{
+				auto narrowDesc = std::string(ctrl.accessibleDescription.begin(), ctrl.accessibleDescription.end());
+				out << indent << "// Accessible description: \"" << narrowDesc << "\"\n";
 			}
 
 			out << indent << "HWND " << varName << " = CreateWindowExW(\n";
@@ -1210,7 +1226,7 @@ export namespace FormDesigner
 	}
 
 	// Builds a style expression for use in RC scripts.
-	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl, bool visible = true, bool enabled = true) -> std::string
+	auto BuildRcStyleExpression(ControlType type, TextAlign align, Win32::DWORD customStyle, bool forGenericControl, bool visible = true, bool enabled = true, bool tabStop = true, bool groupStart = false) -> std::string
 	{
 		auto parts = std::vector<std::string>{};
 
@@ -1227,6 +1243,12 @@ export namespace FormDesigner
 
 		if (!enabled)
 			parts.push_back("WS_DISABLED");
+
+		if (tabStop && IsInteractiveControl(type) && !forGenericControl)
+			parts.push_back("WS_TABSTOP");
+
+		if (groupStart)
+			parts.push_back("WS_GROUP");
 
 		switch (type)
 		{
@@ -1277,9 +1299,13 @@ export namespace FormDesigner
 		if (parts.empty())
 		{
 			if (!forGenericControl) return "";
-			// WS_CHILD | WS_VISIBLE | WS_TABSTOP = 0x50010000
-			// WS_CHILD | WS_TABSTOP (no visible) = 0x40010000
-			return visible ? "0x50010000" : "0x40010000";
+			// Base styles for generic CONTROL: WS_CHILD always present.
+			// WS_CHILD = 0x40000000, WS_VISIBLE = 0x10000000, WS_TABSTOP = 0x00010000
+			auto base = Win32::DWORD{0x40000000}; // WS_CHILD
+			if (visible) base |= 0x10000000;      // WS_VISIBLE
+			if (tabStop && IsInteractiveControl(type)) base |= 0x00010000; // WS_TABSTOP
+			if (groupStart) base |= 0x00020000;    // WS_GROUP
+			return std::format("0x{:08X}", base);
 		}
 
 		auto result = std::string{};
@@ -1360,7 +1386,7 @@ export namespace FormDesigner
 
 		bool isDefPush = (ctrl.type == ControlType::Button && (ctrl.style & 0x1) != 0);
 
-		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false, ctrl.visible, ctrl.enabled);
+		auto styleStr = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, false, ctrl.visible, ctrl.enabled, ctrl.tabStop, ctrl.groupStart);
 
 		switch (ctrl.type)
 		{
@@ -1371,7 +1397,10 @@ export namespace FormDesigner
 			else if (ctrl.textAlign == TextAlign::Right) keyword = "RTEXT";
 			out << "    " << keyword << "           \""
 				<< text << "\"," << idName << ","
-				<< x << "," << y << "," << w << "," << h << "\n";
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
 			break;
 		}
 		case ControlType::Button:
@@ -1385,17 +1414,26 @@ export namespace FormDesigner
 		case ControlType::CheckBox:
 			out << "    AUTOCHECKBOX    \""
 				<< text << "\"," << idName << ","
-				<< x << "," << y << "," << w << "," << h << "\n";
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
 			break;
 		case ControlType::RadioButton:
 			out << "    AUTORADIOBUTTON \""
 				<< text << "\"," << idName << ","
-				<< x << "," << y << "," << w << "," << h << "\n";
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
 			break;
 		case ControlType::GroupBox:
 			out << "    GROUPBOX        \""
 				<< text << "\"," << idName << ","
-				<< x << "," << y << "," << w << "," << h << "\n";
+				<< x << "," << y << "," << w << "," << h;
+			if (!styleStr.empty())
+				out << "," << styleStr;
+			out << "\n";
 			break;
 		case ControlType::TextBox:
 		{
@@ -1431,7 +1469,7 @@ export namespace FormDesigner
 		{
 			// Generic CONTROL statement for common controls.
 			auto className = RcClassName(ctrl.type);
-			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true, ctrl.visible, ctrl.enabled);
+			auto genStyle = BuildRcStyleExpression(ctrl.type, ctrl.textAlign, ctrl.style, true, ctrl.visible, ctrl.enabled, ctrl.tabStop, ctrl.groupStart);
 			out << "    CONTROL         \""
 				<< text << "\"," << idName << ",\""
 				<< className << "\"," << genStyle << ","
