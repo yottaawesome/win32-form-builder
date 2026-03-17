@@ -1,6 +1,6 @@
 # Win32 Form Runner
 
-A lightweight runtime that loads a JSON form definition and displays it as a native Win32 window with Per-Monitor V2 DPI awareness. Use this to preview and test forms created with the [form designer](../win32-form-designer/README.md).
+A lightweight runtime that loads a JSON form definition and displays it as a native Win32 window with Per-Monitor V2 DPI awareness and hot reload. Use this to preview and test forms created with the [form designer](../win32-form-designer/README.md).
 
 ## Usage
 
@@ -18,8 +18,11 @@ The runner is a thin host that demonstrates:
 1. Loading a JSON form via `FormDesigner::LoadFormFromFile()`
 2. Using **named control ID constants** (normally generated via File → Export Control IDs)
 3. Accessing controls via **typed wrappers** (`FormWindow`, `GetTextBox`, `GetCheckBox`)
-4. Showing a **modal confirmation dialog** with `ShowModalForm()` / `EndModal()`
-5. Running the Win32 message loop
+4. **EventMap-first binding** — register handlers before `LoadForm()`
+5. **Wrapper-based event binding** — bind handlers on typed wrappers after `LoadForm()`
+6. **Message box helpers** — `AskYesNo`, `ShowInfo`, `ShowError` instead of raw `MessageBoxW`
+7. **Hot reload** — `EnableHotReload()` to auto-rebuild when the JSON file changes
+8. **Structured error handling** — separate `FormException` and `std::exception` catch blocks
 
 Controls with anchoring flags are automatically repositioned and resized when the form window is resized at runtime. The loader also applies:
 - **DPI scaling** — positions and sizes are scaled to the current monitor DPI
@@ -41,42 +44,44 @@ namespace Controls {
     inline constexpr int CancelButton = 302;
 }
 
+// EventMap-first: register before LoadForm.
 auto events = FormDesigner::EventMap{};
-
 events.onClick(Controls::SubmitButton, [](const FormDesigner::ClickEvent& e) {
     auto window = FormDesigner::FormWindow{e.formHwnd};
     auto name = window.GetTextBox(Controls::NameText).GetText();
-    Win32::MessageBoxW(e.formHwnd, name.c_str(), L"Submitted", Win32::Mb_Ok);
-});
 
-events.onClick(Controls::CancelButton, [](const FormDesigner::ClickEvent& e) {
-    Win32::DestroyWindow(e.formHwnd);
+    auto result = FormDesigner::AskYesNo(e.formHwnd,
+        L"Submit for " + name + L"?", L"Confirm");
+    if (result == FormDesigner::DialogResult::Yes)
+        FormDesigner::ShowInfo(e.formHwnd, L"Submitted!", L"Success");
 });
 
 auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
+auto window = FormDesigner::FormWindow{hwnd};
+
+// Wrapper-based: bind after LoadForm via typed wrappers.
+window.GetButton(Controls::CancelButton).OnClick([](const FormDesigner::ClickEvent& e) {
+    Win32::DestroyWindow(e.formHwnd);
+});
+
+// Enable hot reload for rapid iteration.
+FormDesigner::EnableHotReload(hwnd, "my-form.json", basePath);
 ```
 
-### Example: Modal Confirmation Dialog
-
-The runner demonstrates showing a modal dialog that blocks the parent until dismissed:
+### Example: Error Handling
 
 ```cpp
-events.onClick(Controls::SubmitButton, [&](const FormDesigner::ClickEvent& e) {
-    auto window = FormDesigner::FormWindow{e.formHwnd};
-    auto name = window.GetTextBox(Controls::NameText).GetText();
-
-    // Build and show a confirmation dialog.
-    auto dlgEvents = FormDesigner::EventMap{};
-    dlgEvents.onClick(1, [](auto& de) {
-        FormDesigner::EndModal(de.formHwnd, FormDesigner::DialogResult::Ok);
-    });
-    dlgEvents.onClick(2, [](auto& de) {
-        FormDesigner::EndModal(de.formHwnd, FormDesigner::DialogResult::Cancel);
-    });
-
-    auto result = FormDesigner::ShowModalForm(dialogForm, hInstance, dlgEvents, e.formHwnd);
-    if (result == FormDesigner::DialogResult::Ok) { /* proceed */ }
-});
+try {
+    auto form = FormDesigner::LoadFormFromFile("my-form.json");
+    auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
+    return FormDesigner::RunMessageLoop();
+} catch (const FormDesigner::FormException& ex) {
+    FormDesigner::ShowError(nullptr, L"Form error: ...", L"Error");
+    return 1;
+} catch (const std::exception& ex) {
+    FormDesigner::ShowError(nullptr, L"Unexpected error: ...", L"Error");
+    return 1;
+}
 ```
 
 ## Sample Form

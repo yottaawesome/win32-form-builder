@@ -13,7 +13,11 @@ The formbuilder library provides the core data model and operations used by both
 - **Generate .rc dialog resources** — exports Win32 dialog templates with pixel-to-DLU conversion and `resource.h` header
 - **Accessibility audit** — checks forms for 7 common accessibility issues (missing labels, access keys, tab stops, etc.)
 - **Event routing** — type-safe event dispatch (click, change, focus, blur, check, double-click, selection change)
-- **Typed control wrappers** — zero-overhead `FormWindow` and 12 typed HWND wrappers (Button, TextBox, CheckBox, etc.) for ergonomic control access after `LoadForm()`
+- **Typed control wrappers** — zero-overhead `FormWindow` and 12 typed HWND wrappers (Button, TextBox, CheckBox, etc.) for ergonomic control access after `LoadForm()`, with wrapper-based event binding
+- **Modal dialogs** — `ShowModalForm()` / `EndModal()` for blocking dialog workflows returning `DialogResult`
+- **Message box helpers** — `ShowInfo`, `ShowError`, `ShowWarning`, `AskYesNo`, `AskYesNoCancel`, `AskOkCancel`
+- **Hot reload** — `EnableHotReload()` watches JSON files and automatically rebuilds the form when saved
+- **Error handling** — `FormException` with error codes for throwing APIs, `std::expected` for nothrow variants (`TryLoadForm`, `TryLoadFormFromFile`, `TryShowModalForm`)
 
 ## Module Partitions
 
@@ -25,12 +29,14 @@ The library is a single C++20 module (`formbuilder`) split into partitions:
 | `:json` | `json.ixx` | Re-exports `nlohmann::json` from the global module fragment |
 | `:schema` | `schema.ixx` | Core types: `ControlType` (23 types), `TextAlign`, `Anchor`, `Control`, `Form`, `Rect`, `FontInfo`, `ValidationInfo`, `DesignerGuide` |
 | `:events` | `events.ixx` | Event structs (`ClickEvent`, `ChangeEvent`, etc.) and `EventMap` dispatcher |
+| `:errors` | `errors.ixx` | `FormErrorCode` enum and `FormException` exception class |
 | `:parser` | `parser.ixx` | `ParseForm(json)` — JSON → `Form` |
 | `:serializer` | `serializer.ixx` | `SerializeForm(Form)` → JSON string |
 | `:codegen` | `codegen.ixx` | `GenerateCode(Form, useModules)` → standalone C++ source; `GenerateRcDialog(Form)` and `GenerateRcHeader(Form)` → `.rc` / `.h` files |
 | `:loader` | `loader.ixx` | `LoadForm()`, `LoadFormFromFile()` — creates Win32 windows at runtime with anchor-based resize, DPI scaling, range/value initialization |
 | `:accessibility` | `accessibility.ixx` | `CheckAccessibility(Form)` — 7-rule audit returning warnings/errors |
-| `:controls` | `controls.ixx` | `ControlBase`, 12 typed wrappers (`Button`, `TextBox`, `CheckBox`, etc.), `FormWindow` — non-owning HWND wrappers |
+| `:controls` | `controls.ixx` | `ControlBase`, 12 typed wrappers (`Button`, `TextBox`, `CheckBox`, etc.), `FormWindow` — non-owning HWND wrappers with event binding |
+| `:messagebox` | `messagebox.ixx` | `ShowInfo`, `ShowError`, `ShowWarning`, `AskYesNo`, `AskYesNoCancel`, `AskOkCancel` — message box helpers |
 
 The facade (`formbuilder.ixx`) re-exports all partitions.
 
@@ -100,6 +106,92 @@ ctrl.SetValue(42);
 ```
 
 Available wrappers: `Button`, `Label`, `TextBox`, `RichEdit`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `ProgressBar`, `TrackBar`, `UpDown`, `DateTimePicker`.
+
+### Wrapper-Based Event Binding
+
+Typed wrappers support direct event binding after `LoadForm()`:
+
+```cpp
+auto hwnd = FormDesigner::LoadForm(form, hInstance, events);
+auto window = FormDesigner::FormWindow{hwnd};
+
+// Bind events directly on wrappers — cleaner than EventMap for post-load wiring.
+window.GetButton(Controls::CancelButton).OnClick([](const FormDesigner::ClickEvent& e) {
+    Win32::DestroyWindow(e.formHwnd);
+});
+
+window.GetTextBox(Controls::NameText).OnChange([](const FormDesigner::ChangeEvent& e) {
+    /* text changed */
+});
+
+window.GetCheckBox(Controls::AgreeCheck).OnCheck([](const FormDesigner::CheckEvent& e) {
+    /* check toggled */
+});
+```
+
+Each wrapper exposes only the events that make sense for its control type (e.g. Button has `OnClick`/`OnDoubleClick`/`OnFocus`/`OnBlur`, TextBox has `OnChange`/`OnFocus`/`OnBlur`, CheckBox has `OnClick`/`OnCheck`/`OnFocus`/`OnBlur`).
+
+### Modal Dialogs
+
+```cpp
+auto dialogForm = FormDesigner::LoadFormFromFile("confirm.json");
+auto dlgEvents = FormDesigner::EventMap{};
+dlgEvents.onClick(1, [](const FormDesigner::ClickEvent& e) {
+    FormDesigner::EndModal(e.formHwnd, FormDesigner::DialogResult::Ok);
+});
+
+auto result = FormDesigner::ShowModalForm(dialogForm, hInstance, dlgEvents, parentHwnd);
+if (result == FormDesigner::DialogResult::Ok) { /* user confirmed */ }
+```
+
+### Message Box Helpers
+
+```cpp
+// Notification dialogs
+FormDesigner::ShowInfo(hwnd, L"Operation completed.", L"Success");
+FormDesigner::ShowError(hwnd, L"File not found.", L"Error");
+FormDesigner::ShowWarning(hwnd, L"Unsaved changes.", L"Warning");
+
+// Prompt dialogs returning DialogResult
+auto result = FormDesigner::AskYesNo(hwnd, L"Save changes?", L"Confirm");
+if (result == FormDesigner::DialogResult::Yes) { /* save */ }
+
+auto r2 = FormDesigner::AskOkCancel(hwnd, L"Proceed?", L"Confirm");
+auto r3 = FormDesigner::AskYesNoCancel(hwnd, L"Save before closing?", L"Confirm");
+```
+
+### Hot Reload
+
+```cpp
+auto hwnd = FormDesigner::LoadForm(form, hInstance, events, basePath);
+FormDesigner::EnableHotReload(hwnd, "my-form.json", basePath);
+// The form automatically rebuilds when the JSON file is saved.
+// Call DisableHotReload(hwnd) to stop watching.
+```
+
+### Error Handling
+
+Throwing APIs raise `FormException` with a `FormErrorCode`:
+
+```cpp
+try {
+    auto form = FormDesigner::LoadFormFromFile("missing.json");
+} catch (const FormDesigner::FormException& ex) {
+    ex.code();  // FormErrorCode::FileNotFound, ParseError, etc.
+    ex.what();  // human-readable message
+}
+```
+
+Nothrow alternatives return `std::expected`:
+
+```cpp
+auto result = FormDesigner::TryLoadFormFromFile("form.json");
+if (result) {
+    auto& form = result.value();
+} else {
+    auto& err = result.error(); // FormException
+}
+```
 
 ### Parsing and Serializing
 ```cpp

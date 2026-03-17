@@ -20,8 +20,8 @@ This project has been pretty much written by Copilot with Claude Opus 4.6, with 
 |---------|------|-------------|
 | [formbuilder](src/formbuilder/README.md) | Static library | Core data model, JSON parser/serializer, runtime loader, C++ code generator, RC export, accessibility audit, typed control wrappers |
 | [win32-form-designer](src/win32-form-designer/README.md) | Application | Visual drag-and-drop form designer with toolbox, property editor, alignment tools, templates, and canvas |
-| [win32-form-runner](src/win32-form-runner/README.md) | Application | Lightweight runtime that loads and displays JSON forms with DPI awareness |
-| [tests](src/tests/README.md) | Console app | 394 unit tests (1039 assertions) using Catch2 |
+| [win32-form-runner](src/win32-form-runner/README.md) | Application | Lightweight runtime that loads and displays JSON forms with DPI awareness and hot reload |
+| [tests](src/tests/README.md) | Console app | 467 test cases (1183 assertions) using Catch2 |
 
 ## Quick Start
 
@@ -85,6 +85,17 @@ src\x64\Debug\tests.exe
 - **`FormWindow`**: wraps the form HWND with `Get<T>(id)` template access to child controls
 - **12 typed wrappers**: Button, TextBox, CheckBox, RadioButton, Label, ComboBox, ListBox, ProgressBar, TrackBar, UpDown, DateTimePicker, RichEdit — each with type-specific methods
 - **`ControlBase`**: common API for all controls — GetText, SetText, Show, Hide, Enable, Disable, Focus, IsVisible, IsEnabled
+- **Wrapper-based event binding**: `window.GetButton(id).OnClick(handler)` — bind events directly on typed wrappers after `LoadForm()`
+
+### Runtime
+- **Modal dialogs**: `ShowModalForm()` / `EndModal()` for modal form workflows returning `DialogResult`
+- **Message box helpers**: `ShowInfo`, `ShowError`, `ShowWarning`, `AskYesNo`, `AskYesNoCancel`, `AskOkCancel` — simplified wrappers around `MessageBoxW`
+- **Hot reload**: `EnableHotReload()` watches the JSON file and automatically rebuilds the form when saved — ideal for rapid iteration
+- **Generated control IDs**: export named `constexpr` ID constants from the designer (File → Export Control IDs)
+
+### Error Handling
+- **`FormException`**: structured exception class deriving from `std::exception` with `FormErrorCode` enum
+- **`std::expected` overloads**: `TryLoadForm`, `TryLoadFormFromFile`, `TryShowModalForm` return errors without throwing
 
 ### Export & File
 - **Export to C++**: standalone Win32 apps (classic or C++20 module style) with event stubs, data binding helpers, and DPI scaling

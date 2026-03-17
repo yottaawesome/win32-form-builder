@@ -6,11 +6,12 @@ Unit tests for the [formbuilder](../formbuilder/README.md) library using [Catch2
 
 | File | Tests | What It Covers |
 |------|-------|----------------|
-| `test_schema.cpp` | 17 | `ControlType` enum, `ClassNameFor`, `ImpliedStyleFor`, `AlignmentStyleFor`, default values (anchor, groupId) |
-| `test_parser_serializer.cpp` | 32 | JSON → `Form` parsing, `Form` → JSON serialization, round-trip fidelity, edge cases, anchor serialization |
+| `test_schema.cpp` | 25 | `ControlType` enum, `ClassNameFor`, `ImpliedStyleFor`, `AlignmentStyleFor`, default values (anchor, groupId) |
+| `test_parser_serializer.cpp` | 56 | JSON → `Form` parsing, `Form` → JSON serialization, round-trip fidelity, edge cases, anchor serialization |
 | `test_events.cpp` | 5 | `EventMap` registration and dispatch for all 7 event types |
-| `test_helpers.cpp` | 39 | Designer helpers — hit testing, resize handles, snap guides, control type display names, validation, tab order, grouping, recent files |
-| `test_codegen.cpp` | 29 | C++ code generation — preamble, styles, controls, events, IDC defines, RichEdit, escaping, anchoring |
+| `test_errors.cpp` | 20 | `FormException` construction, error codes, `TryLoadFormFromFile` / `TryLoadForm` / `TryShowModalForm` returning `std::expected` |
+| `test_helpers.cpp` | 48 | Designer helpers — hit testing, resize handles, snap guides, control type display names, validation, tab order, grouping, recent files |
+| `test_codegen.cpp` | 33 | C++ code generation — preamble, styles, controls, events, IDC defines, RichEdit, escaping, anchoring, data binding |
 | `test_alignment.cpp` | 15 | Multi-control alignment (6 align, 2 distribute, 3 match size), minimum selection requirements |
 | `test_dpi.cpp` | 7 | DPI scaling calculations, control rect scaling, font size scaling, manifest configuration |
 | `test_rc.cpp` | 26 | `.rc` dialog export — keyword vs generic controls, styles, pixel-to-DLU, header generation, escaping |
@@ -23,7 +24,12 @@ Unit tests for the [formbuilder](../formbuilder/README.md) library using [Catch2
 | `test_value.cpp` | 18 | Value property — ProgressBar/TrackBar/UpDown, round-trip, codegen PBM/TBM/UDM messages, range emit |
 | `test_form_visible_enabled.cpp` | 18 | Form-level visible/enabled — schema defaults, round-trip, codegen WS_DISABLED/ShowWindow, RC/loader |
 | `test_controls.cpp` | 35 | Typed control wrappers — compile-time type traits, FormWindow access, live TextBox/CheckBox/RadioButton/ComboBox/ListBox/ProgressBar/TrackBar/UpDown operations |
-| **Total** | **349 + 45 designer** | **1039 assertions across 394 test cases** |
+| `test_control_ids.cpp` | 14 | Generated control IDs — `GenerateControlIds()` output format, naming, uniqueness, empty form, duplicate handling |
+| `test_modal.cpp` | 7 | Modal dialog support — `ShowModalForm`, `EndModal`, `DialogResult` values, parent disable/enable |
+| `test_hotreload.cpp` | 9 | Hot reload — `EnableHotReload`, `DisableHotReload`, file change detection, timer lifecycle |
+| `test_wrapper_events.cpp` | 11 | Wrapper-based event binding — `OnClick`, `OnChange`, `OnCheck` on typed wrappers, `RequireEvents` guard |
+| `test_messagebox.cpp` | 12 | Message box helpers — `ShowInfo`, `ShowError`, `ShowWarning`, `AskYesNo`, `AskYesNoCancel`, `AskOkCancel` constants |
+| **Total** | **467** | **1183 assertions across 467 test cases** |
 
 ## Running
 
